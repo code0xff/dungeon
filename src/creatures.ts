@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import type { CreatureKey, CreatureRig } from './types';
 
-/** 원점이 위쪽 끝(어깨/골반)에 오도록 매단 팔·다리. 회전축이 관절이 된다. */
+/** A limb hung so its origin sits at the top end (shoulder/hip), making the rotation axis the joint. */
 function limb(w: number, h: number, d: number, mat: THREE.Material): THREE.Group {
   const pivot = new THREE.Group();
   const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
@@ -12,13 +12,13 @@ function limb(w: number, h: number, d: number, mat: THREE.Material): THREE.Group
 
 export const ironMat = new THREE.MeshStandardMaterial({ color: 0x3f4145, metalness: 0.7, roughness: 0.5 });
 
-/** 폴백 크리처 하나. 메시와, 애니메이션이 만질 리그를 함께 돌려준다. */
+/** One fallback creature: the mesh plus the rig the animation code drives. */
 export interface ProceduralCreature {
   mesh: THREE.Group;
   rig: CreatureRig;
 }
 
-/** assets/creatures/zombie 에 FBX/GLB가 없을 때 쓰는 박스 모델. */
+/** Box model used when assets/creatures/zombie holds no FBX/GLB. */
 function makeZombie(): ProceduralCreature {
   const g = new THREE.Group();
   const skin = new THREE.MeshStandardMaterial({ color: 0x5c6863, roughness: 0.95 });

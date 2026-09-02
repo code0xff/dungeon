@@ -2,60 +2,60 @@ import * as THREE from 'three';
 import type { Chest, Looting, Maze, Monster, Prop, Sconce, WeaponKind } from './types';
 
 /**
- * 한 판(run)의 가변 상태. buildWorld가 대부분을 초기화한다.
- * bankGold만 판을 넘어 유지된다.
+ * Mutable state for one run. buildWorld resets nearly all of it.
+ * Only bankGold survives from run to run.
  */
 export const state = {
-  // ---- 던전 ----
+  // ---- Dungeon ----
   maze: [] as Maze,
   exitCell: { x: 0, z: 0 },
 
-  // ---- 플레이어 ----
+  // ---- Player ----
   pos: new THREE.Vector3(),
   yaw: 0,
   pitch: 0,
   hp: 100,
   runGold: 0,
-  /** 탈출에 성공해야 여기로 옮겨진다. 죽으면 runGold는 소멸. */
+  /** Only a successful extraction moves gold here. Die and runGold is lost. */
   bankGold: 0,
 
-  // ---- 월드 내용물 ----
+  // ---- World contents ----
   monsters: [] as Monster[],
   chests: [] as Chest[],
   props: [] as Prop[],
   sconces: [] as Sconce[],
 
-  // ---- 진행 ----
+  // ---- Progress ----
   gameOver: false,
 
-  // ---- 검 ----
-  /** 남은 공격 쿨다운(초) */
+  // ---- Sword ----
+  /** Attack cooldown left, in seconds. */
   atkTimer: 0,
-  /** 휘두르기 진행도 0~1. -1이면 휘두르지 않는 상태 */
+  /** Swing progress 0..1; -1 means not swinging. */
   swingT: -1,
-  /** 이번 휘두르기의 판정이 이미 났는지. 한 번만 베게 한다. */
+  /** Whether this swing already resolved, so one swing cuts once. */
   swingHit: false,
 
-  // ---- 루팅 ----
+  // ---- Looting ----
   looting: null as Looting | null,
   nearChest: null as Chest | null,
 
-  // ---- 아이템 ----
+  // ---- Items ----
   hasTorch: false,
   hasMap: false,
-  /** 플레이어 횃불의 기본 밝기. 횃불을 얻으면 올라간다. */
+  /** Base intensity of the player's light. Picking up a torch raises it. */
   torchBase: 1.75,
 
-  // ---- 머스킷 ----
+  // ---- Musket ----
   hasMusket: false,
   ammo: 0,
-  /** 총알이 장전되어 있는지 */
+  /** Whether a round is chambered. */
   loaded: false,
-  /** 장전 경과 시간(초). -1이면 장전 중 아님 */
+  /** Seconds into the reload; -1 means not reloading. */
   reloadT: -1,
   weapon: 'sword' as WeaponKind,
-  /** 반동 진행도 0~1. -1이면 반동 중 아님 */
+  /** Recoil progress 0..1; -1 means no recoil. */
   recoilT: -1,
-  /** 총구 화염 잔여 시간(초) */
+  /** Seconds of muzzle flash left. */
   flashT: 0,
 };

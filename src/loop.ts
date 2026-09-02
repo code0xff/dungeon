@@ -22,18 +22,18 @@ import {
   promptEl, reloadBarEl, reloadFillEl, updateHUD,
 } from './ui';
 
-// ================= 크리처 애니메이션 =================
-/** 외부 모델: 상황에 맞는 클립만 골라 주고 믹서에 시간을 넘긴다. */
+// ================= Creature animation =================
+/** External models: pick the clip that fits the situation and advance the mixer. */
 function animLoaded(m: Monster, pb: MonsterPlayback, dt: number): void {
   const flash = m.hurtT > 0;
   if (flash) m.hurtT -= dt;
   flashLoadedMesh(m.mesh, flash);
 
   if (m.attackT > 0) {
-    // 공격 클립은 startAttack이 이미 틀어놨다. 끝날 때까지 건드리지 않는다.
+    // startAttack already began the attack clip. Leave it alone until it finishes.
   } else if (m.moving) {
     setAnim(pb, 'walk');
-    // 발이 미끄러지지 않게 재생 속도를 실제 이동 속도에 맞춘다.
+    // Match playback rate to actual ground speed so the feet stop sliding.
     if (pb.action) {
       const [lo, hi] = WALK_TIMESCALE_RANGE;
       const scale = (m.type.speed * m.speedMul) / WALK_CLIP_SPEED;
@@ -47,7 +47,7 @@ function animLoaded(m: Monster, pb: MonsterPlayback, dt: number): void {
   pb.mixer.update(dt);
 }
 
-/** 폴백 박스 모델: 사인파로 팔다리를 흔든다. */
+/** Fallback box model: swing the limbs on a sine wave. */
 function animProcedural(m: Monster, rig: CreatureRig, dt: number, now: number): void {
   const t = m.type;
   const flash = m.hurtT > 0;
@@ -55,7 +55,7 @@ function animProcedural(m: Monster, rig: CreatureRig, dt: number, now: number): 
   for (const mt of rig.mats) mt.emissive.setHex(flash ? 0x7a1a1a : 0x000000);
 
   if (m.attackT > 0) {
-    // 팔을 크게 치켜들었다 내린다.
+    // Raise the arms high, then bring them down.
     const k = Math.sin((1 - m.attackT / FALLBACK_ATTACK_TIME) * Math.PI);
     rig.armL.rotation.x = rig.armBase[0] - k * 1.4;
     rig.armR.rotation.x = rig.armBase[1] - k * 1.4;
@@ -71,31 +71,31 @@ function animProcedural(m: Monster, rig: CreatureRig, dt: number, now: number): 
   rig.legR.rotation.x = -Math.sin(m.anim) * sw * rig.limp;
   rig.torso.rotation.z = Math.sin(m.anim * 0.5) * 0.06;
   rig.head.rotation.z = Math.sin(now * 0.0017 + m.bobSeed) * 0.12;
-  // 걸을 때 몸 전체가 위아래로 튄다.
+  // The whole body bobs while walking.
   m.mesh.position.y = m.moving ? Math.abs(Math.sin(m.anim)) * 0.05 : 0;
   m.moving = false;
 }
 
-/** 공격 모션을 시작한다. 클립이 있으면 그 길이를 그대로 존중한다. */
+/** Starts the attack animation, honouring the clip's own length when there is one. */
 function startAttack(m: Monster): void {
   const clip = m.playback ? clipDuration(m.playback, 'attack') : null;
   const dur = clip ?? FALLBACK_ATTACK_TIME;
   m.attackT = dur;
-  // 타격은 모션 시작이 아니라 팔이 내려오는 중간에 터진다.
+  // The hit lands partway through, as the arm comes down — not at the start.
   m.pendingHit = dur * ATTACK_IMPACT;
-  // 모션이 끝나기 전에 다음 공격이 겹치지 않게 한다.
+  // Keep the next attack from overlapping before this animation ends.
   m.atkCd = Math.max(m.type.atkCd, dur);
   if (m.playback) setAnim(m.playback, 'attack', { loop: false, force: true, fade: 0.08 });
 }
 
-/** 각도를 목표까지 최대 maxStep만큼만 돌린다 (-π~π 최단 경로). */
+/** Turns an angle toward a target by at most maxStep, along the shortest path in -π..π. */
 function turnToward(current: number, target: number, maxStep: number): number {
   const d = Math.atan2(Math.sin(target - current), Math.cos(target - current));
   return Math.abs(d) <= maxStep ? target : current + Math.sign(d) * maxStep;
 }
 
-// ================= 플레이어 =================
-/** 이번 프레임에 움직였는지 돌려준다 (루팅 취소 판정에 쓴다). */
+// ================= Player =================
+/** Returns whether the player moved this frame, which is what cancels looting. */
 function updatePlayer(dt: number, now: number): boolean {
   if (keys['ArrowLeft']) state.yaw += 2.2 * dt;
   if (keys['ArrowRight']) state.yaw -= 2.2 * dt;
@@ -113,12 +113,12 @@ function updatePlayer(dt: number, now: number): boolean {
   let moving = false;
   if (len > 0.01) {
     moving = true;
-    // 대각선이 빨라지지 않게 정규화하되, 스틱의 미세 입력은 그대로 둔다.
+    // Normalise so diagonals are not faster, but leave small stick inputs alone.
     f /= Math.max(len, 1);
     s /= Math.max(len, 1);
     const dx = (Math.sin(state.yaw) * f - Math.cos(state.yaw) * s) * SPEED * dt;
     const dz = (Math.cos(state.yaw) * f + Math.sin(state.yaw) * s) * SPEED * dt;
-    // 축을 따로 밀어야 벽을 스치며 미끄러진다.
+    // Moving each axis separately is what lets the player slide along a wall.
     if (!collides(state.pos.x + dx, state.pos.z)) state.pos.x += dx;
     if (!collides(state.pos.x, state.pos.z + dz)) state.pos.z += dz;
   }
@@ -126,18 +126,19 @@ function updatePlayer(dt: number, now: number): boolean {
   return moving;
 }
 
-// ================= 무기 =================
+// ================= Weapons =================
 /**
- * 검을 치켜든 자세와 베어 내린 자세. SWORD_REST 기준 오프셋이다.
- * 내려칠 때 위아래로만 움직이면 사브르처럼 긴 칼은 날이 화면 밖으로 빠져
- * 타격감이 죽어서, 오른쪽 위에서 왼쪽 아래로 비스듬히 지나가게 했다.
+ * The raised and the cut-through poses, as offsets from SWORD_REST.
+ * A purely vertical chop sends a blade as long as a sabre clean off the bottom of
+ * the screen at the peak, which drains the impact — so the cut runs diagonally,
+ * from upper right to lower left.
  */
 const SWING_UP = { rot: [0.55, -0.2, 0.3], pos: [0.06, 0.1, 0.1] } as const;
 const SWING_DOWN = { rot: [-0.85, 0.6, -0.55], pos: [-0.24, 0.06, -0.18] } as const;
 
 /**
- * 휘두르기 곡선. t(0~1)를 -1(치켜듦) ~ +1(베어냄) ~ 0(복귀)으로 바꾼다.
- * 치켜들 때는 감속해서 멈추고, 내려칠 때는 가속해서 꽂힌다.
+ * The swing curve, mapping t (0..1) to -1 (raised), +1 (cut through) and back to 0.
+ * The raise decelerates into its stop; the downswing accelerates into the hit.
  */
 function swingCurve(t: number): number {
   if (t < SWING_WINDUP) return -Math.sin((t / SWING_WINDUP) * (Math.PI / 2));
@@ -151,7 +152,7 @@ function swingCurve(t: number): number {
 function updateWeapons(dt: number): void {
   state.atkTimer = Math.max(0, state.atkTimer - dt);
 
-  // ---- 검 휘두르기 ----
+  // ---- Sword swing ----
   if (state.swingT >= 0) {
     state.swingT += dt * SWING_SPEED;
     if (!state.swingHit && state.swingT >= SWING_IMPACT) {
@@ -179,7 +180,7 @@ function updateWeapons(dt: number): void {
     }
   }
 
-  // ---- 머스킷 장전 ----
+  // ---- Musket reload ----
   if (state.reloadT >= 0) {
     state.reloadT += dt;
     reloadFillEl.style.width = Math.min(100, (state.reloadT / MUSKET_RELOAD) * 100) + '%';
@@ -188,7 +189,7 @@ function updateWeapons(dt: number): void {
       reloadBarEl.dataset.step = String(step);
       sfxReloadStep(step);
     }
-    // 장전 중엔 총을 내린다.
+    // The musket drops while reloading.
     musket.position.y = MUSKET_REST.y - Math.sin(Math.min(1, state.reloadT / 0.4) * (Math.PI / 2)) * 0.12;
     if (state.reloadT >= MUSKET_RELOAD) {
       state.reloadT = -1;
@@ -199,7 +200,7 @@ function updateWeapons(dt: number): void {
     }
   }
 
-  // ---- 반동 ----
+  // ---- Recoil ----
   if (state.recoilT >= 0) {
     state.recoilT += dt * 5;
     const k = state.recoilT < 1 ? Math.sin(state.recoilT * Math.PI) : 0;
@@ -208,7 +209,7 @@ function updateWeapons(dt: number): void {
     if (state.recoilT >= 1) state.recoilT = -1;
   }
 
-  // ---- 총구 화염 ----
+  // ---- Muzzle flash ----
   if (state.flashT > 0) {
     state.flashT -= dt;
     if (state.flashT <= 0) {
@@ -219,7 +220,7 @@ function updateWeapons(dt: number): void {
     }
   }
 
-  // ---- 연기 ----
+  // ---- Smoke ----
   if (smoke.material.opacity > 0) {
     smoke.material.opacity = Math.max(0, smoke.material.opacity - dt * 1.1);
     smoke.scale.multiplyScalar(1 + dt * 2.5);
@@ -228,15 +229,15 @@ function updateWeapons(dt: number): void {
   }
 }
 
-// ================= 크리처 =================
-/** 가장 가까운 살아있는 크리처와의 거리를 돌려준다 (심장박동 강도용). */
+// ================= Creatures =================
+/** Returns the distance to the nearest living creature, which paces the heartbeat. */
 function updateMonsters(dt: number, now: number): number {
   let nearest = 99;
   const pgx = Math.round(state.pos.x / CELL), pgz = Math.round(state.pos.z / CELL);
 
   for (const m of state.monsters) {
     if (m.hp <= 0) {
-      // 사망 모션을 끝까지 재생한 뒤 씬에서 치운다.
+      // Let the death animation play out, then take it off the scene.
       if (m.dead) {
         m.playback?.mixer.update(dt);
         m.deadT -= dt;
@@ -255,7 +256,7 @@ function updateMonsters(dt: number, now: number): number {
     const dist = Math.hypot(dx, dz);
     nearest = Math.min(nearest, dist);
 
-    // ---- 공격 모션 진행 ----
+    // ---- Attack animation in progress ----
     const attacking = m.attackT > 0;
     if (attacking) {
       m.attackT -= dt;
@@ -263,7 +264,7 @@ function updateMonsters(dt: number, now: number): number {
         m.pendingHit -= dt;
         if (m.pendingHit <= 0) {
           m.pendingHit = null;
-          // 팔이 내려온 시점에도 사거리 안이어야 맞는다 — 뒤로 빠지면 헛스윙.
+          // The player must still be in reach when the arm lands — back away and it whiffs.
           if (dist < t.reach * ATTACK_IMPACT_REACH) playerHurt(t.dmg);
         }
       }
@@ -279,9 +280,9 @@ function updateMonsters(dt: number, now: number): number {
     const aggroed = dist < t.aggro || m.alert > 0;
 
     if (aggroed) {
-      // 공격 중엔 제자리에 서서 모션을 끝낸다.
+      // While attacking it stands still and finishes the animation.
       if (!attacking) {
-        // 가까우면 직선으로, 멀면 BFS 첫 걸음을 향해 간다.
+        // Close in, walk straight at the player; further out, follow the first BFS step.
         let tx: number, tz: number;
         if (dist < CELL * 1.4) {
           tx = state.pos.x;
@@ -312,7 +313,7 @@ function updateMonsters(dt: number, now: number): number {
           if (!collides(m.mesh.position.x, nz, t.r)) m.mesh.position.z = nz;
         }
       }
-      // 즉시 스냅하지 않고 부드럽게 플레이어 쪽을 향한다.
+      // Turn toward the player smoothly rather than snapping.
       m.mesh.rotation.y = turnToward(m.mesh.rotation.y, Math.atan2(dx, dz), TURN_RATE * dt);
 
       if (!attacking && dist < t.reach && m.atkCd <= 0) startAttack(m);
@@ -324,7 +325,7 @@ function updateMonsters(dt: number, now: number): number {
   return nearest;
 }
 
-// ================= 상자 =================
+// ================= Chests =================
 function updateChests(dt: number, playerMoving: boolean): void {
   state.nearChest = null;
   let nd = 1.7;
@@ -340,7 +341,7 @@ function updateChests(dt: number, playerMoving: boolean): void {
   lootBtn.classList.toggle('show', !!state.nearChest && !state.looting);
 
   if (state.looting) {
-    // 움직이면 루팅이 끊긴다.
+    // Moving interrupts looting.
     if (playerMoving) {
       cancelLoot();
     } else {
@@ -353,7 +354,7 @@ function updateChests(dt: number, playerMoving: boolean): void {
     }
   }
 
-  // 뚜껑 열림 이징
+  // Easing on the lid as it opens
   for (const c of state.chests) {
     if (c.state === 'opened' && c.openT < 1) {
       c.openT = Math.min(1, c.openT + dt * 3);
@@ -362,10 +363,10 @@ function updateChests(dt: number, playerMoving: boolean): void {
   }
 }
 
-// ================= 분위기 =================
+// ================= Atmosphere =================
 function updateAmbience(dt: number, now: number): void {
   torch.position.set(state.pos.x, state.pos.y + 0.25, state.pos.z);
-  // 두 개의 사인 + 노이즈로 불규칙하게 깜빡이게 한다.
+  // Two sines plus noise, so the flicker never settles into a pattern.
   torch.intensity = state.torchBase + Math.sin(now * 0.011) * 0.2 + Math.sin(now * 0.037) * 0.12 + (Math.random() - 0.5) * 0.1;
 
   portal.rotation.z += dt * 1.0;
@@ -382,7 +383,7 @@ function updateAmbience(dt: number, now: number): void {
     if (p.swing !== null) p.object.rotation.z = Math.sin(now * 0.0012 + p.swing) * 0.06;
   }
 
-  // 먼지: 천천히 내려가다 바닥에 닿으면 천장으로. 플레이어 주변 14m 안에서 순환시킨다.
+  // Dust drifts down and returns to the ceiling on reaching the floor, recycled within 14m of the player.
   const dp = dustGeo.attributes.position.array as Float32Array;
   for (let i = 0; i < DUST; i++) {
     dp[i * 3] += Math.sin(now * 0.0004 + i) * 0.0015;
@@ -397,12 +398,12 @@ function updateAmbience(dt: number, now: number): void {
   dustGeo.attributes.position.needsUpdate = true;
 }
 
-// ================= 루프 =================
+// ================= Frame loop =================
 const clock = new THREE.Clock();
 
 export function animate(): void {
   requestAnimationFrame(animate);
-  // 탭이 백그라운드에 있다 돌아왔을 때 한 번에 큰 dt가 들어오지 않게 자른다.
+  // Clamped so returning from a backgrounded tab does not deliver one enormous dt.
   const dt = Math.min(clock.getDelta(), 0.05);
   const now = performance.now();
 
@@ -412,7 +413,7 @@ export function animate(): void {
     const nearest = updateMonsters(dt, now);
     updateChests(dt, moving);
 
-    // 크리처가 가까울수록 심장이 빨리 뛴다.
+    // The closer a creature is, the faster the heart beats.
     if (audioReady() && nearest < 7.5) {
       const interval = 0.42 + (nearest / 7.5) * 0.7;
       if (now / 1000 - lastBeat() > interval) {

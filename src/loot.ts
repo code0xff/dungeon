@@ -25,17 +25,17 @@ export function openChest(c: Chest): void {
       torch.distance = 19;
       state.torchBase = 2.7;
       fog.density = FOG_TORCH;
-      msg += '\n🔥 횃불 획득 — 시야가 넓어진다';
+      msg += '\n🔥 Torch — you can see further';
       break;
     case 'map':
       state.hasMap = true;
       minimapEl.style.display = 'block';
       objectiveEl.style.opacity = '0';
-      msg += '\n🗺 지도 획득 — 던전 구조가 드러난다';
+      msg += '\n🗺 Map — the dungeon layout is revealed';
       break;
     case 'potion':
       state.hp = Math.min(100, state.hp + 35);
-      msg += '\n🧪 물약 +35 HP';
+      msg += '\n🧪 Potion +35 HP';
       break;
     case 'musket':
       state.hasMusket = true;
@@ -43,12 +43,12 @@ export function openChest(c: Chest): void {
       state.loaded = true;
       wpnBtn.classList.add('show');
       setWeapon('musket');
-      msg += `\n🔫 머스킷 획득 (${MUSKET_AMMO + 1}발) — Q로 전환. 총성은 크리처를 부른다`;
+      msg += `\n🔫 Musket (${MUSKET_AMMO + 1} shots) — press Q to swap. The noise draws creatures`;
       break;
     case 'ammo':
       state.ammo += AMMO_PICKUP;
-      msg += `\n🔫 탄약 +${AMMO_PICKUP}`;
-      // 빈 총을 들고 있었으면 바로 장전을 시작한다.
+      msg += `\n🔫 Ammo +${AMMO_PICKUP}`;
+      // Start reloading right away if the musket was held empty.
       if (!state.loaded && state.reloadT < 0 && state.weapon === 'musket') startReload();
       break;
   }

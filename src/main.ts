@@ -2,7 +2,7 @@ import { loadAssets } from './assets';
 import { el } from './dom';
 import { animate } from './loop';
 import { buildWorld } from './world';
-// 부작용 등록용: 키보드/마우스/터치 리스너와 오디오 잠금 해제.
+// Imported for side effects: keyboard/mouse/touch listeners and the audio unlock.
 import './input';
 
 const loadingEl = el('loading');
@@ -19,5 +19,5 @@ loadAssets((msg) => {
   })
   .catch((err: unknown) => {
     console.error(err);
-    loadingEl.textContent = '로딩 오류: 콘솔(F12) 확인';
+    loadingEl.textContent = 'Load error — check the console (F12)';
   });

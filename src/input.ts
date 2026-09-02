@@ -9,12 +9,12 @@ import { setWeapon, toggleWeapon } from './weapons';
 
 const SENS = 0.0022;
 const PITCH_MAX = 0.7;
-/** 화면 좌우 이 비율만큼이 '가장자리 회전' 영역 */
+/** This fraction of the screen's left and right edges is the 'edge turn' zone. */
 const EDGE_FRAC = 0.12;
-/** 가장자리 회전 최대 속도(rad/s) */
+/** Top speed of the edge turn, in rad/s. */
 const EDGE_TURN = 1.6;
 
-// ================= 키보드 =================
+// ================= Keyboard =================
 export const keys: Record<string, boolean> = {};
 
 addEventListener('keydown', (e) => {
@@ -24,7 +24,7 @@ addEventListener('keydown', (e) => {
     tryAttack();
   }
   if (e.code === 'KeyE') startLoot();
-  // 한글 자판(ㅂ)에서도 Q가 먹게 한다.
+  // Keep Q working on a Korean keyboard layout, where it types ㅂ.
   if (e.code === 'KeyQ' || e.key === 'q' || e.key === 'Q' || e.key === 'ㅂ') toggleWeapon();
   if (e.code === 'Digit1') setWeapon('sword');
   if (e.code === 'Digit2' && state.hasMusket) setWeapon('musket');
@@ -33,9 +33,9 @@ addEventListener('keyup', (e) => {
   keys[e.code] = false;
 });
 
-// ================= 마우스 =================
-// 클릭 없이 이동만으로 시선을 조작한다. 클릭하면 포인터 락을 시도하고,
-// 락이 되면 커서가 숨겨지고 무제한으로 돌릴 수 있다.
+// ================= Mouse =================
+// Moving the mouse turns the view with no click needed. A click requests pointer
+// lock; once locked the cursor hides and the view turns without limit.
 export const pointerLock = { locked: false, tried: false, failed: false };
 
 let mouseX = -1;
@@ -46,7 +46,7 @@ const lockSupported = typeof canvasEl.requestPointerLock === 'function';
 function requestLock(): void {
   if (!lockSupported || pointerLock.failed) return;
   try {
-    // 브라우저에 따라 Promise를 돌려주기도 하고 아무것도 안 돌려주기도 한다.
+    // Some browsers return a Promise here, others return nothing at all.
     const r = canvasEl.requestPointerLock() as unknown as Promise<void> | undefined;
     r?.catch(() => {
       pointerLock.failed = true;
@@ -72,14 +72,14 @@ canvasEl.addEventListener('pointerdown', (e) => {
     tryAttack();
     return;
   }
-  // 첫 클릭은 잠금 시도에만 쓴다.
+  // The first click only asks for the lock.
   if (!pointerLock.tried && lockSupported) {
     pointerLock.tried = true;
     lockHintEl.style.display = 'none';
     requestLock();
     return;
   }
-  // 잠금이 안 되는 환경: 클릭 = 공격
+  // Where lock is unavailable, a click is an attack.
   tryAttack();
 });
 
@@ -97,12 +97,12 @@ addEventListener('pointermove', (e) => {
   if (e.pointerType === 'touch') return;
   mouseX = e.clientX;
   mouseInside = true;
-  // 잠김 여부와 무관하게 이동량으로 회전한다 (클릭 불필요).
+  // Turn on mouse movement whether or not the pointer is locked; no click required.
   state.yaw -= e.movementX * SENS;
   state.pitch = Math.max(-PITCH_MAX, Math.min(PITCH_MAX, state.pitch - e.movementY * SENS));
 });
 
-/** 잠금이 안 된 상태에서 커서가 화면 가장자리에 있으면 그쪽으로 계속 돈다. */
+/** Unlocked, a cursor parked at the screen edge keeps turning that way. */
 export function edgeTurn(dt: number): void {
   if (pointerLock.locked || !mouseInside || mouseX < 0) return;
   const edge = innerWidth * EDGE_FRAC;
@@ -110,11 +110,11 @@ export function edgeTurn(dt: number): void {
   else if (mouseX > innerWidth - edge) state.yaw -= EDGE_TURN * (1 - (innerWidth - mouseX) / edge) * dt;
 }
 
-// ================= 터치 =================
+// ================= Touch =================
 const stick = el('moveStick');
 const knob = queryChild(stick, '.knob');
 
-/** 가상 스틱 입력. x=좌우, y=앞뒤(화면 아래가 +) */
+/** Virtual stick input. x is strafe, y is forward/back with screen-down positive. */
 export const moveVec = { x: 0, y: 0 };
 
 let stickId: number | null = null;
@@ -163,7 +163,7 @@ addEventListener(
   (e) => {
     for (const t of Array.from(e.changedTouches)) {
       if (t.target === atkBtn || t.target === lootBtn || t.target === wpnBtn) continue;
-      // 화면 왼쪽 절반은 이동 스틱, 오른쪽은 시선 드래그.
+      // Left half of the screen is the move stick, right half drags the view.
       if (t.clientX < innerWidth / 2 && stickId === null) {
         stickId = t.identifier;
         updateStick(t);
@@ -198,7 +198,7 @@ addEventListener('touchend', (e) => {
   }
 });
 
-// ================= 오디오 잠금 해제 =================
+// ================= Audio unlock =================
 for (const ev of ['keydown', 'pointerdown', 'touchstart'] as const) {
   addEventListener(ev, initAudio);
 }

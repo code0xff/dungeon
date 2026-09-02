@@ -2,8 +2,9 @@ import { GRID } from './config';
 import type { GridCell, Maze } from './types';
 
 /**
- * 재귀적 백트래킹으로 미로를 판 뒤, 넓은 방 6개를 덮어써서 개방감을 준다.
- * 반환값은 maze[z][x] — 0이 통로, 1이 벽.
+ * Carves a maze by recursive backtracking, then stamps six open rooms over it
+ * so the layout does not feel like nothing but corridors.
+ * Returns maze[z][x] — 0 is floor, 1 is wall.
  */
 export function generateDungeon(): Maze {
   const g: Maze = Array.from({ length: GRID }, () => Array<number>(GRID).fill(1));
@@ -13,7 +14,7 @@ export function generateDungeon(): Maze {
 
   while (stack.length) {
     const [cx, cz] = stack[stack.length - 1];
-    // [다음 칸 x, z, 사이 벽 x, z]
+    // [next cell x, z, the wall between x, z]
     const opts = dirs
       .map(([dx, dz]) => [cx + dx, cz + dz, cx + dx / 2, cz + dz / 2] as const)
       .filter(([nx, nz]) => nx > 0 && nz > 0 && nx < GRID - 1 && nz < GRID - 1 && g[nz][nx] === 1);
@@ -27,7 +28,7 @@ export function generateDungeon(): Maze {
     stack.push([nx, nz]);
   }
 
-  // 방 파내기
+  // Carve the rooms
   for (let i = 0; i < 6; i++) {
     const w = 3 + 2 * ((Math.random() * 2) | 0), h = 3 + 2 * ((Math.random() * 2) | 0);
     const x0 = 1 + 2 * ((Math.random() * ((GRID - w - 2) / 2)) | 0);
@@ -40,8 +41,8 @@ export function generateDungeon(): Maze {
 }
 
 /**
- * (sx,sz)에서 (tx,tz)로 가는 최단 경로의 **첫 걸음**만 돌려준다.
- * 크리처는 매 프레임 목표가 움직이므로 전체 경로를 들고 있을 필요가 없다.
+ * Returns only the **first step** of the shortest path from (sx,sz) to (tx,tz).
+ * A creature's target moves every frame, so holding the whole path buys nothing.
  */
 export function findPath(maze: Maze, sx: number, sz: number, tx: number, tz: number): GridCell | null {
   if (sx === tx && sz === tz) return null;
@@ -59,7 +60,7 @@ export function findPath(maze: Maze, sx: number, sz: number, tx: number, tz: num
       seen.add(key(nx, nz));
       prev.set(key(nx, nz), [x, z]);
       if (nx === tx && nz === tz) {
-        // 목표에서 출발점 바로 다음 칸까지 거꾸로 따라 올라간다.
+        // Walk back from the target to the cell right after the start.
         let cur: GridCell = [nx, nz];
         for (;;) {
           const p = prev.get(key(cur[0], cur[1]));
