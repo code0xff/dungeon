@@ -1,9 +1,9 @@
-# Dungeon Extraction
+# Dungeon
 
 A first-person dungeon crawler in **TypeScript + Three.js**. Grab the loot, get out
 through the blue portal — die and everything you picked up this run stays down there.
 
-**▶ [Play it](https://code0xff.github.io/dungeon-extraction/)**
+**▶ [Play it](https://code0xff.github.io/dungeon/)**
 
 Creatures (FBX/GLB plus animations) and the wall/floor PBR textures load from
 external files, and **anything missing falls back to a box model or a texture drawn
@@ -11,7 +11,7 @@ in code**. So the game runs on a fresh clone and you can drop assets in one at a
 time and watch them appear.
 
 ```
-dungeon-extraction/
+dungeon/
 ├─ index.html
 ├─ package.json  tsconfig.json  vite.config.ts
 ├─ src/
