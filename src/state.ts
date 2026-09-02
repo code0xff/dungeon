@@ -33,6 +33,8 @@ export const state = {
   atkTimer: 0,
   /** 휘두르기 진행도 0~1. -1이면 휘두르지 않는 상태 */
   swingT: -1,
+  /** 이번 휘두르기의 판정이 이미 났는지. 한 번만 베게 한다. */
+  swingHit: false,
 
   // ---- 루팅 ----
   looting: null as Looting | null,

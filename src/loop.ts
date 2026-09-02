@@ -3,9 +3,10 @@ import { clipDuration, flashLoadedMesh, setAnim } from './assets';
 import { audioReady, lastBeat, setLastBeat, sfxCreature, sfxHeartbeat, sfxReloadStep } from './audio';
 import {
   ATTACK_IMPACT, ATTACK_IMPACT_REACH, CELL, EYE_H, FALLBACK_ATTACK_TIME, LOOT_TIME,
-  MUSKET_RELOAD, SPEED, TURN_RATE, WALK_CLIP_SPEED, WALK_TIMESCALE_RANGE, WALL_H,
+  MUSKET_RELOAD, SPEED, SWING_IMPACT, SWING_SPEED, SWING_WINDUP, TURN_RATE, WALK_CLIP_SPEED,
+  WALK_TIMESCALE_RANGE, WALL_H,
 } from './config';
-import { playerHurt } from './combat';
+import { playerHurt, resolveSwing } from './combat';
 import { findPath } from './dungeon';
 import { edgeTurn, keys, moveVec } from './input';
 import { openChest } from './loot';
@@ -126,29 +127,54 @@ function updatePlayer(dt: number, now: number): boolean {
 }
 
 // ================= 무기 =================
+/**
+ * 검을 치켜든 자세와 베어 내린 자세. SWORD_REST 기준 오프셋이다.
+ * 내려칠 때 위아래로만 움직이면 사브르처럼 긴 칼은 날이 화면 밖으로 빠져
+ * 타격감이 죽어서, 오른쪽 위에서 왼쪽 아래로 비스듬히 지나가게 했다.
+ */
+const SWING_UP = { rot: [0.55, -0.2, 0.3], pos: [0.06, 0.1, 0.1] } as const;
+const SWING_DOWN = { rot: [-0.85, 0.6, -0.55], pos: [-0.24, 0.06, -0.18] } as const;
+
+/**
+ * 휘두르기 곡선. t(0~1)를 -1(치켜듦) ~ +1(베어냄) ~ 0(복귀)으로 바꾼다.
+ * 치켜들 때는 감속해서 멈추고, 내려칠 때는 가속해서 꽂힌다.
+ */
+function swingCurve(t: number): number {
+  if (t < SWING_WINDUP) return -Math.sin((t / SWING_WINDUP) * (Math.PI / 2));
+
+  const u = (t - SWING_WINDUP) / (1 - SWING_WINDUP);
+  const strike = (SWING_IMPACT - SWING_WINDUP) / (1 - SWING_WINDUP);
+  if (u < strike) return -1 + 2 * (1 - Math.cos((u / strike) * (Math.PI / 2)));
+  return 1 - Math.sin(((u - strike) / (1 - strike)) * (Math.PI / 2));
+}
+
 function updateWeapons(dt: number): void {
   state.atkTimer = Math.max(0, state.atkTimer - dt);
 
   // ---- 검 휘두르기 ----
   if (state.swingT >= 0) {
-    state.swingT += dt * 4.5;
+    state.swingT += dt * SWING_SPEED;
+    if (!state.swingHit && state.swingT >= SWING_IMPACT) {
+      state.swingHit = true;
+      resolveSwing();
+    }
     if (state.swingT >= 1) {
       state.swingT = -1;
       sword.rotation.copy(SWORD_REST.rot);
       sword.position.copy(SWORD_REST.pos);
     } else {
-      // 오른쪽 위에서 왼쪽 아래로 비스듬히 베어 나간다. 위아래로만 내리치면
-      // 사브르처럼 긴 칼은 정점에서 날이 화면 밖으로 빠져 타격감이 죽는다.
-      const k = Math.sin(state.swingT * Math.PI);
+      const w = swingCurve(state.swingT);
+      const o = w < 0 ? SWING_UP : SWING_DOWN;
+      const a = Math.abs(w);
       sword.rotation.set(
-        SWORD_REST.rot.x - k * 0.85,
-        SWORD_REST.rot.y + k * 0.6,
-        SWORD_REST.rot.z - k * 0.55,
+        SWORD_REST.rot.x + o.rot[0] * a,
+        SWORD_REST.rot.y + o.rot[1] * a,
+        SWORD_REST.rot.z + o.rot[2] * a,
       );
       sword.position.set(
-        SWORD_REST.pos.x - k * 0.24,
-        SWORD_REST.pos.y + k * 0.06,
-        SWORD_REST.pos.z - k * 0.18,
+        SWORD_REST.pos.x + o.pos[0] * a,
+        SWORD_REST.pos.y + o.pos[1] * a,
+        SWORD_REST.pos.z + o.pos[2] * a,
       );
     }
   }

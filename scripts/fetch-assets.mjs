@@ -40,8 +40,19 @@ const RES = '1k';
 /** 무기 텍스처 최대 변. 손에 든 물건이라 벽보다 가깝지만 화면 점유가 작다. */
 const WEAPON_TEXTURE_SIZE = 512;
 
-/** Poly Haven 텍스처 맵 이름 → 우리 파일명. normal은 반드시 nor_gl(OpenGL)이어야 한다. */
-const TEXTURE_MAPS = { Diffuse: 'diffuse', nor_gl: 'normal', Rough: 'rough' };
+/**
+ * Poly Haven 텍스처 맵 이름 → 우리 파일명과 webp 품질.
+ * normal은 반드시 nor_gl(OpenGL)이어야 한다. nor_dx는 요철이 뒤집힌다.
+ *
+ * 노멀맵 품질만 높게 주는 이유: 픽셀값이 색이 아니라 법선 벡터라
+ * 압축으로 뭉개지면 빛 반사 방향이 통째로 틀어진다. 색·거칠기는
+ * 조금 뭉개져도 어두운 던전에선 티가 안 난다.
+ */
+const TEXTURE_MAPS = {
+  Diffuse: { name: 'diffuse', quality: 80 },
+  nor_gl: { name: 'normal', quality: 90 },
+  Rough: { name: 'rough', quality: 80 },
+};
 
 const io = new NodeIO().registerExtensions(ALL_EXTENSIONS);
 const kb = (p) => Math.round(statSync(p).size / 1024);
@@ -52,27 +63,37 @@ async function json(url) {
   return res.json();
 }
 
-async function download(url, dst) {
+async function fetchBuffer(url) {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`${res.status} ${res.statusText} — ${url}`);
+  return Buffer.from(await res.arrayBuffer());
+}
+
+async function download(url, dst) {
   mkdirSync(dirname(dst), { recursive: true });
-  writeFileSync(dst, Buffer.from(await res.arrayBuffer()));
+  writeFileSync(dst, await fetchBuffer(url));
 }
 
 async function fetchTexture(slot, id) {
   const files = await json(`${API}/files/${id}`);
   const dir = join(ROOT, 'assets', 'textures', slot);
-  const sizes = [];
-  for (const [phName, ours] of Object.entries(TEXTURE_MAPS)) {
+  mkdirSync(dir, { recursive: true });
+
+  let before = 0, after = 0;
+  for (const [phName, { name, quality }] of Object.entries(TEXTURE_MAPS)) {
     const entry = files[phName]?.[RES]?.jpg;
     if (!entry) throw new Error(`${id}: ${phName} ${RES} jpg 없음`);
-    const dst = join(dir, `${ours}.jpg`);
-    await download(entry.url, dst);
-    sizes.push(`${ours} ${kb(dst)}KB`);
+    const jpg = await fetchBuffer(entry.url);
+    const dst = join(dir, `${name}.webp`);
+    await sharp(jpg).webp({ quality }).toFile(dst);
+    before += jpg.length;
+    after += statSync(dst).size;
+    // 예전에 jpg로 받아둔 게 있으면 치운다. 로더가 webp를 먼저 보므로
+    // 그냥 두면 안 쓰는 파일이 저장소에 남는다.
+    rmSync(join(dir, `${name}.jpg`), { force: true });
   }
-  // "여기에 텍스처 넣기" 안내 파일은 이제 필요 없다.
-  for (const stale of ['여기에_텍스처_넣기.txt']) rmSync(join(dir, stale), { force: true });
-  return sizes.join(' · ');
+  rmSync(join(dir, '여기에_텍스처_넣기.txt'), { force: true });
+  return `${Math.round(before / 1024)}KB → ${Math.round(after / 1024)}KB`;
 }
 
 async function fetchModel(slot, id) {

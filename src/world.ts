@@ -241,6 +241,7 @@ export function buildWorld(): void {
   state.gameOver = false;
   state.atkTimer = 0;
   state.swingT = -1;
+  state.swingHit = false;
   state.hasTorch = false;
   state.hasMap = false;
   handTorch.visible = false;

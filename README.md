@@ -34,8 +34,8 @@ dungeon-extraction/
    ├─ creatures/zombie/     idle.glb  walk.glb  attack.glb  death.glb
    ├─ weapons/              sword.glb  musket.glb
    └─ textures/
-      ├─ wall/              diffuse.jpg  normal.jpg  rough.jpg
-      └─ floor/             diffuse.jpg  normal.jpg  rough.jpg
+      ├─ wall/              diffuse.webp  normal.webp  rough.webp
+      └─ floor/             diffuse.webp  normal.webp  rough.webp
 ```
 
 크리처는 좀비 하나만 쓴다. 파일이 없으면 코드로 만든 박스 모델로 자동 폴백한다.
@@ -132,9 +132,13 @@ Mixamo와 달리 원본을 따로 보관할 필요가 없어서 `raw/`를 쓰지
 
 바꾸고 싶으면 `PICKS`의 ID만 갈아끼우고 다시 돌리면 된다.
 
-- 텍스처는 **1K JPG**. 2K 이상은 모바일에서 버겁고 어두운 던전에선 차이도 안 보인다.
+- **1K**로 받는다. 2K 이상은 모바일에서 버겁고 어두운 던전에선 차이도 안 보인다.
+- 받은 JPG는 전부 **webp로 다시 굽는다**. 벽·바닥 3.8MB → 1.4MB, 무기 7.7MB → 1.2MB.
+  로더는 webp를 먼저 보고 없으면 jpg를 보므로, Poly Haven JPG를 폴더에 그대로
+  떨궈놔도 돌아간다.
+- 노멀맵만 품질을 높게(90) 준다. 픽셀값이 색이 아니라 법선 벡터라 뭉개지면
+  빛 반사 방향이 통째로 틀어진다. 색·거칠기는 80으로도 티가 안 난다.
 - 노멀맵은 **`nor_gl`**(OpenGL)만 쓴다. `nor_dx`는 Three.js에서 요철이 뒤집힌다.
-- 무기 텍스처는 512 webp로 다시 굽는다. 라이플 5.9MB → 1.0MB.
 - 색이 너무 밝으면 `src/scene.ts`의 `AmbientLight`나 `toneMappingExposure`를 낮춘다.
 
 ### 무기 모델이 손에 안 맞을 때
@@ -149,6 +153,12 @@ Mixamo와 달리 원본을 따로 보관할 필요가 없어서 `raw/`를 쓰지
 
 화면 안에서의 위치·각도는 `src/scene.ts`의 `SWORD_REST` / `MUSKET_REST`.
 총구 화염과 연기 자리는 로더가 모델에서 직접 찾으므로 손댈 필요 없다.
+
+검 휘두르기는 치켜들었다가 내려친다. `src/config.ts`의 `SWING_SPEED`(전체 속도),
+`SWING_WINDUP`(치켜드는 구간 비율), `SWING_IMPACT`(판정 시점)로 조절하고,
+치켜든 자세와 베어 낸 자세는 `src/loop.ts`의 `SWING_UP` / `SWING_DOWN`이다.
+내려치는 구간(`SWING_WINDUP`~`SWING_IMPACT`)이 60fps에서 5프레임은 돼야
+날이 지나가는 게 보인다.
 
 Poly Haven에 **머스킷/플린트락은 없다.** 그래서 총은 볼트액션 소총을 쓴다.
 코드상 이름(`musket`, `MUSKET_REST`)은 그대로 두었다.
