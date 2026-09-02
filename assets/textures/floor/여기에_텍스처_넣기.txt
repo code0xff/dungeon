@@ -1,0 +1,1 @@
+여기에 diffuse.jpg / normal.jpg / rough.jpg 를 넣으세요 (README 참고)
