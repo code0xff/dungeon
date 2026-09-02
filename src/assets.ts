@@ -2,7 +2,9 @@ import * as THREE from 'three';
 import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
-import { CLIP_NAMES, CREATURE_ASSETS, FLOOR_TEX_DIR, GRID, WALL_TEX_DIR, WEAPON_ASSETS } from './config';
+import {
+  CLIP_NAMES, CREATURE_ASSETS, FLOOR_TEX_DIR, GRID, PROP_ASSETS, WALL_TEX_DIR, WEAPON_ASSETS,
+} from './config';
 import { MAKERS } from './creatures';
 import { equipWeaponModel } from './scene';
 import type {
@@ -24,6 +26,13 @@ const texLoader = new THREE.TextureLoader();
 /** Only creatures that loaded end up here. A missing key falls back to the procedural model. */
 const templates: Partial<Record<CreatureKey, CreatureTemplate>> = {};
 const pbr: { wall: PBRMaps | null; floor: PBRMaps | null } = { wall: null, floor: null };
+/** Loaded prop models. A null here means props.ts builds the primitive instead. */
+const props: { chest: THREE.Object3D | null } = { chest: null };
+
+/** The chest model, or null when the file is missing. Cloned per chest by props.ts. */
+export function chestTemplate(): THREE.Object3D | null {
+  return props.chest;
+}
 
 export function wallPBR(): PBRMaps | null {
   return pbr.wall;
@@ -229,6 +238,34 @@ async function loadWeapon(kind: WeaponKind): Promise<string> {
   return `${kind}: loaded (scale x${s.toFixed(2)} · tip z=${tip.z.toFixed(2)})`;
 }
 
+/**
+ * Loads the chest and stands it on the floor at PROP_ASSETS.chest.height.
+ * Rejected unless the lid node is present — a chest that cannot open is worse
+ * than the primitive one, and the failure would otherwise show up only in play.
+ */
+async function loadChest(): Promise<string> {
+  const cfg = PROP_ASSETS.chest;
+  let gltf;
+  try {
+    gltf = await gltfLoader.loadAsync(cfg.url);
+  } catch {
+    return 'chest: file missing → primitive model';
+  }
+  const root = gltf.scene;
+  if (!root.getObjectByName(cfg.lidNode)) {
+    return `chest: no "${cfg.lidNode}" node to hinge → primitive model`;
+  }
+
+  const box = new THREE.Box3().setFromObject(root);
+  root.scale.multiplyScalar(cfg.height / (box.max.y - box.min.y));
+  root.position.y = -new THREE.Box3().setFromObject(root).min.y;
+  root.traverse((o) => {
+    if (isMesh(o)) o.castShadow = false;
+  });
+  props.chest = root;
+  return `chest: loaded (scale x${root.scale.x.toFixed(2)})`;
+}
+
 export async function loadAssets(onProgress: (msg: string) => void): Promise<void> {
   const log: string[] = [];
 
@@ -274,6 +311,9 @@ export async function loadAssets(onProgress: (msg: string) => void): Promise<voi
 
   onProgress('Loading weapons');
   for (const kind of Object.keys(WEAPON_ASSETS) as WeaponKind[]) log.push(await loadWeapon(kind));
+
+  onProgress('Loading props');
+  log.push(await loadChest());
 
   onProgress('Loading textures');
   pbr.wall = await loadPBR(WALL_TEX_DIR, 1.5);

@@ -1,5 +1,7 @@
 import * as THREE from 'three';
-import { WALL_H } from './config';
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import { chestTemplate } from './assets';
+import { PROP_ASSETS, WALL_H } from './config';
 import { ironMat } from './creatures';
 import { chestTex } from './textures';
 import type { Chest, Prop, Sconce } from './types';
@@ -9,8 +11,47 @@ const stoneMat = new THREE.MeshStandardMaterial({ color: 0x2a2c31, roughness: 1 
 const puddleMat = new THREE.MeshStandardMaterial({ color: 0x04060a, metalness: 0.95, roughness: 0.12 });
 
 // ---- Chest ----
-/** Treasure chest. Hands back the lid pivot so the open animation has something to turn. */
-export function createChest(value: number): Omit<Chest, 'item'> {
+/**
+ * Gold with no environment map to reflect renders almost black at high metalness,
+ * so this leans on diffuse and a little emissive instead of a mirror finish.
+ */
+const goldMat = new THREE.MeshStandardMaterial({
+  color: 0xd9a93a, metalness: 0.35, roughness: 0.35, emissive: 0x3a2600,
+});
+
+/**
+ * A heap of coins and ingots, merged into one geometry and built once.
+ * A single flat slab read as a lid closing the chest rather than treasure in it,
+ * and ten separate piles would be ten times the draw calls for the same look.
+ */
+const goldGeo = (() => {
+  const coin = new THREE.CylinderGeometry(0.05, 0.05, 0.012, 10);
+  const ingot = new THREE.BoxGeometry(0.1, 0.045, 0.06);
+  const parts: THREE.BufferGeometry[] = [];
+  for (let i = 0; i < 24; i++) {
+    const isIngot = i % 5 === 0;
+    const g = (isIngot ? ingot : coin).clone();
+    g.rotateY(Math.random() * Math.PI);
+    g.rotateX((Math.random() - 0.5) * (isIngot ? 0.3 : 0.7));
+    // Heaped toward the middle so the pile has a crown rather than a flat top.
+    const t = Math.random();
+    g.translate((Math.random() - 0.5) * 0.52, t * 0.06, (Math.random() - 0.5) * 0.26 * (1 - t * 0.4));
+    parts.push(g);
+  }
+  coin.dispose();
+  ingot.dispose();
+  return mergeGeometries(parts, false);
+})();
+
+/** The hoard inside, hidden by the lid until the chest opens. */
+function makeGold(y: number): THREE.Mesh {
+  const gold = new THREE.Mesh(goldGeo, goldMat);
+  gold.position.y = y;
+  return gold;
+}
+
+/** Primitive chest, used when assets/props/chest.glb is absent. */
+function primitiveChest(): { mesh: THREE.Group; lid: THREE.Object3D } {
   const g = new THREE.Group();
   const woodMat = new THREE.MeshStandardMaterial({ map: chestTex, roughness: 0.9 });
   const im = new THREE.MeshStandardMaterial({ color: 0x3a3c40, metalness: 0.75, roughness: 0.45 });
@@ -28,14 +69,32 @@ export function createChest(value: number): Omit<Chest, 'item'> {
   lock.position.set(0, 0.02, 0.58);
   lidPivot.add(lid, band, lock);
 
-  const gold = new THREE.Mesh(
-    new THREE.BoxGeometry(0.6, 0.14, 0.38),
-    new THREE.MeshStandardMaterial({ color: 0xd8a832, metalness: 0.9, roughness: 0.3, emissive: 0x2a1c00 }),
-  );
-  gold.position.y = 0.46;
+  g.add(base, lidPivot, makeGold(0.4));
+  return { mesh: g, lid: lidPivot };
+}
 
-  g.add(base, lidPivot, gold);
-  return { mesh: g, lid: lidPivot, value, state: 'closed', openT: 0 };
+/**
+ * Treasure chest. Hands back the lid pivot so the open animation has something to turn.
+ *
+ * Every chest clones the same loaded model, and three.js clones share geometry and
+ * materials, so ten chests cost draw calls rather than ten copies of the mesh.
+ */
+export function createChest(value: number): Omit<Chest, 'item'> {
+  const template = chestTemplate();
+  let mesh: THREE.Group;
+  let lid: THREE.Object3D;
+
+  if (template) {
+    mesh = new THREE.Group();
+    const model = template.clone(true);
+    // Non-null: loadChest refuses a model without this node.
+    lid = model.getObjectByName(PROP_ASSETS.chest.lidNode) as THREE.Object3D;
+    // 0.34 is the interior floor of the Poly Haven chest.
+    mesh.add(model, makeGold(0.34));
+  } else {
+    ({ mesh, lid } = primitiveChest());
+  }
+  return { mesh, lid, value, state: 'closed', openT: 0 };
 }
 
 // ---- Props ----

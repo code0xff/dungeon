@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { clipDuration, flashLoadedMesh, setAnim } from './assets';
 import { audioReady, lastBeat, setLastBeat, sfxCreature, sfxHeartbeat, sfxReloadStep } from './audio';
 import {
-  ATTACK_IMPACT, ATTACK_IMPACT_REACH, CELL, EYE_H, FALLBACK_ATTACK_TIME, LOOT_TIME,
+  ATTACK_IMPACT, ATTACK_IMPACT_REACH, CELL, CHEST_LID_OPEN, EYE_H, FALLBACK_ATTACK_TIME, LOOT_TIME,
   MUSKET_RELOAD, SPEED, SWING_IMPACT, SWING_SPEED, SWING_WINDUP, TURN_RATE, WALK_CLIP_SPEED,
   WALK_TIMESCALE_RANGE, WALL_H,
 } from './config';
@@ -358,7 +358,7 @@ function updateChests(dt: number, playerMoving: boolean): void {
   for (const c of state.chests) {
     if (c.state === 'opened' && c.openT < 1) {
       c.openT = Math.min(1, c.openT + dt * 3);
-      c.lid.rotation.x = -1.9 * (1 - Math.pow(1 - c.openT, 3));
+      c.lid.rotation.x = CHEST_LID_OPEN * (1 - Math.pow(1 - c.openT, 3));
     }
   }
 }

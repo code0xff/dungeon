@@ -5,6 +5,7 @@
 //        |
 //   assets/textures/{wall,floor}/{diffuse,normal,rough}.webp
 //   assets/weapons/{sword,musket}.glb
+//   assets/props/chest.glb
 //
 // Unlike the zombie, Poly Haven serves these through a public API with no account,
 // so no copy is kept under raw/. To swap an asset, change its id in PICKS below and
@@ -13,7 +14,8 @@ import { mkdirSync, rmSync, statSync, writeFileSync, existsSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path';
 import { NodeIO } from '@gltf-transform/core';
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
-import { dedup, prune, textureCompress } from '@gltf-transform/functions';
+import { dedup, prune, simplify, textureCompress, weld } from '@gltf-transform/functions';
+import { MeshoptSimplifier } from 'meshoptimizer';
 import sharp from 'sharp';
 
 const ROOT = resolve(import.meta.dirname, '..');
@@ -29,18 +31,22 @@ const PICKS = {
     wall: 'medieval_blocks_05',
     floor: 'cobblestone_floor_08',
   },
+  // dir is where the GLB lands under assets/; texture is the longest edge to
+  // re-bake at; simplify keeps that fraction of the triangles (omit to keep all).
   models: {
-    sword: 'wooden_handle_saber',
+    sword: { id: 'wooden_handle_saber', dir: 'weapons', texture: 512 },
     // Poly Haven has no musket or flintlock, so a bolt-action rifle stands in.
     // The name stays `musket` throughout the code (see src/scene.ts).
-    musket: 'bolt_action_rifle_7_62',
+    musket: { id: 'bolt_action_rifle_7_62', dir: 'weapons', texture: 512 },
+    // The lid is its own node, so the open animation still has a hinge to turn.
+    // Ten chests are in the dungeon at once and the source is 68k triangles, so
+    // this one is decimated hard; at torchlight range the loss does not show.
+    chest: { id: 'treasure_chest', dir: 'props', texture: 512, simplify: 0.2 },
   },
 };
 
 /** Resolution to fetch. The dungeon is dark and even a held weapon covers little screen, so 1K suffices. */
 const RES = '1k';
-/** Longest edge for weapon textures. Nearer than a wall, but covering far less of the screen. */
-const WEAPON_TEXTURE_SIZE = 512;
 
 /**
  * Poly Haven map names mapped to our filenames and webp quality.
@@ -98,7 +104,7 @@ async function fetchTexture(slot, id) {
   return `${Math.round(before / 1024)}KB → ${Math.round(after / 1024)}KB`;
 }
 
-async function fetchModel(slot, id) {
+async function fetchModel(slot, { id, dir, texture, simplify: ratio }) {
   const files = await json(`${API}/files/${id}`);
   const entry = files.gltf?.[RES]?.gltf;
   if (!entry) throw new Error(`${id}: no gltf at ${RES}`);
@@ -113,13 +119,17 @@ async function fetchModel(slot, id) {
   }
 
   const doc = await io.read(gltfPath);
-  await doc.transform(
-    textureCompress({ encoder: sharp, targetFormat: 'webp', resize: [WEAPON_TEXTURE_SIZE, WEAPON_TEXTURE_SIZE] }),
+  const steps = [
+    textureCompress({ encoder: sharp, targetFormat: 'webp', resize: [texture, texture] }),
     dedup(),
-    prune(),
-  );
+  ];
+  // weld() first: simplify needs shared vertices to collapse edges across, and
+  // these exports duplicate them along every UV and normal seam.
+  if (ratio) steps.push(weld(), simplify({ simplifier: MeshoptSimplifier, ratio, error: 0.001 }));
+  steps.push(prune());
+  await doc.transform(...steps);
 
-  const dst = join(ROOT, 'assets', 'weapons', `${slot}.glb`);
+  const dst = join(ROOT, 'assets', dir, `${slot}.glb`);
   mkdirSync(dirname(dst), { recursive: true });
   await io.write(dst, doc);
   rmSync(work, { recursive: true, force: true });
@@ -131,8 +141,8 @@ async function fetchModel(slot, id) {
 for (const [slot, id] of Object.entries(PICKS.textures)) {
   console.log(`[texture] ${slot.padEnd(6)} ${id.padEnd(24)} ${await fetchTexture(slot, id)}`);
 }
-for (const [slot, id] of Object.entries(PICKS.models)) {
-  console.log(`[model]   ${slot.padEnd(6)} ${id.padEnd(24)} ${await fetchModel(slot, id)}`);
+for (const [slot, pick] of Object.entries(PICKS.models)) {
+  console.log(`[model]   ${slot.padEnd(6)} ${pick.id.padEnd(24)} ${await fetchModel(slot, pick)}`);
 }
 if (existsSync(TMP)) rmSync(TMP, { recursive: true, force: true });
 console.log('\nDone. Licence: Poly Haven CC0 — no attribution required, redistribution and commercial use allowed.');

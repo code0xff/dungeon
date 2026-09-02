@@ -10,7 +10,7 @@ import { clipDuration, setAnim } from './assets';
 import { fog, handTorch, portal, portalCore, portalLight, scene, torch, world } from './scene';
 import { state } from './state';
 import { ceilTex, floorTex, wallTex } from './textures';
-import type { GridCell, ItemKind, Monster } from './types';
+import type { CreatureKey, GridCell, ItemKind, Monster } from './types';
 import { cancelLoot, minimapEl, objectiveEl, overlayEl, updateHUD, wpnBtn } from './ui';
 import { pointerLock } from './input';
 import { lockHintEl } from './ui';
@@ -118,44 +118,48 @@ function buildGeometry(): void {
 }
 
 function spawnMonsters(): void {
-  for (const key of SPAWN) {
-    const t = TYPES[key];
-    const [gx, gz] = randomFloorCell(6);
-    const sp = spawnCreature(key);
-    sp.mesh.position.set(gx * CELL, 0, gz * CELL);
-    // Vary the size per creature so the crowd stops looking like clones.
-    const scale = rand(SCALE_VARIANCE);
-    sp.mesh.scale.setScalar(scale);
-    // Start each idle at a different point too, or the horde breathes in unison.
-    if (sp.playback) {
-      const idle = clipDuration(sp.playback, 'idle') ?? 0;
-      setAnim(sp.playback, 'idle', { fade: 0, startAt: Math.random() * idle });
-    }
-    scene.add(sp.mesh);
-    const m: Monster = {
-      mesh: sp.mesh,
-      key,
-      type: t,
-      hp: t.hp,
-      playback: sp.playback,
-      rig: sp.rig,
-      atkCd: 0,
-      attackT: 0,
-      pendingHit: null,
-      hurtT: 0,
-      alert: 0,
-      repath: 0,
-      step: null,
-      moving: false,
-      speedMul: rand(SPEED_VARIANCE),
-      anim: Math.random() * 6,
-      bobSeed: Math.random() * 10,
-      groanT: t.groan[0] + Math.random() * (t.groan[1] - t.groan[0]),
-      dead: false,
-      deadT: 0,
-    };
-    state.monsters.push(m);
+  for (const [key, count] of Object.entries(SPAWN) as [CreatureKey, number][]) {
+    for (let i = 0; i < count; i++) spawnOne(key);
   }
+}
+
+function spawnOne(key: CreatureKey): void {
+  const t = TYPES[key];
+  const [gx, gz] = randomFloorCell(6);
+  const sp = spawnCreature(key);
+  sp.mesh.position.set(gx * CELL, 0, gz * CELL);
+  // Vary the size per creature so the crowd stops looking like clones.
+  const scale = rand(SCALE_VARIANCE);
+  sp.mesh.scale.setScalar(scale);
+  // Start each idle at a different point too, or the horde breathes in unison.
+  if (sp.playback) {
+    const idle = clipDuration(sp.playback, 'idle') ?? 0;
+    setAnim(sp.playback, 'idle', { fade: 0, startAt: Math.random() * idle });
+  }
+  scene.add(sp.mesh);
+  const m: Monster = {
+    mesh: sp.mesh,
+    key,
+    type: t,
+    hp: t.hp,
+    playback: sp.playback,
+    rig: sp.rig,
+    atkCd: 0,
+    attackT: 0,
+    pendingHit: null,
+    hurtT: 0,
+    alert: 0,
+    repath: 0,
+    step: null,
+    moving: false,
+    speedMul: rand(SPEED_VARIANCE),
+    anim: Math.random() * 6,
+    bobSeed: Math.random() * 10,
+    groanT: t.groan[0] + Math.random() * (t.groan[1] - t.groan[0]),
+    dead: false,
+    deadT: 0,
+  };
+  state.monsters.push(m);
 }
 
 function spawnChests(): void {

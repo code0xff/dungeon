@@ -14,6 +14,17 @@ export const FLOOR_TEX_DIR = 'textures/floor';
 export const CLIP_NAMES = ['idle', 'walk', 'attack', 'death'] as const;
 
 /**
+ * Prop models. Without them the primitives in src/props.ts are used.
+ *
+ * `lidNode` names the node the open animation turns. Poly Haven's treasure_chest
+ * already has its lid as a separate node hinged at the back, which is the same
+ * convention the primitive chest uses, so it needs no rework.
+ */
+export const PROP_ASSETS = {
+  chest: { url: 'props/chest.glb', height: 0.62, lidNode: 'treasure_chest_lid' },
+} as const;
+
+/**
  * First-person weapon models. Without them the primitives in src/scene.ts are used.
  * `npm run fetch-assets` pulls these from Poly Haven (CC0).
  *
@@ -39,6 +50,11 @@ export const WALL_H = 3.4;
 export const PLAYER_R = 0.45;
 export const SPEED = 5.2;
 export const CHEST_COUNT = 10;
+/**
+ * How far the lid swings open, in radians. Negative tips the front up.
+ * Past about -1.6 the lid clears vertical and looks detached rather than open.
+ */
+export const CHEST_LID_OPEN = -1.5;
 export const ATTACK_RANGE = 2.3;
 export const ATTACK_CD = 0.45;
 
@@ -90,8 +106,12 @@ export const TYPES: Record<CreatureKey, CreatureType> = {
   },
 };
 
-/** The creatures spawned in one run. */
-export const SPAWN: readonly CreatureKey[] = ['zombie', 'zombie', 'zombie', 'zombie', 'zombie', 'zombie', 'zombie'];
+/**
+ * How many of each creature spawn in one run.
+ * The dungeon is 23x23 cells at 4m each, so this is what sets the odds of
+ * turning a corner into something.
+ */
+export const SPAWN: Readonly<Record<CreatureKey, number>> = { zombie: 14 };
 
 // ---- Creature animation ----
 /** Attack duration in seconds when the external model carries no attack clip. */
