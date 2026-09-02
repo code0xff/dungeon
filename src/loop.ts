@@ -137,9 +137,19 @@ function updateWeapons(dt: number): void {
       sword.rotation.copy(SWORD_REST.rot);
       sword.position.copy(SWORD_REST.pos);
     } else {
+      // 오른쪽 위에서 왼쪽 아래로 비스듬히 베어 나간다. 위아래로만 내리치면
+      // 사브르처럼 긴 칼은 정점에서 날이 화면 밖으로 빠져 타격감이 죽는다.
       const k = Math.sin(state.swingT * Math.PI);
-      sword.rotation.x = SWORD_REST.rot.x - k * 1.1;
-      sword.position.z = SWORD_REST.pos.z - k * 0.25;
+      sword.rotation.set(
+        SWORD_REST.rot.x - k * 0.85,
+        SWORD_REST.rot.y + k * 0.6,
+        SWORD_REST.rot.z - k * 0.55,
+      );
+      sword.position.set(
+        SWORD_REST.pos.x - k * 0.24,
+        SWORD_REST.pos.y + k * 0.06,
+        SWORD_REST.pos.z - k * 0.18,
+      );
     }
   }
 

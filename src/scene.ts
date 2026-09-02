@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { FOG_BASE, WALL_H } from './config';
 import { el } from './dom';
+import type { WeaponKind } from './types';
 
 // ================= 렌더러 / 씬 / 카메라 =================
 export const scene = new THREE.Scene();
@@ -58,6 +59,8 @@ scene.add(portalCore);
 // ================= 1인칭 장비 =================
 // ---- 검 (오른손) ----
 export const sword = new THREE.Group();
+/** 외부 모델이 없을 때 쓰는 프리미티브 검. 모델이 들어오면 통째로 교체된다. */
+const swordFallback = new THREE.Group();
 {
   const blade = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.02, 0.95), new THREE.MeshStandardMaterial({ color: 0x8a8f99, metalness: 0.85, roughness: 0.35 }));
   blade.position.z = -0.6;
@@ -68,10 +71,11 @@ export const sword = new THREE.Group();
   const grip = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.035, 0.22, 8), new THREE.MeshStandardMaterial({ color: 0x2a2018, roughness: 0.9 }));
   grip.rotation.x = Math.PI / 2;
   grip.position.z = 0.02;
-  sword.add(blade, edge, guard, grip);
+  swordFallback.add(blade, edge, guard, grip);
 }
+sword.add(swordFallback);
 /** 검의 기본 자세. 휘두른 뒤 여기로 되돌린다. */
-export const SWORD_REST = { pos: new THREE.Vector3(0.32, -0.28, -0.4), rot: new THREE.Euler(0.1, -0.15, 0) };
+export const SWORD_REST = { pos: new THREE.Vector3(0.29, -0.2, -0.42), rot: new THREE.Euler(0.18, -0.26, 0.22) };
 sword.position.copy(SWORD_REST.pos);
 sword.rotation.copy(SWORD_REST.rot);
 camera.add(sword);
@@ -96,6 +100,8 @@ camera.add(handTorch);
 
 // ---- 머스킷 (오른손, 획득 후 전환 시 표시) ----
 export const musket = new THREE.Group();
+/** 외부 모델이 없을 때 쓰는 프리미티브 머스킷. */
+const musketFallback = new THREE.Group();
 {
   const woodM = new THREE.MeshStandardMaterial({ color: 0x3a2a1a, roughness: 0.9 });
   const steelM = new THREE.MeshStandardMaterial({ color: 0x5a5e66, metalness: 0.85, roughness: 0.35 });
@@ -119,12 +125,13 @@ export const musket = new THREE.Group();
   band1.position.set(0, 0.01, -0.6);
   const band2 = band1.clone();
   band2.position.z = -0.88;
-  musket.add(barrel, forestock, stock, lockPlate, hammer, band1, band2);
+  musketFallback.add(barrel, forestock, stock, lockPlate, hammer, band1, band2);
 }
+musket.add(musketFallback);
 /** 머스킷의 기본 자세. 장전 시 y, 반동 시 z·rotation.x가 여기서 벗어난다. */
-export const MUSKET_REST = { x: 0.26, y: -0.24, z: -0.35, rotX: 0.04 };
+export const MUSKET_REST = { x: 0.2, y: -0.3, z: -0.26, rotX: 0.03 };
 musket.position.set(MUSKET_REST.x, MUSKET_REST.y, MUSKET_REST.z);
-musket.rotation.set(MUSKET_REST.rotX, -0.06, 0);
+musket.rotation.set(MUSKET_REST.rotX, -0.13, 0.05);
 musket.visible = false;
 
 export const muzzleFlash = new THREE.Mesh(
@@ -140,8 +147,8 @@ export const smoke = new THREE.Mesh(
   new THREE.SphereGeometry(0.12, 8, 8),
   new THREE.MeshBasicMaterial({ color: 0x8a8a90, transparent: true, opacity: 0 }),
 );
-/** 연기의 총구 기준 y 위치. 퍼져 올라간 뒤 여기로 되돌린다. */
-export const SMOKE_REST_Y = 0.03;
+/** 연기의 총구 기준 y 위치. 퍼져 올라간 뒤 여기로 되돌린다. 모델을 갈아끼우면 총구 높이에 맞춰 갱신된다. */
+export let SMOKE_REST_Y = 0.03;
 smoke.position.set(0, SMOKE_REST_Y, -1.25);
 musket.add(smoke);
 
@@ -153,6 +160,28 @@ camera.add(musket);
 // 무기는 레이어 1: 월드 위에 별도 패스로 그려서 벽을 뚫지 않게 한다.
 sword.traverse((o) => o.layers.set(1));
 musket.traverse((o) => o.layers.set(1));
+
+/**
+ * 프리미티브 무기를 외부 모델로 갈아끼운다.
+ *
+ * 휘두르기·반동 애니메이션은 바깥 그룹(sword/musket)의 position·rotation만
+ * 건드리므로 안쪽 내용물만 바꾸면 그대로 동작한다. 총구 화염과 연기도
+ * musket의 자식이라 살아남고, muzzle을 주면 새 총구 위치로 옮겨진다.
+ */
+export function equipWeaponModel(kind: WeaponKind, model: THREE.Object3D, muzzle?: THREE.Vector3): void {
+  const group = kind === 'sword' ? sword : musket;
+  group.remove(kind === 'sword' ? swordFallback : musketFallback);
+  group.add(model);
+  model.traverse((o) => {
+    o.layers.set(1);
+    // 카메라 자식이라 컬링 판정이 어긋나기 쉽다. 무기는 항상 화면 안이니 끈다.
+    if ((o as THREE.Mesh).isMesh) (o as THREE.Mesh).frustumCulled = false;
+  });
+  if (!muzzle) return;
+  SMOKE_REST_Y = muzzle.y;
+  muzzleFlash.position.set(muzzle.x, muzzle.y, muzzle.z - 0.12);
+  smoke.position.set(muzzle.x, muzzle.y, muzzle.z - 0.06);
+}
 scene.add(camera);
 
 // ================= 떠다니는 먼지 =================

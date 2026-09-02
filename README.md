@@ -26,11 +26,13 @@ dungeon-extraction/
 │  ├─ world.ts       충돌 판정 · buildWorld
 │  └─ loop.ts        크리처 AI/애니메이션 · 프레임 루프
 ├─ scripts/
-│  └─ optimize-assets.mjs   FBX → GLB 변환 · 텍스처 축소
-├─ raw/                     에셋 원본 (서빙 안 됨, git 제외)
+│  ├─ optimize-assets.mjs   raw/ FBX → assets/ GLB 변환 · 텍스처 축소
+│  └─ fetch-assets.mjs      Poly Haven에서 벽·바닥 텍스처와 무기 모델 받기
+├─ raw/                     Mixamo FBX 원본 (서빙 안 됨, git 제외)
 │  └─ creatures/zombie/     idle.fbx  walk.fbx  attack.fbx  death.fbx
-└─ assets/                  서빙되는 에셋
+└─ assets/                  서빙되는 에셋 (git 포함)
    ├─ creatures/zombie/     idle.glb  walk.glb  attack.glb  death.glb
+   ├─ weapons/              sword.glb  musket.glb
    └─ textures/
       ├─ wall/              diffuse.jpg  normal.jpg  rough.jpg
       └─ floor/             diffuse.jpg  normal.jpg  rough.jpg
@@ -107,29 +109,55 @@ https://www.mixamo.com (어도비 계정 필요, 무료)
 ### 라이선스
 Mixamo 캐릭터·애니메이션은 게임에 넣어 배포하는 건 무료·상업 가능. 단 **FBX 원본 파일 자체를 재배포하면 안 됨** → `raw/`는 `.gitignore`에 넣고, 게임에 구워 넣은 `assets/creatures/**/*.glb`만 커밋한다.
 
+Poly Haven 에셋(벽·바닥 텍스처, 무기 모델)은 **CC0**라 출처 표기도 필요 없고 재배포도 자유롭다.
+
 ---
 
-## 3. 벽·바닥 — Poly Haven
+## 3. 벽·바닥·무기 — Poly Haven
 
-https://polyhaven.com/textures (CC0, 계정 불필요)
+```bash
+npm run fetch-assets
+```
 
-| 폴더 | 검색어 예시 |
+Poly Haven(CC0, 계정 불필요)의 공개 API에서 받아 바로 `assets/`에 넣는다.
+Mixamo와 달리 원본을 따로 보관할 필요가 없어서 `raw/`를 쓰지 않는다.
+받는 대상은 `scripts/fetch-assets.mjs` 맨 위 `PICKS`에 있다.
+
+| 슬롯 | 현재 에셋 | 고르는 곳 |
+|---|---|---|
+| wall | `medieval_blocks_05` | https://polyhaven.com/textures (wall) |
+| floor | `cobblestone_floor_08` | https://polyhaven.com/textures (floor) |
+| sword | `wooden_handle_saber` | https://polyhaven.com/models |
+| musket | `bolt_action_rifle_7_62` | https://polyhaven.com/models |
+
+바꾸고 싶으면 `PICKS`의 ID만 갈아끼우고 다시 돌리면 된다.
+
+- 텍스처는 **1K JPG**. 2K 이상은 모바일에서 버겁고 어두운 던전에선 차이도 안 보인다.
+- 노멀맵은 **`nor_gl`**(OpenGL)만 쓴다. `nor_dx`는 Three.js에서 요철이 뒤집힌다.
+- 무기 텍스처는 512 webp로 다시 굽는다. 라이플 5.9MB → 1.0MB.
+- 색이 너무 밝으면 `src/scene.ts`의 `AmbientLight`나 `toneMappingExposure`를 낮춘다.
+
+### 무기 모델이 손에 안 맞을 때
+
+모델마다 원점과 축이 제각각이라 `src/config.ts`의 `WEAPON_ASSETS`에서 맞춘다.
+
+| 값 | 하는 일 |
 |---|---|
-| wall | `stone wall`, `castle brick`, `mossy` |
-| floor | `cobblestone`, `stone floor`, `flagstone` |
+| `rot` | 모델의 긴 축을 -Z(카메라 앞)로 돌린다 |
+| `length` | 정규화 후 전체 길이(m) |
+| `back` | 원점보다 뒤(+z)로 나오는 길이. 손잡이가 화면 밖으로 나가면 줄인다 |
 
-**1K** 해상도, **JPG**로 받으면 보통 zip 안에 `*_diff_1k.jpg`, `*_nor_gl_1k.jpg`, `*_rough_1k.jpg`가 들어있다. 이걸 각각 `diffuse.jpg`, `normal.jpg`, `rough.jpg`로 이름 바꿔서 폴더에 넣는다.
+화면 안에서의 위치·각도는 `src/scene.ts`의 `SWORD_REST` / `MUSKET_REST`.
+총구 화염과 연기 자리는 로더가 모델에서 직접 찾으므로 손댈 필요 없다.
 
-- `normal.jpg`는 **`nor_gl`** (OpenGL 방식)을 쓸 것. `nor_dx`는 Three.js에서 요철이 뒤집힌다.
-- 2K 이상은 모바일에서 버벅일 수 있음. 1K로 충분.
-- 색이 너무 밝으면 `src/scene.ts`의 `AmbientLight`나 `toneMappingExposure`를 낮추면 된다.
+Poly Haven에 **머스킷/플린트락은 없다.** 그래서 총은 볼트액션 소총을 쓴다.
+코드상 이름(`musket`, `MUSKET_REST`)은 그대로 두었다.
 
 ---
 
 ## 4. 그다음
 
-- **무기 모델**: Mixamo엔 무기가 없다. Sketchfab에서 `musket` / `sword` 검색 + Downloadable + CC0 필터로 GLB 받아서 `src/scene.ts`의 `sword`, `musket` 그룹 안 프리미티브를 교체.
 - **그림자**: 지금은 꺼져 있다. `src/scene.ts`에서 `renderer.shadowMap.enabled = true` + 횃불 `castShadow = true`로 켤 수 있는데, 벽이 많아서 모바일 성능은 확인 필요.
-- **소품 교체**: Poly Haven `Models` 탭이나 Sketchfab CC0에서 barrel, skull, chain 등.
+- **소품 교체**: Poly Haven `Models` 탭에서 barrel, skull, chain 등.
 
 문제 생기면 F12 콘솔 에러 메시지를 그대로 가져오면 된다.
