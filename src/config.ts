@@ -39,6 +39,22 @@ export const SPEED = 5.2;
 export const CHEST_COUNT = 10;
 export const ATTACK_RANGE = 2.3;
 export const ATTACK_CD = 0.45;
+
+// ---- 검 휘두르기 ----
+// 치켜들었다가 내려친다. 한 사이클은 1/SWING_SPEED 초.
+/** 클수록 빠르다. 한 사이클 0.33초 — ATTACK_CD(0.45초)보다 짧아야 동작이 잘리지 않는다. */
+export const SWING_SPEED = 3.0;
+/** 치켜드는 구간이 전체에서 차지하는 비율. 0.11초. */
+export const SWING_WINDUP = 0.33;
+/**
+ * 날이 목표에 닿는 시점(0~1). 피해 판정이 여기서 난다.
+ * 좀비 쪽 ATTACK_IMPACT와 같은 발상인데, 이쪽은 플레이어 입력이라
+ * 늦으면 손맛이 죽으니 훨씬 짧게 잡았다(약 0.2초).
+ *
+ * 치켜든 뒤 여기까지가 실제로 내려치는 구간이다. 이 구간이 60fps에서
+ * 5프레임은 돼야 날이 지나가는 게 보인다. WINDUP과 너무 붙이지 말 것.
+ */
+export const SWING_IMPACT = 0.6;
 export const LOOT_TIME = 1.2;
 export const FOG_BASE = 0.115;
 export const FOG_TORCH = 0.08;

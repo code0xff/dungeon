@@ -66,12 +66,24 @@ async function tryLoadTexture(url: string, srgb = false): Promise<THREE.Texture 
   }
 }
 
+/**
+ * webp를 먼저 보고 없으면 jpg. npm run fetch-assets 는 webp로 굽지만,
+ * Poly Haven에서 받은 jpg를 그대로 폴더에 떨궈놔도 돌아가게 둘 다 본다.
+ */
+async function tryLoadMap(dir: string, name: string, srgb = false): Promise<THREE.Texture | null> {
+  for (const ext of ['webp', 'jpg'] as const) {
+    const t = await tryLoadTexture(`${dir}/${name}.${ext}`, srgb);
+    if (t) return t;
+  }
+  return null;
+}
+
 /** diffuse가 없으면 PBR 세트 자체를 포기하고 폴백 텍스처를 쓴다. */
 async function loadPBR(dir: string, repeat: number): Promise<PBRMaps | null> {
   const [map, normalMap, roughnessMap] = await Promise.all([
-    tryLoadTexture(`${dir}/diffuse.jpg`, true),
-    tryLoadTexture(`${dir}/normal.jpg`),
-    tryLoadTexture(`${dir}/rough.jpg`),
+    tryLoadMap(dir, 'diffuse', true),
+    tryLoadMap(dir, 'normal'),
+    tryLoadMap(dir, 'rough'),
   ]);
   if (!map) return null;
   for (const t of [map, normalMap, roughnessMap]) t?.repeat.set(repeat, repeat);

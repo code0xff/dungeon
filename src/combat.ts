@@ -97,7 +97,16 @@ export function tryAttack(): void {
   if (state.atkTimer > 0) return;
   state.atkTimer = ATTACK_CD;
   state.swingT = 0;
+  state.swingHit = false;
   sfxSwing();
+}
+
+/**
+ * 날이 내려온 순간의 피해 판정. 휘두르기 중간에 loop.ts가 한 번 부른다.
+ * 검을 치켜드는 동안에 이미 좀비가 맞아버리면 동작과 타격이 어긋나 보인다.
+ */
+export function resolveSwing(): void {
+  if (state.gameOver) return;
 
   // 검은 부채꼴로 닿는 모든 크리처를 동시에 벤다.
   const [fx, fz] = facing();
