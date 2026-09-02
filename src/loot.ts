@@ -1,5 +1,5 @@
 import { sfxCreak, sfxPickup } from './audio';
-import { FOG_TORCH } from './config';
+import { AMMO_PICKUP, FOG_TORCH, MUSKET_AMMO } from './config';
 import { fog, torch } from './scene';
 import { state } from './state';
 import type { Chest } from './types';
@@ -39,15 +39,15 @@ export function openChest(c: Chest): void {
       break;
     case 'musket':
       state.hasMusket = true;
-      state.ammo += 5;
+      state.ammo += MUSKET_AMMO;
       state.loaded = true;
       wpnBtn.classList.add('show');
       setWeapon('musket');
-      msg += '\n🔫 머스킷 획득 (6발) — Q로 전환. 총성은 크리처를 부른다';
+      msg += `\n🔫 머스킷 획득 (${MUSKET_AMMO + 1}발) — Q로 전환. 총성은 크리처를 부른다`;
       break;
     case 'ammo':
-      state.ammo += 3;
-      msg += '\n🔫 탄약 +3';
+      state.ammo += AMMO_PICKUP;
+      msg += `\n🔫 탄약 +${AMMO_PICKUP}`;
       // 빈 총을 들고 있었으면 바로 장전을 시작한다.
       if (!state.loaded && state.reloadT < 0 && state.weapon === 'musket') startReload();
       break;

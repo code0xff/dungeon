@@ -65,6 +65,14 @@ export const EYE_H = 1.55;
 // ---- 머스킷 ----
 export const MUSKET_DMG = 3;
 export const MUSKET_RELOAD = 3.0;
+
+// ---- 탄약 ----
+/** 시작 예비 탄약. 장전된 1발이 여기에 더 붙어서 첫 판은 START_AMMO+1발로 시작한다. */
+export const START_AMMO = 6;
+/** 상자에서 나온 탄약 하나가 주는 양. */
+export const AMMO_PICKUP = 3;
+/** 머스킷 아이템에 딸려오는 탄약. */
+export const MUSKET_AMMO = 5;
 export const MUSKET_RANGE = 26;
 export const SHOT_ALERT_RADIUS = 20;
 

@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { floorPBR, spawnCreature, wallPBR } from './assets';
 import {
   CELL, CHEST_COUNT, EYE_H, FOG_BASE, GRID, PLAYER_R, SCALE_VARIANCE, SPAWN,
-  SPEED_VARIANCE, TYPES, WALL_H,
+  SPEED_VARIANCE, START_AMMO, TYPES, WALL_H,
 } from './config';
 import { generateDungeon } from './dungeon';
 import { createChest, makeSconce, rollProp } from './props';
@@ -246,9 +246,9 @@ export function buildWorld(): void {
   state.hasMap = false;
   handTorch.visible = false;
 
-  // 검이 기본 무기. 머스킷은 Q로 전환 (장전 1발 + 예비 2발 소지).
+  // 검이 기본 무기. 머스킷은 Q로 전환 (장전 1발 + 예비 START_AMMO발 소지).
   state.hasMusket = true;
-  state.ammo = 2;
+  state.ammo = START_AMMO;
   state.loaded = true;
   state.reloadT = -1;
   state.recoilT = -1;
