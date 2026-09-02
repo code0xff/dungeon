@@ -41,6 +41,7 @@ dungeon-extraction/
 └─ assets/                  served assets (committed)
    ├─ creatures/zombie/     idle.glb  walk.glb  attack.glb  death.glb
    ├─ weapons/              sword.glb  musket.glb
+   ├─ props/                chest.glb
    └─ textures/
       ├─ wall/              diffuse.webp  normal.webp  rough.webp
       └─ floor/             diffuse.webp  normal.webp  rough.webp
@@ -158,8 +159,11 @@ in `assets/` directly and nothing is kept under `raw/`. What gets fetched is the
 | floor | `cobblestone_floor_08` | https://polyhaven.com/textures (floor) |
 | sword | `wooden_handle_saber` | https://polyhaven.com/models |
 | musket | `bolt_action_rifle_7_62` | https://polyhaven.com/models |
+| chest | `treasure_chest` | https://polyhaven.com/models |
 
-To change one, swap its id in `PICKS` and run the script again.
+To change one, swap its id in `PICKS` and run the script again. Each model entry
+also carries `dir` (where under `assets/` it lands), `texture` (longest edge to
+re-bake at) and an optional `simplify` ratio.
 
 - Everything is fetched at **1K**. 2K and up is heavy on mobile and invisible in a
   dark dungeon.
@@ -171,6 +175,15 @@ To change one, swap its id in `PICKS` and run the script again.
   wrong way. Colour and roughness survive 80 unnoticed.
 - Normals must be **`nor_gl`** (OpenGL). `nor_dx` inverts the relief in Three.js.
 - Too bright? Turn down `AmbientLight` or `toneMappingExposure` in `src/scene.ts`.
+- The chest is decimated to a fifth of its triangles — ten of them are in the
+  dungeon at once and the source is 68k. At torchlight range the loss does not show.
+
+### Swapping the chest
+
+`PROP_ASSETS.chest` in `src/config.ts` names the node the open animation hinges on
+(`lidNode`). A replacement model needs its lid as a separate node hinged at the
+back, the same convention the primitive chest uses; without that node the loader
+refuses it and falls back rather than shipping a chest that cannot open.
 
 ### When a weapon model does not sit right in the hand
 

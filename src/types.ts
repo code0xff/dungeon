@@ -109,8 +109,12 @@ export type ItemKind = 'torch' | 'map' | 'ammo' | 'potion' | 'musket';
 
 export interface Chest {
   mesh: THREE.Group;
-  /** Lid pivot. Rotates about x as the chest opens. */
-  lid: THREE.Group;
+  /**
+   * Lid pivot. Rotates about x as the chest opens.
+   * Object3D rather than Group because a glTF node that carries geometry
+   * arrives as a Mesh.
+   */
+  lid: THREE.Object3D;
   value: number;
   state: 'closed' | 'opened';
   /** Lid opening progress, 0..1. */
