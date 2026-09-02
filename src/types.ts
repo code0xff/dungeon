@@ -140,6 +140,20 @@ export interface Looting {
 // ================= 무기 =================
 export type WeaponKind = 'sword' | 'musket';
 
+/**
+ * 1인칭 무기 모델의 손 맞춤 설정. 모델마다 원점과 축이 제각각이라
+ * 로더가 rot → length → back 순으로 정규화한다. 자세한 건 config.ts 의 WEAPON_ASSETS 참고.
+ */
+export interface WeaponAsset {
+  url: string;
+  /** 라디안. 모델의 긴 축을 -Z로 돌리는 회전. */
+  rot: readonly [number, number, number];
+  /** 정규화 후 z 방향 전체 길이(m). */
+  length: number;
+  /** 원점보다 뒤(+z)로 나오는 길이(m). */
+  back: number;
+}
+
 // ================= 텍스처 =================
 export interface PBRMaps {
   map: THREE.Texture;

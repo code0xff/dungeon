@@ -1,4 +1,4 @@
-import type { CreatureKey, CreatureType } from './types';
+import type { CreatureKey, CreatureType, WeaponAsset, WeaponKind } from './types';
 
 // ================= 에셋 설정 =================
 // vite.config.ts 의 publicDir='assets' 때문에 아래 경로에는 'assets/' 접두사가 없다.
@@ -11,6 +11,23 @@ export const CREATURE_ASSETS: Record<CreatureKey, { dir: string; height: number 
 export const WALL_TEX_DIR = 'textures/wall';
 export const FLOOR_TEX_DIR = 'textures/floor';
 export const CLIP_NAMES = ['idle', 'walk', 'attack', 'death'] as const;
+
+/**
+ * 1인칭 무기 모델. 없으면 src/scene.ts의 프리미티브 무기를 그대로 쓴다.
+ * npm run fetch-assets 로 Poly Haven(CC0)에서 받아 온다.
+ *
+ * 모델마다 원점과 축이 제각각이라 로더가 다음 순서로 손에 맞춘다.
+ *   1. rot 를 적용해 긴 축이 -Z(카메라 앞)를 보게 돌린다
+ *   2. 전체 z 길이가 length 가 되게 균일 스케일
+ *   3. 뒤쪽 끝(개머리판·폼멜)이 z=back 에 오게 평행이동 → 손잡이가 원점 근처에 온다
+ * 총구 위치는 정규화 뒤 박스에서 읽어내므로 따로 적지 않는다.
+ */
+export const WEAPON_ASSETS: Record<WeaponKind, WeaponAsset> = {
+  // wooden_handle_saber: 칼끝이 +Y, 손잡이가 원점 쪽
+  sword: { url: 'weapons/sword.glb', rot: [-Math.PI / 2, 0, 0], length: 1.05, back: 0.14 },
+  // bolt_action_rifle_7_62: 총구가 +X
+  musket: { url: 'weapons/musket.glb', rot: [0, Math.PI / 2, 0], length: 1.3, back: 0.3 },
+};
 
 // ================= 설정 =================
 export const MAZE_CELLS = 11;

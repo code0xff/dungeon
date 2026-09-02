@@ -2,9 +2,12 @@ import * as THREE from 'three';
 import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
-import { CLIP_NAMES, CREATURE_ASSETS, FLOOR_TEX_DIR, GRID, WALL_TEX_DIR } from './config';
+import { CLIP_NAMES, CREATURE_ASSETS, FLOOR_TEX_DIR, GRID, WALL_TEX_DIR, WEAPON_ASSETS } from './config';
 import { MAKERS } from './creatures';
-import type { ClipName, Clips, CreatureKey, CreatureRig, CreatureTemplate, MonsterPlayback, PBRMaps } from './types';
+import { equipWeaponModel } from './scene';
+import type {
+  ClipName, Clips, CreatureKey, CreatureRig, CreatureTemplate, MonsterPlayback, PBRMaps, WeaponAsset, WeaponKind,
+} from './types';
 
 function isMesh(o: THREE.Object3D): o is THREE.Mesh {
   return (o as THREE.Mesh).isMesh === true;
@@ -143,6 +146,73 @@ function unusableReason(root: THREE.Object3D): string | null {
   return null;
 }
 
+/**
+ * 모델에서 가장 앞쪽(-z) 끝점을 찾는다. 총구 화염과 연기를 붙일 자리다.
+ * 최전방 한 점만 쓰면 조준기 끝 같은 엉뚱한 돌기에 걸릴 수 있어서
+ * 앞쪽 2cm 안에 든 정점들의 평균을 쓴다.
+ */
+function findTip(root: THREE.Object3D): THREE.Vector3 {
+  root.updateWorldMatrix(true, true);
+  const v = new THREE.Vector3();
+  const eachVertex = (fn: (p: THREE.Vector3) => void): void => {
+    root.traverse((o) => {
+      if (!isMesh(o)) return;
+      const pos = o.geometry.getAttribute('position');
+      for (let i = 0; i < pos.count; i++) {
+        fn(v.fromBufferAttribute(pos as THREE.BufferAttribute, i).applyMatrix4(o.matrixWorld));
+      }
+    });
+  };
+
+  let minZ = Infinity;
+  eachVertex((p) => { if (p.z < minZ) minZ = p.z; });
+
+  const sum = new THREE.Vector3();
+  let n = 0;
+  eachVertex((p) => { if (p.z <= minZ + 0.02) { sum.add(p); n++; } });
+  return n ? sum.divideScalar(n) : new THREE.Vector3(0, 0, minZ);
+}
+
+/**
+ * 무기 모델을 손에 맞춘다. cfg의 rot으로 긴 축을 -Z로 돌리고, z 길이를
+ * length에 맞춰 균일 스케일한 뒤, 뒤끝이 z=back에 오도록 밀어 손잡이를 원점에 둔다.
+ * x·y는 중심을 원점에 맞춘다.
+ */
+function normalizeWeapon(model: THREE.Object3D, cfg: WeaponAsset): { group: THREE.Group; tip: THREE.Vector3 } {
+  model.rotation.set(cfg.rot[0], cfg.rot[1], cfg.rot[2]);
+  const group = new THREE.Group();
+  group.add(model);
+
+  const box = new THREE.Box3();
+  group.updateWorldMatrix(true, true);
+  box.setFromObject(group);
+  group.scale.setScalar(cfg.length / (box.max.z - box.min.z));
+
+  group.updateWorldMatrix(true, true);
+  box.setFromObject(group);
+  group.position.set(
+    -(box.min.x + box.max.x) / 2,
+    -(box.min.y + box.max.y) / 2,
+    cfg.back - box.max.z,
+  );
+  return { group, tip: findTip(group) };
+}
+
+/** 무기 모델이 있으면 프리미티브를 교체한다. 없으면 조용히 프리미티브를 쓴다. */
+async function loadWeapon(kind: WeaponKind): Promise<string> {
+  const cfg = WEAPON_ASSETS[kind];
+  let gltf;
+  try {
+    gltf = await gltfLoader.loadAsync(cfg.url);
+  } catch {
+    return `${kind}: 파일 없음 → 기본 모델`;
+  }
+  const { group, tip } = normalizeWeapon(gltf.scene, cfg);
+  equipWeaponModel(kind, group, kind === 'musket' ? tip : undefined);
+  const s = group.scale.x;
+  return `${kind}: 로드 완료 (x${s.toFixed(2)} · 끝 z=${tip.z.toFixed(2)})`;
+}
+
 export async function loadAssets(onProgress: (msg: string) => void): Promise<void> {
   const log: string[] = [];
 
@@ -184,6 +254,9 @@ export async function loadAssets(onProgress: (msg: string) => void): Promise<voi
     templates[key] = { root, clips };
     log.push(`${key}: 로드 완료 [${Object.keys(clips).join(', ')}] · ${describeSkin(root)}`);
   }
+
+  onProgress('무기 로딩');
+  for (const kind of Object.keys(WEAPON_ASSETS) as WeaponKind[]) log.push(await loadWeapon(kind));
 
   onProgress('텍스처 로딩');
   pbr.wall = await loadPBR(WALL_TEX_DIR, 1.5);
