@@ -40,14 +40,46 @@ function rand([min, max]: readonly [number, number]): number {
 }
 
 /** A floor cell at least minDist from the start (1,1). Falls back to the far corner. */
+/**
+ * Cells already handed out this run.
+ *
+ * Creatures and chests are placed at the exact centre of their cell, so two that
+ * draw the same cell end up perfectly on top of each other. With 14 creatures and
+ * 10 chests drawn from a few hundred floor cells that is not a rare accident —
+ * by the birthday argument it happens in most runs.
+ */
+const claimed = new Set<number>();
+
+const cellKey = (x: number, z: number): number => z * GRID + x;
+
+function usable(x: number, z: number, minDist: number): boolean {
+  return state.maze[z][x] === 0
+    && Math.hypot(x - 1, z - 1) >= minDist
+    && !claimed.has(cellKey(x, z));
+}
+
+/**
+ * A free floor cell at least minDist from the start (1,1), claimed on the way out.
+ * Falls back to a scan rather than a fixed corner: the old fallback returned
+ * (GRID-2, GRID-2), which is exactly where the exit portal stands.
+ */
 function randomFloorCell(minDist: number): GridCell {
   for (let t = 0; t < 400; t++) {
     const x = 1 + ((Math.random() * (GRID - 2)) | 0);
     const z = 1 + ((Math.random() * (GRID - 2)) | 0);
-    if (state.maze[z][x] !== 0 || Math.hypot(x - 1, z - 1) < minDist) continue;
+    if (!usable(x, z, minDist)) continue;
+    claimed.add(cellKey(x, z));
     return [x, z];
   }
-  return [GRID - 2, GRID - 2];
+  for (let z = 1; z < GRID - 1; z++) {
+    for (let x = 1; x < GRID - 1; x++) {
+      if (!usable(x, z, minDist)) continue;
+      claimed.add(cellKey(x, z));
+      return [x, z];
+    }
+  }
+  // The dungeon is full. Stacking on the start beats stacking on the portal.
+  return [1, 1];
 }
 
 let guideTimer: ReturnType<typeof setTimeout> | null = null;
@@ -222,6 +254,11 @@ export function buildWorld(): void {
   state.maze = generateDungeon();
   state.exitCell = { x: GRID - 2, z: GRID - 2 };
   state.maze[state.exitCell.z][state.exitCell.x] = 0;
+
+  // Nothing spawns on the spot the player stands on or the one they escape through.
+  claimed.clear();
+  claimed.add(cellKey(1, 1));
+  claimed.add(cellKey(state.exitCell.x, state.exitCell.z));
 
   buildGeometry();
 
