@@ -1,13 +1,13 @@
-// raw/ 의 FBX 원본을 assets/ 의 GLB로 변환한다.
+// Converts the FBX sources in raw/ into GLB files under assets/.
 //
-//   raw/creatures/<key>/{idle,walk,attack,death}.fbx   (원본, 서빙 안 됨)
-//        ↓  npm run optimize-assets
+//   raw/creatures/<key>/{idle,walk,attack,death}.fbx   (sources, never served)
+//        |  npm run optimize-assets
 //   assets/creatures/<key>/{idle,walk,attack,death}.glb
 //
-// idle 만 메시와 텍스처를 갖고, 나머지 셋은 애니메이션 커브만 남긴다.
-// 게임 코드가 walk/attack/death에서 animations[0] 말고는 아무것도 안 쓰기 때문이다
-// (src/assets.ts 의 loadAssets 참고). Mixamo의 "Without Skin" 다운로드를
-// 받아온 파일에 직접 적용하는 셈이다.
+// Only idle keeps its mesh and textures; the other three are stripped to animation
+// curves, because the game reads nothing but animations[0] out of walk, attack and
+// death (see loadAssets in src/assets.ts). It amounts to applying Mixamo's
+// "Without Skin" option after the fact.
 import { createRequire } from 'node:module';
 import { mkdirSync, readdirSync, rmSync, statSync, existsSync } from 'node:fs';
 import { join, resolve } from 'node:path';
@@ -16,9 +16,10 @@ import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
 import { dedup, prune, resample, textureCompress } from '@gltf-transform/functions';
 import sharp from 'sharp';
 
-// FBX2glTF를 쓰는 이유: assimp는 FBX 피벗을 _$AssimpFbx$_Rotation 같은 헬퍼 노드로
-// 쪼개서 내보내는데, 그러면 애니메이션 트랙이 실제 뼈가 아니라 헬퍼를 가리켜서
-// 클립을 모델에 붙일 수 없다(156트랙 중 12개만 일치). FBX2glTF는 피벗을 뼈에 굽는다.
+// Why FBX2glTF and not assimp: assimp splits FBX pivots into helper nodes named
+// like _$AssimpFbx$_Rotation, which leaves the animation tracks pointing at helpers
+// instead of real bones, so no clip can bind to the model — 12 of 156 tracks
+// matched. FBX2glTF bakes the pivots into the bones.
 const fbx2gltf = createRequire(import.meta.url)('fbx2gltf');
 
 const ROOT = resolve(import.meta.dirname, '..');
@@ -26,14 +27,14 @@ const RAW = join(ROOT, 'raw', 'creatures');
 const OUT = join(ROOT, 'assets', 'creatures');
 const TMP = join(ROOT, 'node_modules', '.cache', 'asset-opt');
 
-/** 모델을 들고 있는 클립. 나머지는 애니메이션만 남긴다. */
+/** The clip that carries the model. The rest keep animation only. */
 const MODEL_CLIP = 'idle';
-/** 텍스처 최대 변. 어두운 던전에서 화면상 300px 남짓이라 1K면 충분하다. */
+/** Longest texture edge. About 300px on screen in a dark dungeon, so 1K is plenty. */
 const TEXTURE_SIZE = 1024;
 /**
- * 살갗·천은 금속이 아니다. 그런데 FBX2glTF는 Phong의 specular 맵을
- * metallicRoughness 텍스처로 옮기고 metallicFactor를 glTF 기본값 1.0으로 둔다.
- * 그대로 두면 좀비 피부가 metalness 0.4로 잡혀 횃불빛에 금속처럼 번들거린다.
+ * Skin and cloth are not metal. But FBX2glTF moves the Phong specular map into a
+ * metallicRoughness texture and leaves metallicFactor at the glTF default of 1.0.
+ * Untouched, zombie skin reads as metalness 0.4 and glints like metal in torchlight.
  */
 const ROUGHNESS = 0.85;
 
@@ -41,12 +42,12 @@ const io = new NodeIO().registerExtensions(ALL_EXTENSIONS);
 
 const mb = (p) => (statSync(p).size / 1048576).toFixed(1);
 
-/** FBX → GLB. 임베드 텍스처도 같이 넘어온다. */
+/** FBX to GLB. Embedded textures come across too. */
 async function fbxToGlb(src, dst) {
   await fbx2gltf(src, dst, ['--binary']);
 }
 
-/** 금속기를 걷어내고 거칠기를 고정한다. 쓰지 않게 된 ORM 텍스처는 prune이 치운다. */
+/** Strips the metalness and pins the roughness. prune clears the now-unused ORM texture. */
 function deMetallize(doc) {
   for (const mat of doc.getRoot().listMaterials()) {
     mat.setMetallicFactor(0);
@@ -55,7 +56,7 @@ function deMetallize(doc) {
   }
 }
 
-/** 애니메이션 커브만 남기고 메시·스킨·머티리얼·텍스처를 버린다. */
+/** Keeps the animation curves and discards meshes, skins, materials and textures. */
 function stripToAnimation(doc) {
   const root = doc.getRoot();
   for (const node of root.listNodes()) {
@@ -77,7 +78,7 @@ async function convert(key, clip) {
 
   const doc = await io.read(tmp);
   const transforms = [
-    // 키프레임을 곡선 단위로 줄인다. 모션 자체는 그대로다.
+    // Thins keyframes curve by curve. The motion itself is unchanged.
     resample(),
     dedup(),
   ];
@@ -90,7 +91,7 @@ async function convert(key, clip) {
   } else {
     stripToAnimation(doc);
   }
-  // prune은 위 정리 뒤에 남은 고아 데이터를 걷어낸다.
+  // prune sweeps up whatever the steps above orphaned.
   transforms.push(prune());
   await doc.transform(...transforms);
 
@@ -104,7 +105,7 @@ async function convert(key, clip) {
 
 const keys = existsSync(RAW) ? readdirSync(RAW).filter((d) => statSync(join(RAW, d)).isDirectory()) : [];
 if (!keys.length) {
-  console.error(`원본이 없다: ${RAW}`);
+  console.error(`no sources found: ${RAW}`);
   process.exit(1);
 }
 
@@ -113,11 +114,11 @@ for (const key of keys) {
   console.log(`\n[${key}]`);
   for (const clip of ['idle', 'walk', 'attack', 'death']) {
     const r = await convert(key, clip);
-    if (!r) { console.log(`  ${clip.padEnd(7)} 없음`); continue; }
+    if (!r) { console.log(`  ${clip.padEnd(7)} missing`); continue; }
     totalBefore += r.before;
     totalAfter += r.after;
     const pct = ((1 - r.after / r.before) * 100).toFixed(0);
     console.log(`  ${r.clip.padEnd(7)} ${String(r.before).padStart(6)} MB → ${String(r.after).padStart(6)} MB  (-${pct}%)`);
   }
 }
-console.log(`\n합계 ${totalBefore.toFixed(1)} MB → ${totalAfter.toFixed(1)} MB  (-${((1 - totalAfter / totalBefore) * 100).toFixed(0)}%)`);
+console.log(`\ntotal ${totalBefore.toFixed(1)} MB -> ${totalAfter.toFixed(1)} MB  (-${((1 - totalAfter / totalBefore) * 100).toFixed(0)}%)`);

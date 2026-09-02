@@ -8,8 +8,8 @@ const boneMat = new THREE.MeshStandardMaterial({ color: 0x9a917c, roughness: 1 }
 const stoneMat = new THREE.MeshStandardMaterial({ color: 0x2a2c31, roughness: 1 });
 const puddleMat = new THREE.MeshStandardMaterial({ color: 0x04060a, metalness: 0.95, roughness: 0.12 });
 
-// ---- 상자 ----
-/** 보물 상자. 뚜껑 피벗을 함께 돌려줘서 여는 애니메이션이 잡을 수 있게 한다. */
+// ---- Chest ----
+/** Treasure chest. Hands back the lid pivot so the open animation has something to turn. */
 export function createChest(value: number): Omit<Chest, 'item'> {
   const g = new THREE.Group();
   const woodMat = new THREE.MeshStandardMaterial({ map: chestTex, roughness: 0.9 });
@@ -38,7 +38,7 @@ export function createChest(value: number): Omit<Chest, 'item'> {
   return { mesh: g, lid: lidPivot, value, state: 'closed', openT: 0 };
 }
 
-// ---- 소품 ----
+// ---- Props ----
 function makeSkull(): THREE.Group {
   const g = new THREE.Group();
   const s = new THREE.Mesh(new THREE.SphereGeometry(0.14, 10, 8), boneMat);
@@ -89,7 +89,7 @@ function makeBarrel(): THREE.Group {
   const g = new THREE.Group();
   g.add(m);
   if (Math.random() < 0.5) {
-    // 쓰러진 통
+    // Toppled barrel
     m.rotation.z = Math.PI / 2;
     m.position.y = 0.3;
     g.rotation.y = Math.random() * 6.3;
@@ -99,7 +99,7 @@ function makeBarrel(): THREE.Group {
   return g;
 }
 
-/** 천장에 매달린 사슬. 위상 오프셋을 함께 돌려줘서 흔들리게 한다. */
+/** Chain hanging from the ceiling. Hands back a phase offset so it sways out of step with the others. */
 function makeChain(): { object: THREE.Group; swing: number } {
   const g = new THREE.Group();
   const len = 0.8 + Math.random() * 1.4;
@@ -120,7 +120,7 @@ function makePuddle(): THREE.Mesh {
   return m;
 }
 
-/** 확률 테이블대로 소품 하나를 뽑는다. 아무것도 안 나오면 null. */
+/** Rolls one prop off the probability table. null when nothing comes up. */
 export function rollProp(): Prop | null {
   const r = Math.random();
   if (r < 0.10) return { object: makeBonePile(), swing: null };
@@ -131,7 +131,7 @@ export function rollProp(): Prop | null {
   return null;
 }
 
-/** 벽에 붙는 초록 불꽃 촛대. */
+/** Wall sconce with a green flame. */
 export function makeSconce(): Sconce {
   const g = new THREE.Group();
   const bracket = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.3, 0.12), ironMat);

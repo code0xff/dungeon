@@ -3,14 +3,15 @@ import { FOG_BASE, WALL_H } from './config';
 import { el } from './dom';
 import type { WeaponKind } from './types';
 
-// ================= 렌더러 / 씬 / 카메라 =================
+// ================= Renderer, scene, camera =================
 export const scene = new THREE.Scene();
-// 배경은 scene.background가 아니라 렌더러 clearColor로 준다.
-// scene.background가 Color면 three가 render()마다 forceClear를 켜서
-// autoClear=false를 무시하고 컬러 버퍼를 지운다 → 2패스(무기)가 월드를 통째로
-// 지워버려 검만 보이게 된다. clearColor는 renderFrame() 맨 앞의 clear()에서만 적용된다.
+// The background comes from the renderer's clear colour, not scene.background.
+// When scene.background is a Color, three sets forceClear on every render() and
+// wipes the colour buffer regardless of autoClear=false — so the second pass (the
+// weapons) erases the whole world and only the sword is left on screen.
+// A clear colour is applied only by the clear() at the top of renderFrame().
 
-/** scene.fog를 매번 좁히지 않아도 되게 구체 타입으로 들고 있는다. */
+/** Held at its concrete type so callers need not narrow scene.fog every time. */
 export const fog = new THREE.FogExp2(0x020304, FOG_BASE);
 scene.fog = fog;
 
@@ -23,23 +24,23 @@ renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 0.95;
-// 무기를 2패스로 따로 그리므로 자동 clear를 끈다.
+// Automatic clearing is off because the weapons are drawn in a second pass.
 renderer.autoClear = false;
 el('game').appendChild(renderer.domElement);
 
 export const canvasEl = renderer.domElement;
 
-// ================= 조명 =================
+// ================= Lighting =================
 const ambient = new THREE.AmbientLight(0x141820, 0.55);
 ambient.layers.enable(1);
 scene.add(ambient);
 
-/** 플레이어를 따라다니는 횃불. */
+/** The torchlight that follows the player. */
 export const torch = new THREE.PointLight(0xff7428, 1.9, 11, 2.0);
 torch.layers.enable(1);
 scene.add(torch);
 
-// ================= 탈출 포탈 =================
+// ================= Extraction portal =================
 export const portalLight = new THREE.PointLight(0x3a6fd0, 2.0, 14, 1.6);
 portalLight.layers.enable(1);
 scene.add(portalLight);
@@ -56,10 +57,10 @@ export const portalCore = new THREE.Mesh(
 );
 scene.add(portalCore);
 
-// ================= 1인칭 장비 =================
-// ---- 검 (오른손) ----
+// ================= First-person gear =================
+// ---- Sword (right hand) ----
 export const sword = new THREE.Group();
-/** 외부 모델이 없을 때 쓰는 프리미티브 검. 모델이 들어오면 통째로 교체된다. */
+/** Primitive sword used when no external model is present. Swapped out wholesale once one loads. */
 const swordFallback = new THREE.Group();
 {
   const blade = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.02, 0.95), new THREE.MeshStandardMaterial({ color: 0x8a8f99, metalness: 0.85, roughness: 0.35 }));
@@ -74,13 +75,13 @@ const swordFallback = new THREE.Group();
   swordFallback.add(blade, edge, guard, grip);
 }
 sword.add(swordFallback);
-/** 검의 기본 자세. 휘두른 뒤 여기로 되돌린다. */
+/** Resting pose of the sword. Every swing returns here. */
 export const SWORD_REST = { pos: new THREE.Vector3(0.29, -0.2, -0.42), rot: new THREE.Euler(0.18, -0.26, 0.22) };
 sword.position.copy(SWORD_REST.pos);
 sword.rotation.copy(SWORD_REST.rot);
 camera.add(sword);
 
-// ---- 횃불 (왼손, 획득 시 표시) ----
+// ---- Torch (left hand, shown once picked up) ----
 export const handTorch = new THREE.Group();
 {
   const stick = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.03, 0.42, 8), new THREE.MeshStandardMaterial({ color: 0x3a2a18, roughness: 1 }));
@@ -98,9 +99,9 @@ handTorch.rotation.set(0.25, 0, 0.2);
 handTorch.visible = false;
 camera.add(handTorch);
 
-// ---- 머스킷 (오른손, 획득 후 전환 시 표시) ----
+// ---- Musket (right hand, shown when swapped to) ----
 export const musket = new THREE.Group();
-/** 외부 모델이 없을 때 쓰는 프리미티브 머스킷. */
+/** Primitive musket used when no external model is present. */
 const musketFallback = new THREE.Group();
 {
   const woodM = new THREE.MeshStandardMaterial({ color: 0x3a2a1a, roughness: 0.9 });
@@ -128,7 +129,7 @@ const musketFallback = new THREE.Group();
   musketFallback.add(barrel, forestock, stock, lockPlate, hammer, band1, band2);
 }
 musket.add(musketFallback);
-/** 머스킷의 기본 자세. 장전 시 y, 반동 시 z·rotation.x가 여기서 벗어난다. */
+/** Resting pose of the musket. Reloading moves y; recoil moves z and rotation.x. */
 export const MUSKET_REST = { x: 0.2, y: -0.3, z: -0.26, rotX: 0.03 };
 musket.position.set(MUSKET_REST.x, MUSKET_REST.y, MUSKET_REST.z);
 musket.rotation.set(MUSKET_REST.rotX, -0.13, 0.05);
@@ -147,7 +148,7 @@ export const smoke = new THREE.Mesh(
   new THREE.SphereGeometry(0.12, 8, 8),
   new THREE.MeshBasicMaterial({ color: 0x8a8a90, transparent: true, opacity: 0 }),
 );
-/** 연기의 총구 기준 y 위치. 퍼져 올라간 뒤 여기로 되돌린다. 모델을 갈아끼우면 총구 높이에 맞춰 갱신된다. */
+/** The smoke's resting y at the muzzle. It drifts up, then returns here. Swapping in a model updates it to that muzzle's height. */
 export let SMOKE_REST_Y = 0.03;
 smoke.position.set(0, SMOKE_REST_Y, -1.25);
 musket.add(smoke);
@@ -157,16 +158,17 @@ flashLight.layers.enable(1);
 scene.add(flashLight);
 camera.add(musket);
 
-// 무기는 레이어 1: 월드 위에 별도 패스로 그려서 벽을 뚫지 않게 한다.
+// Weapons live on layer 1: drawn over the world in their own pass so they never poke through walls.
 sword.traverse((o) => o.layers.set(1));
 musket.traverse((o) => o.layers.set(1));
 
 /**
- * 프리미티브 무기를 외부 모델로 갈아끼운다.
+ * Swap a primitive weapon for an external model.
  *
- * 휘두르기·반동 애니메이션은 바깥 그룹(sword/musket)의 position·rotation만
- * 건드리므로 안쪽 내용물만 바꾸면 그대로 동작한다. 총구 화염과 연기도
- * musket의 자식이라 살아남고, muzzle을 주면 새 총구 위치로 옮겨진다.
+ * The swing and recoil animations only touch position and rotation on the outer
+ * group (sword/musket), so replacing what is inside leaves them working. The
+ * muzzle flash and smoke are children of musket and survive too; passing `muzzle`
+ * moves them to the new barrel end.
  */
 export function equipWeaponModel(kind: WeaponKind, model: THREE.Object3D, muzzle?: THREE.Vector3): void {
   const group = kind === 'sword' ? sword : musket;
@@ -174,7 +176,7 @@ export function equipWeaponModel(kind: WeaponKind, model: THREE.Object3D, muzzle
   group.add(model);
   model.traverse((o) => {
     o.layers.set(1);
-    // 카메라 자식이라 컬링 판정이 어긋나기 쉽다. 무기는 항상 화면 안이니 끈다.
+    // Culling misjudges children of the camera. A held weapon is always on screen, so turn it off.
     if ((o as THREE.Mesh).isMesh) (o as THREE.Mesh).frustumCulled = false;
   });
   if (!muzzle) return;
@@ -184,7 +186,7 @@ export function equipWeaponModel(kind: WeaponKind, model: THREE.Object3D, muzzle
 }
 scene.add(camera);
 
-// ================= 떠다니는 먼지 =================
+// ================= Floating dust =================
 export const DUST = 280;
 const dustPos = new Float32Array(DUST * 3);
 for (let i = 0; i < DUST; i++) {
@@ -196,14 +198,14 @@ export const dustGeo = new THREE.BufferGeometry();
 dustGeo.setAttribute('position', new THREE.BufferAttribute(dustPos, 3));
 scene.add(new THREE.Points(dustGeo, new THREE.PointsMaterial({ color: 0xb8a888, size: 0.035, transparent: true, opacity: 0.5, depthWrite: false })));
 
-// ================= 월드 지오메트리 (buildWorld가 교체) =================
+// ================= World geometry (replaced by buildWorld) =================
 export const world: {
   wall: THREE.InstancedMesh | null;
   floor: THREE.Mesh | null;
   ceil: THREE.Mesh | null;
 } = { wall: null, floor: null, ceil: null };
 
-/** 월드(레이어 0) → 깊이 초기화 → 무기(레이어 1) 순서로 두 번 그린다. */
+/** Two passes: world (layer 0), clear depth, then weapons (layer 1). */
 export function renderFrame(): void {
   renderer.clear();
   camera.layers.set(0);

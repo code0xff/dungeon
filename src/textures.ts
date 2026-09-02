@@ -39,7 +39,7 @@ function stoneBrickTexture(): THREE.CanvasTexture {
       bx += bw;
     }
   }
-  // 아래쪽 이끼
+  // Moss along the bottom
   for (let i = 0; i < 70; i++) {
     const py = 120 + Math.random() * 136, px = Math.random() * 256, r = 6 + Math.random() * 16;
     x.fillStyle = `hsla(${95 + Math.random() * 30}, 35%, ${12 + Math.random() * 8}%, ${0.25 + Math.random() * 0.35})`;
@@ -47,7 +47,7 @@ function stoneBrickTexture(): THREE.CanvasTexture {
     x.ellipse(px, py, r, r * 0.6, Math.random() * 3, 0, Math.PI * 2);
     x.fill();
   }
-  // 흘러내린 핏자국
+  // Blood running down
   for (let i = 0; i < 4; i++) {
     const px = Math.random() * 256, py = Math.random() * 120, len = 40 + Math.random() * 110;
     const grd = x.createLinearGradient(0, py, 0, py + len);
@@ -111,12 +111,12 @@ function woodTexture(lightness: number): THREE.CanvasTexture {
   return wrapped(c);
 }
 
-// PBR 텍스처가 없을 때 쓰는 폴백. 모듈 로드 시 한 번만 그린다.
+// Fallbacks for when no PBR textures are present. Drawn once at module load.
 export const wallTex = stoneBrickTexture();
 export const floorTex = cobbleTexture();
 export const ceilTex = woodTexture(9);
 export const chestTex = woodTexture(16);
 
-// 바닥·천장은 한 장의 큰 평면이라 그리드 크기만큼 타일링해야 한다.
+// Floor and ceiling are single large planes, so they tile across the whole grid.
 floorTex.repeat.set(GRID, GRID);
 ceilTex.repeat.set(GRID * 1.5, GRID * 1.5);

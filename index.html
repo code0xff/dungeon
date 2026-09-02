@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>던전 익스트랙션</title>
+<title>Dungeon Extraction</title>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
   html,body { width:100%; height:100%; overflow:hidden; background:#020304; font-family:'Segoe UI',system-ui,sans-serif; touch-action:none; }
@@ -68,43 +68,43 @@
 </head>
 <body>
 <div id="game"></div>
-<div id="loading">에셋 로딩 중...</div>
+<div id="loading">Loading assets...</div>
 <div id="vignette"></div>
 <div id="grain"></div>
 
 <div id="hud" class="panel">
   HP
   <div id="hpbarWrap"><div id="hpbar"></div></div>
-  <div>이번 판: <span id="gold">0</span> G</div>
-  <div id="bank">금고: 0 G</div>
-  <div id="items">장비: 없음</div>
+  <div>Run: <span id="gold">0</span> G</div>
+  <div id="bank">Bank: 0 G</div>
+  <div id="items">Gear: none</div>
 </div>
 
 <div id="objective" class="panel">
-  상자에서 <span class="item">횃불·지도·탄약</span>을 찾고<br>
-  보물을 챙겨 <span class="portal">푸른 포탈</span>로 탈출하라<br>
-  <span style="opacity:.6">죽으면 이번 판 골드는 소멸</span>
+  Loot chests for a <span class="item">torch, map and ammo</span><br>
+  Grab the treasure and escape through the <span class="portal">blue portal</span><br>
+  <span style="opacity:.6">Die and this run's gold is gone</span>
 </div>
 <canvas id="minimap" width="150" height="150"></canvas>
 
 <div id="msg"></div>
-<div id="help">이동: WASD · 시선: 마우스 이동 · 공격/사격: 클릭/Space · 상자: E · 무기전환: Q</div>
-<div id="lockHint"><div>마우스를 움직여 시선을 조작하세요<br><small>화면을 한 번 클릭하면 커서가 잠겨 더 편해집니다 (Esc로 해제)</small></div></div>
-<div id="prompt"><b>E</b>상자 열기</div>
+<div id="help">Move: WASD &middot; Look: move mouse &middot; Attack/Fire: click or Space &middot; Chest: E &middot; Swap weapon: Q</div>
+<div id="lockHint"><div>Move the mouse to look around<br><small>Click once to lock the cursor for smoother aiming (Esc to release)</small></div></div>
+<div id="prompt"><b>E</b>Open chest</div>
 <div id="lootBar"><div></div></div>
 <div id="crosshair"></div>
 <div id="reloadBar"><div></div></div>
 
 <div id="moveStick" class="stick" style="left:24px; bottom:24px; width:110px; height:110px;"><div class="knob"></div></div>
-<div id="atkBtn">공격</div>
-<div id="lootBtn">열기</div>
-<div id="wpnBtn">전환</div>
+<div id="atkBtn">ATTACK</div>
+<div id="lootBtn">OPEN</div>
+<div id="wpnBtn">SWAP</div>
 
 <div id="overlay">
   <h1 id="ovTitle"></h1>
   <p id="ovDesc"></p>
   <p class="bankline" id="ovBank"></p>
-  <button id="restart">다음 원정</button>
+  <button id="restart">Next expedition</button>
 </div>
 
 <script type="module" src="/src/main.ts"></script>

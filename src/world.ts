@@ -17,8 +17,8 @@ import { lockHintEl } from './ui';
 import { setWeapon } from './weapons';
 
 /**
- * 원 하나(반지름 r)가 벽 칸과 겹치는지. 주변 3x3 칸만 본다.
- * x축과 z축을 따로 판정하면 벽을 따라 미끄러진다.
+ * Whether a circle of radius r overlaps a wall cell. Only the surrounding 3x3 is checked.
+ * Testing x and z separately is what makes the player slide along walls.
  */
 export function collides(wx: number, wz: number, r = PLAYER_R): boolean {
   for (let dz = -1; dz <= 1; dz++) {
@@ -34,12 +34,12 @@ export function collides(wx: number, wz: number, r = PLAYER_R): boolean {
   return false;
 }
 
-/** [min, max] 범위의 난수. */
+/** Random number in [min, max]. */
 function rand([min, max]: readonly [number, number]): number {
   return min + Math.random() * (max - min);
 }
 
-/** 시작 지점(1,1)에서 minDist 이상 떨어진 통로 칸. 못 찾으면 반대편 구석. */
+/** A floor cell at least minDist from the start (1,1). Falls back to the far corner. */
 function randomFloorCell(minDist: number): GridCell {
   for (let t = 0; t < 400; t++) {
     const x = 1 + ((Math.random() * (GRID - 2)) | 0);
@@ -69,7 +69,7 @@ function clearWorld(): void {
 }
 
 function buildGeometry(): void {
-  // ---- 벽: 인스턴스 메시 한 덩어리 ----
+  // ---- Walls: one instanced mesh for the lot ----
   const wallCells: GridCell[] = [];
   for (let z = 0; z < GRID; z++) {
     for (let x = 0; x < GRID; x++) if (state.maze[z][x] === 1) wallCells.push([x, z]);
@@ -83,7 +83,7 @@ function buildGeometry(): void {
   const m4 = new THREE.Matrix4(), col = new THREE.Color();
   const q = new THREE.Quaternion(), sc = new THREE.Vector3(), pv = new THREE.Vector3();
   wallCells.forEach(([x, z], i) => {
-    // 높이와 밝기를 조금씩 흩어 타일 티를 지운다.
+    // Jitter height and brightness a little so the tiling stops reading as tiling.
     const sy = 1 + Math.random() * 0.06;
     pv.set(x * CELL, (WALL_H * sy) / 2 - 0.01, z * CELL);
     sc.set(1, sy, 1);
@@ -96,7 +96,7 @@ function buildGeometry(): void {
   scene.add(wall);
   world.wall = wall;
 
-  // ---- 바닥 / 천장 ----
+  // ---- Floor and ceiling ----
   const size = GRID * CELL, cx = ((GRID - 1) * CELL) / 2;
   const floorMaps = floorPBR();
   const floor = new THREE.Mesh(
@@ -123,10 +123,10 @@ function spawnMonsters(): void {
     const [gx, gz] = randomFloorCell(6);
     const sp = spawnCreature(key);
     sp.mesh.position.set(gx * CELL, 0, gz * CELL);
-    // 개체마다 크기를 살짝 흩어 복제 인간처럼 보이지 않게 한다.
+    // Vary the size per creature so the crowd stops looking like clones.
     const scale = rand(SCALE_VARIANCE);
     sp.mesh.scale.setScalar(scale);
-    // 대기 모션도 서로 다른 지점에서 시작시킨다 — 안 그러면 무리가 한 몸처럼 숨쉰다.
+    // Start each idle at a different point too, or the horde breathes in unison.
     if (sp.playback) {
       const idle = clipDuration(sp.playback, 'idle') ?? 0;
       setAnim(sp.playback, 'idle', { fade: 0, startAt: Math.random() * idle });
@@ -159,7 +159,7 @@ function spawnMonsters(): void {
 }
 
 function spawnChests(): void {
-  // 횃불·지도 각 1개는 반드시 나온다. 나머지는 탄약 2 · 물약 2.
+  // Exactly one torch and one map are guaranteed. The rest is 2 ammo and 2 potions.
   const items: ItemKind[] = ['torch', 'map', 'ammo', 'ammo', 'potion', 'potion'];
   for (let i = 0; i < CHEST_COUNT; i++) {
     const [gx, gz] = randomFloorCell(4);
@@ -178,7 +178,7 @@ function spawnChests(): void {
 function scatterProps(): void {
   for (let z = 1; z < GRID - 1; z++) {
     for (let x = 1; x < GRID - 1; x++) {
-      // 시작 칸과 탈출 칸은 비워 둔다.
+      // Leave the start and exit cells clear.
       if (state.maze[z][x] !== 0 || (x === 1 && z === 1) || (x === state.exitCell.x && z === state.exitCell.z)) continue;
       const p = rollProp();
       if (!p) continue;
@@ -199,7 +199,7 @@ function placeSconces(): void {
     const x = 1 + ((Math.random() * (GRID - 2)) | 0);
     const z = 1 + ((Math.random() * (GRID - 2)) | 0);
     if (state.maze[z][x] !== 0 || Math.hypot(x - 1, z - 1) < 3) continue;
-    // 붙일 벽이 있는 칸만 고른다.
+    // Only cells with a wall to mount on.
     const dirs = ([[1, 0], [-1, 0], [0, 1], [0, -1]] as const).filter(([dx, dz]) => state.maze[z + dz][x + dx] === 1);
     if (!dirs.length) continue;
     const [dx, dz] = dirs[(Math.random() * dirs.length) | 0];
@@ -211,7 +211,7 @@ function placeSconces(): void {
   }
 }
 
-/** 던전을 새로 만들고 한 판을 초기화한다. 재시작도 이걸 부른다. */
+/** Build a fresh dungeon and reset the run. Restart calls this too. */
 export function buildWorld(): void {
   clearWorld();
 
@@ -230,7 +230,7 @@ export function buildWorld(): void {
   scatterProps();
   placeSconces();
 
-  // ---- 플레이어 / 아이템 초기화 ----
+  // ---- Reset player and items ----
   state.pos.set(CELL, EYE_H, CELL);
   state.yaw = Math.PI * 0.25;
   state.pitch = 0;
@@ -246,7 +246,7 @@ export function buildWorld(): void {
   state.hasMap = false;
   handTorch.visible = false;
 
-  // 검이 기본 무기. 머스킷은 Q로 전환 (장전 1발 + 예비 START_AMMO발 소지).
+  // The sword is the default. Q swaps to the musket: one chambered round plus START_AMMO spare.
   state.hasMusket = true;
   state.ammo = START_AMMO;
   state.loaded = true;

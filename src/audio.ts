@@ -10,15 +10,15 @@ interface Audio {
   ctx: AudioContext;
   master: GainNode;
   noiseBuf: AudioBuffer;
-  /** 마지막 심장박동 재생 시각(초). 간격 조절용 */
+  /** Time of the last heartbeat, in seconds. Used to pace the next one. */
   lastBeat: number;
 }
 
 let audio: Audio | null = null;
 
 /**
- * 첫 사용자 입력 때 오디오 컨텍스트를 연다 (브라우저 자동재생 정책).
- * 낮은 드론 + 밴드패스 노이즈로 던전 앰비언스를 만든다.
+ * Opens the audio context on the first user gesture (browser autoplay policy).
+ * The ambience is a low drone plus band-passed noise.
  */
 export function initAudio(): void {
   if (audio) return;
@@ -30,7 +30,7 @@ export function initAudio(): void {
   master.gain.value = 0.4;
   master.connect(ctx.destination);
 
-  // ---- 저역 드론 ----
+  // ---- Low drone ----
   const lp = ctx.createBiquadFilter();
   lp.type = 'lowpass';
   lp.frequency.value = 130;
@@ -47,7 +47,7 @@ export function initAudio(): void {
   lp.connect(dg);
   dg.connect(master);
 
-  // 필터 컷오프를 아주 느리게 흔들어 숨쉬는 느낌을 준다.
+  // Drift the filter cutoff very slowly so the ambience seems to breathe.
   const lfo = ctx.createOscillator();
   lfo.frequency.value = 0.06;
   const lfoG = ctx.createGain();
@@ -56,7 +56,7 @@ export function initAudio(): void {
   lfoG.connect(lp.frequency);
   lfo.start();
 
-  // ---- 바람 노이즈 (효과음에서도 재사용하는 버퍼) ----
+  // ---- Wind noise (the buffer is reused by the sound effects) ----
   const buf = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
   const d = buf.getChannelData(0);
   for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
@@ -90,7 +90,7 @@ export function audioReady(): boolean {
   return audio !== null;
 }
 
-/** 마지막 심장박동 시각(초). */
+/** Time of the last heartbeat, in seconds. */
 export function lastBeat(): number {
   return audio ? audio.lastBeat : 0;
 }
@@ -98,7 +98,7 @@ export function setLastBeat(t: number): void {
   if (audio) audio.lastBeat = t;
 }
 
-/** 지수 감쇠 어택-릴리스 엔벨로프. */
+/** Attack-release envelope with exponential decay. */
 function env(g: GainNode, t: number, attack: number, peak: number, decay: number): void {
   g.gain.setValueAtTime(0.0001, t);
   g.gain.exponentialRampToValueAtTime(peak, t + attack);
@@ -109,7 +109,7 @@ export function sfxHeartbeat(strength: number): void {
   if (!audio) return;
   const { ctx, master } = audio;
   const t = ctx.currentTime;
-  // 두 번 뛴다: 강-약
+  // Two beats: strong then weak
   for (const [dt, amp] of [[0, 1], [0.17, 0.6]] as const) {
     const o = ctx.createOscillator();
     o.type = 'sine';
@@ -129,7 +129,7 @@ export function sfxCreature(_key: CreatureKey, vol: number): void {
   const { ctx, master } = audio;
   const t = ctx.currentTime;
 
-  // 목쉰 신음: 톱니파를 저역으로 깎고 비브라토로 떨리게 한다.
+  // Hoarse groan: a sawtooth shaved down by a low-pass, wavering with vibrato.
   const o = ctx.createOscillator();
   o.type = 'sawtooth';
   const f0 = 70 + Math.random() * 50;
@@ -180,7 +180,7 @@ export function sfxSwing(): void {
   s.stop(t + 0.25);
 }
 
-/** low=true면 플레이어가 맞은 둔탁한 타격. */
+/** low=true is the duller thud of the player taking the hit. */
 export function sfxHit(low: boolean): void {
   if (!audio) return;
   const { ctx, master, noiseBuf } = audio;
@@ -212,7 +212,7 @@ export function sfxHit(low: boolean): void {
   s.stop(t + 0.12);
 }
 
-/** 상자 뚜껑이 삐걱대는 소리. */
+/** The creak of a chest lid. */
 export function sfxCreak(): void {
   if (!audio) return;
   const { ctx, master } = audio;
@@ -257,7 +257,7 @@ export function sfxShot(): void {
   const { ctx, master, noiseBuf } = audio;
   const t = ctx.currentTime;
 
-  // 날카로운 크랙
+  // Sharp crack
   const s = ctx.createBufferSource();
   s.buffer = noiseBuf;
   const hp = ctx.createBiquadFilter();
@@ -272,7 +272,7 @@ export function sfxShot(): void {
   s.start(t);
   s.stop(t + 0.15);
 
-  // 낮은 폭음 + 던전 울림
+  // Low boom plus the dungeon's echo
   const s2 = ctx.createBufferSource();
   s2.buffer = noiseBuf;
   const lp = ctx.createBiquadFilter();
@@ -301,7 +301,7 @@ export function sfxShot(): void {
   o.stop(t + 0.55);
 }
 
-/** 장전 3단계(꽂을대·화약·공이) 각각의 딸깍. */
+/** One click per reload step: ramrod, powder, hammer. */
 export function sfxReloadStep(i: number): void {
   if (!audio) return;
   const { ctx, master, noiseBuf } = audio;

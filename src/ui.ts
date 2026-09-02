@@ -2,7 +2,7 @@ import { CELL, GRID } from './config';
 import { context2d, el, firstChild } from './dom';
 import { state } from './state';
 
-// ---- 자주 쓰는 엘리먼트 ----
+// ---- Frequently used elements ----
 export const hpbarEl = el('hpbar');
 export const goldEl = el('gold');
 export const bankEl = el('bank');
@@ -29,22 +29,22 @@ const mctx = context2d(minimapEl);
 export function updateHUD(): void {
   hpbarEl.style.width = Math.max(0, state.hp) + '%';
   goldEl.textContent = String(state.runGold);
-  bankEl.textContent = `금고: ${state.bankGold} G`;
+  bankEl.textContent = `Bank: ${state.bankGold} G`;
 
   const items: string[] = [];
-  if (state.hasTorch) items.push('🔥 횃불');
-  if (state.hasMap) items.push('🗺 지도');
+  if (state.hasTorch) items.push('🔥 Torch');
+  if (state.hasMap) items.push('🗺 Map');
   if (state.hasMusket) {
-    const equipped = state.weapon === 'musket' ? '[장착] ' : '';
-    const loadState = state.loaded ? '장전됨' : state.reloadT >= 0 ? '장전중' : '빈총';
-    items.push(`🔫 ${equipped}${loadState} · 탄약 ${state.ammo}`);
+    const equipped = state.weapon === 'musket' ? '[equipped] ' : '';
+    const loadState = state.loaded ? 'loaded' : state.reloadT >= 0 ? 'reloading' : 'empty';
+    items.push(`🔫 ${equipped}${loadState} · ${state.ammo} ammo`);
   } else if (state.ammo > 0) {
-    items.push(`탄약 ${state.ammo}`);
+    items.push(`${state.ammo} ammo`);
   }
-  itemsEl.textContent = '장비: ' + (items.length ? items.join(' · ') : '없음');
+  itemsEl.textContent = 'Gear: ' + (items.length ? items.join(' · ') : 'none');
 }
 
-// ================= 화면 중앙 메시지 =================
+// ================= Centre-screen message =================
 let msgTimer: ReturnType<typeof setTimeout> | null = null;
 
 export function showMsg(text: string): void {
@@ -57,13 +57,13 @@ export function showMsg(text: string): void {
   }, 1800);
 }
 
-/** 피격 시 붉은 비네트를 잠깐 켠다. */
+/** Flash a red vignette when the player is hit. */
 export function flashHurt(): void {
   vignetteEl.classList.add('hurt');
   setTimeout(() => vignetteEl.classList.remove('hurt'), 140);
 }
 
-// ================= 미니맵 =================
+// ================= Minimap =================
 export function drawMinimap(): void {
   const s = minimapEl.width / GRID;
   mctx.clearRect(0, 0, minimapEl.width, minimapEl.height);
@@ -91,7 +91,7 @@ export function drawMinimap(): void {
   mctx.stroke();
 }
 
-// ================= 판 종료 =================
+// ================= End of run =================
 export function endRun(extracted: boolean): void {
   state.gameOver = true;
   cancelLoot();
@@ -102,20 +102,20 @@ export function endRun(extracted: boolean): void {
   const desc = el('ovDesc');
   if (extracted) {
     state.bankGold += state.runGold;
-    title.textContent = '탈출';
+    title.textContent = 'Extracted';
     title.className = 'win';
-    desc.textContent = `이번 판 ${state.runGold} G를 금고에 넣었다.`;
+    desc.textContent = `Banked ${state.runGold} G from this run.`;
   } else {
-    title.textContent = '사망';
+    title.textContent = 'Killed';
     title.className = 'dead';
-    desc.textContent = `이번 판 ${state.runGold} G는 던전에 남았다...`;
+    desc.textContent = `Your ${state.runGold} G stayed down there...`;
   }
-  el('ovBank').textContent = `금고 잔액: ${state.bankGold} G`;
+  el('ovBank').textContent = `Bank balance: ${state.bankGold} G`;
   overlayEl.style.display = 'flex';
   updateHUD();
 }
 
-/** 진행 중인 루팅을 취소하고 진행 바를 되돌린다. */
+/** Cancel looting in progress and reset the progress bar. */
 export function cancelLoot(): void {
   state.looting = null;
   lootBarEl.style.display = 'none';

@@ -7,7 +7,7 @@ import type { Monster } from './types';
 import { cancelLoot, flashHurt, endRun, showMsg, updateHUD } from './ui';
 import { startReload } from './weapons';
 
-/** 카메라가 바라보는 수평 방향의 단위 벡터. */
+/** Unit vector for the camera's horizontal facing. */
 function facing(): [fx: number, fz: number] {
   return [-Math.sin(state.yaw + Math.PI), -Math.cos(state.yaw + Math.PI)];
 }
@@ -16,7 +16,7 @@ export function killMonster(m: Monster): void {
   m.hp = 0;
   state.runGold += m.type.reward;
   updateHUD();
-  // 사망 클립이 있으면 끝까지 재생하고 잠시 시체를 남긴 뒤 치운다. 없으면 바로 지운다.
+  // With a death clip, play it out and leave the corpse a moment. Without one, remove at once.
   if (m.playback?.clips.death) {
     m.dead = true;
     m.attackT = 0;
@@ -30,7 +30,7 @@ export function killMonster(m: Monster): void {
 
 export function fireMusket(): void {
   if (!state.loaded) {
-    if (state.ammo <= 0) showMsg('탄약 없음');
+    if (state.ammo <= 0) showMsg('Out of ammo');
     else if (state.reloadT < 0) startReload();
     return;
   }
@@ -45,7 +45,7 @@ export function fireMusket(): void {
   flashLight.intensity = 3.5;
   sfxShot();
 
-  // 조준선 판정: 시선 방향과 가장 각도가 가까운 크리처 하나.
+  // Hitscan: the single creature closest in angle to where the player is looking.
   const [fx, fz] = facing();
   let best: Monster | null = null;
   let bestDot = 0.985;
@@ -55,7 +55,7 @@ export function fireMusket(): void {
     const d = Math.hypot(dx, dz);
     if (d > MUSKET_RANGE) continue;
     const dot = (dx * fx + dz * fz) / (d || 1);
-    // 가깝거나 덩치가 크면 판정을 넓혀 준다.
+    // Widen the cone for creatures that are close or large.
     const tol = 0.985 - (m.type.r / (d || 1)) * 0.6;
     if (dot > tol && dot > bestDot - (0.985 - tol)) {
       best = m;
@@ -67,12 +67,12 @@ export function fireMusket(): void {
     best.hurtT = 0.25;
     sfxHit(false);
     if (best.hp <= 0) {
-      showMsg(`${best.type.name} 사살 +${best.type.reward} G`);
+      showMsg(`${best.type.name} shot +${best.type.reward} G`);
       killMonster(best);
     }
   }
 
-  // 총성: 반경 안 모든 크리처가 플레이어 위치를 알아챈다.
+  // The report: every creature in radius learns where the player is.
   let alerted = 0;
   for (const m of state.monsters) {
     if (m.hp <= 0) continue;
@@ -82,7 +82,7 @@ export function fireMusket(): void {
       alerted++;
     }
   }
-  if (alerted > 1) showMsg(`총성이 울렸다... ${alerted}마리가 이쪽으로`);
+  if (alerted > 1) showMsg(`The shot echoes... ${alerted} coming your way`);
 
   updateHUD();
   if (state.ammo > 0) startReload();
@@ -102,13 +102,13 @@ export function tryAttack(): void {
 }
 
 /**
- * 날이 내려온 순간의 피해 판정. 휘두르기 중간에 loop.ts가 한 번 부른다.
- * 검을 치켜드는 동안에 이미 좀비가 맞아버리면 동작과 타격이 어긋나 보인다.
+ * Damage resolved at the moment the blade comes down. loop.ts calls this once mid-swing.
+ * Landing the hit during the windup would divorce the animation from the impact.
  */
 export function resolveSwing(): void {
   if (state.gameOver) return;
 
-  // 검은 부채꼴로 닿는 모든 크리처를 동시에 벤다.
+  // The sword cuts every creature inside the arc at once.
   const [fx, fz] = facing();
   for (const m of state.monsters) {
     if (m.hp <= 0) continue;
@@ -120,7 +120,7 @@ export function resolveSwing(): void {
       m.hurtT = 0.18;
       sfxHit(false);
       if (m.hp <= 0) {
-        showMsg(`${m.type.name} 처치 +${m.type.reward} G`);
+        showMsg(`${m.type.name} killed +${m.type.reward} G`);
         killMonster(m);
       }
     }
@@ -132,7 +132,7 @@ export function playerHurt(dmg: number): void {
   sfxHit(true);
   if (state.looting) {
     cancelLoot();
-    showMsg('열기 취소!');
+    showMsg('Looting interrupted!');
   }
   flashHurt();
   updateHUD();

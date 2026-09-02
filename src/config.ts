@@ -1,10 +1,11 @@
 import type { CreatureKey, CreatureType, WeaponAsset, WeaponKind } from './types';
 
-// ================= 에셋 설정 =================
-// vite.config.ts 의 publicDir='assets' 때문에 아래 경로에는 'assets/' 접두사가 없다.
-// 실제 파일 위치: assets/creatures/zombie/idle.fbx (모델+대기), walk.fbx, attack.fbx, death.fbx (glb/gltf도 됨)
-//                assets/textures/wall/{diffuse,normal,rough}.jpg, assets/textures/floor/...
-// 파일이 없으면 코드로 만든 기본 모델/텍스처를 자동으로 쓴다.
+// ================= Asset configuration =================
+// publicDir='assets' in vite.config.ts is why none of these paths carry an 'assets/' prefix.
+// On disk: assets/creatures/zombie/idle.fbx (model + idle clip), walk.fbx, attack.fbx,
+//          death.fbx (glb/gltf work too), assets/textures/wall/{diffuse,normal,rough}.webp,
+//          assets/textures/floor/...
+// Anything missing falls back to the models and textures built in code.
 export const CREATURE_ASSETS: Record<CreatureKey, { dir: string; height: number }> = {
   zombie: { dir: 'creatures/zombie', height: 1.85 },
 };
@@ -13,23 +14,24 @@ export const FLOOR_TEX_DIR = 'textures/floor';
 export const CLIP_NAMES = ['idle', 'walk', 'attack', 'death'] as const;
 
 /**
- * 1인칭 무기 모델. 없으면 src/scene.ts의 프리미티브 무기를 그대로 쓴다.
- * npm run fetch-assets 로 Poly Haven(CC0)에서 받아 온다.
+ * First-person weapon models. Without them the primitives in src/scene.ts are used.
+ * `npm run fetch-assets` pulls these from Poly Haven (CC0).
  *
- * 모델마다 원점과 축이 제각각이라 로더가 다음 순서로 손에 맞춘다.
- *   1. rot 를 적용해 긴 축이 -Z(카메라 앞)를 보게 돌린다
- *   2. 전체 z 길이가 length 가 되게 균일 스케일
- *   3. 뒤쪽 끝(개머리판·폼멜)이 z=back 에 오게 평행이동 → 손잡이가 원점 근처에 온다
- * 총구 위치는 정규화 뒤 박스에서 읽어내므로 따로 적지 않는다.
+ * Every model has its own origin and axes, so the loader fits it to the hand in order:
+ *   1. apply rot so the long axis points down -Z, in front of the camera
+ *   2. scale uniformly until the total z length equals `length`
+ *   3. translate so the rear end (buttstock or pommel) lands at z=back, which puts
+ *      the grip near the origin
+ * The muzzle is read off the normalised bounds, so it needs no entry here.
  */
 export const WEAPON_ASSETS: Record<WeaponKind, WeaponAsset> = {
-  // wooden_handle_saber: 칼끝이 +Y, 손잡이가 원점 쪽
+  // wooden_handle_saber: tip along +Y, grip near the origin
   sword: { url: 'weapons/sword.glb', rot: [-Math.PI / 2, 0, 0], length: 1.05, back: 0.14 },
-  // bolt_action_rifle_7_62: 총구가 +X
+  // bolt_action_rifle_7_62: muzzle along +X
   musket: { url: 'weapons/musket.glb', rot: [0, Math.PI / 2, 0], length: 1.3, back: 0.3 },
 };
 
-// ================= 설정 =================
+// ================= Tuning =================
 export const MAZE_CELLS = 11;
 export const GRID = MAZE_CELLS * 2 + 1;
 export const CELL = 4;
@@ -40,46 +42,47 @@ export const CHEST_COUNT = 10;
 export const ATTACK_RANGE = 2.3;
 export const ATTACK_CD = 0.45;
 
-// ---- 검 휘두르기 ----
-// 치켜들었다가 내려친다. 한 사이클은 1/SWING_SPEED 초.
-/** 클수록 빠르다. 한 사이클 0.33초 — ATTACK_CD(0.45초)보다 짧아야 동작이 잘리지 않는다. */
+// ---- Sword swing ----
+// The blade is raised, then brought down. One cycle takes 1/SWING_SPEED seconds.
+/** Higher is faster. One cycle is 0.33s — it must stay under ATTACK_CD (0.45s) or the motion is cut off. */
 export const SWING_SPEED = 3.0;
-/** 치켜드는 구간이 전체에서 차지하는 비율. 0.11초. */
+/** Fraction of the cycle spent raising the blade. 0.11s. */
 export const SWING_WINDUP = 0.33;
 /**
- * 날이 목표에 닿는 시점(0~1). 피해 판정이 여기서 난다.
- * 좀비 쪽 ATTACK_IMPACT와 같은 발상인데, 이쪽은 플레이어 입력이라
- * 늦으면 손맛이 죽으니 훨씬 짧게 잡았다(약 0.2초).
+ * Point in the cycle (0..1) where the blade lands. Damage resolves here.
+ * Same idea as ATTACK_IMPACT on the zombie side, but this one answers to player
+ * input, so a late hit feels sluggish — it is set much earlier, about 0.2s.
  *
- * 치켜든 뒤 여기까지가 실제로 내려치는 구간이다. 이 구간이 60fps에서
- * 5프레임은 돼야 날이 지나가는 게 보인다. WINDUP과 너무 붙이지 말 것.
+ * The stretch from SWING_WINDUP to here is the downswing itself. It needs to be
+ * about five frames at 60fps for the blade to read as passing through. Do not
+ * crowd it up against WINDUP.
  */
 export const SWING_IMPACT = 0.6;
 export const LOOT_TIME = 1.2;
 export const FOG_BASE = 0.115;
 export const FOG_TORCH = 0.08;
 
-/** 눈높이(m). 걸을 때 여기서 위아래로 흔들린다. */
+/** Eye height in metres. Walking bobs the camera around this. */
 export const EYE_H = 1.55;
 
-// ---- 머스킷 ----
+// ---- Musket ----
 export const MUSKET_DMG = 3;
 export const MUSKET_RELOAD = 3.0;
 
-// ---- 탄약 ----
-/** 시작 예비 탄약. 장전된 1발이 여기에 더 붙어서 첫 판은 START_AMMO+1발로 시작한다. */
+// ---- Ammo ----
+/** Spare rounds at the start. One chambered round is added on top, so a run opens with START_AMMO+1 shots. */
 export const START_AMMO = 6;
-/** 상자에서 나온 탄약 하나가 주는 양. */
+/** Rounds granted by one ammo pickup. */
 export const AMMO_PICKUP = 3;
-/** 머스킷 아이템에 딸려오는 탄약. */
+/** Rounds that come with the musket pickup. */
 export const MUSKET_AMMO = 5;
 export const MUSKET_RANGE = 26;
 export const SHOT_ALERT_RADIUS = 20;
 
-// ================= 크리처 =================
+// ================= Creatures =================
 export const TYPES: Record<CreatureKey, CreatureType> = {
   zombie: {
-    name: '좀비',
+    name: 'Zombie',
     hp: 3, dmg: 14, speed: 2.2, atkCd: 1.0,
     reach: 1.6, r: 0.45, reward: 10, aggro: 9,
     groan: [4, 8],
@@ -87,25 +90,25 @@ export const TYPES: Record<CreatureKey, CreatureType> = {
   },
 };
 
-/** 한 판에 나오는 크리처. */
+/** The creatures spawned in one run. */
 export const SPAWN: readonly CreatureKey[] = ['zombie', 'zombie', 'zombie', 'zombie', 'zombie', 'zombie', 'zombie'];
 
-// ---- 크리처 애니메이션 ----
-/** 외부 모델에 공격 클립이 없을 때 쓰는 공격 모션 길이(초). */
+// ---- Creature animation ----
+/** Attack duration in seconds when the external model carries no attack clip. */
 export const FALLBACK_ATTACK_TIME = 0.9;
-/** 공격 클립의 어느 지점에서 타격 판정이 나는지 (0=시작, 1=끝). 팔이 내려오는 순간. */
+/** Where in the attack clip the hit resolves (0 = start, 1 = end) — as the arm comes down. */
 export const ATTACK_IMPACT = 0.45;
-/** 타격 판정 시점에 이 배율만큼 사거리 안에 있어야 맞는다. 살짝 넉넉하게. */
+/** At impact the player must be within reach times this. Kept slightly generous. */
 export const ATTACK_IMPACT_REACH = 1.3;
-/** Mixamo In-Place 걷기 클립이 상정하는 이동 속도(m/s). 발 미끄러짐 보정에 쓴다. */
+/** Ground speed in m/s that the Mixamo in-place walk clip assumes. Used to cancel foot sliding. */
 export const WALK_CLIP_SPEED = 1.45;
-/** 걷기 클립 재생 속도 배율의 허용 범위. 너무 느리거나 빨라 보이지 않게 자른다. */
+/** Allowed range for the walk clip's timeScale, clamped so it never crawls or blurs. */
 export const WALK_TIMESCALE_RANGE: readonly [number, number] = [0.6, 1.9];
-/** 크리처가 도는 최대 각속도(rad/s). 즉시 스냅하지 않게 한다. */
+/** Top turn rate in rad/s, so creatures rotate rather than snap. */
 export const TURN_RATE = 6.0;
-/** 사망 모션이 끝난 뒤 시체가 남아있는 시간(초). */
+/** Seconds the corpse lingers after the death animation ends. */
 export const CORPSE_LINGER = 1.5;
-/** 개체별 이동 속도 배율 범위. 무리가 한 몸처럼 움직이지 않게 흩는다. */
+/** Per-creature speed multiplier range, so the horde does not move as one body. */
 export const SPEED_VARIANCE: readonly [number, number] = [0.85, 1.15];
-/** 개체별 크기 배율 범위. */
+/** Per-creature scale multiplier range. */
 export const SCALE_VARIANCE: readonly [number, number] = [0.93, 1.08];

@@ -21,7 +21,7 @@ const fbxLoader = new FBXLoader();
 const gltfLoader = new GLTFLoader();
 const texLoader = new THREE.TextureLoader();
 
-/** 로드에 성공한 크리처만 들어간다. 없는 키는 절차적 폴백을 쓴다. */
+/** Only creatures that loaded end up here. A missing key falls back to the procedural model. */
 const templates: Partial<Record<CreatureKey, CreatureTemplate>> = {};
 const pbr: { wall: PBRMaps | null; floor: PBRMaps | null } = { wall: null, floor: null };
 
@@ -37,7 +37,7 @@ interface LoadedModel {
   animations: THREE.AnimationClip[];
 }
 
-/** base 경로에 .fbx/.glb/.gltf를 차례로 붙여 시도한다. 전부 없으면 null. */
+/** Tries .fbx, .glb and .gltf against the base path in turn. null when none exist. */
 async function tryLoadModel(base: string): Promise<LoadedModel | null> {
   for (const ext of ['fbx', 'glb', 'gltf'] as const) {
     const url = `${base}.${ext}`;
@@ -49,7 +49,7 @@ async function tryLoadModel(base: string): Promise<LoadedModel | null> {
       const r = await gltfLoader.loadAsync(url);
       return { root: r.scene, animations: r.animations };
     } catch {
-      // 다음 확장자 시도
+      // Try the next extension
     }
   }
   return null;
@@ -67,8 +67,8 @@ async function tryLoadTexture(url: string, srgb = false): Promise<THREE.Texture 
 }
 
 /**
- * webp를 먼저 보고 없으면 jpg. npm run fetch-assets 는 webp로 굽지만,
- * Poly Haven에서 받은 jpg를 그대로 폴더에 떨궈놔도 돌아가게 둘 다 본다.
+ * Looks for webp first, then jpg. `npm run fetch-assets` bakes webp, but both are
+ * tried so dropping Poly Haven's own JPGs into the folder still works.
  */
 async function tryLoadMap(dir: string, name: string, srgb = false): Promise<THREE.Texture | null> {
   for (const ext of ['webp', 'jpg'] as const) {
@@ -78,7 +78,7 @@ async function tryLoadMap(dir: string, name: string, srgb = false): Promise<THRE
   return null;
 }
 
-/** diffuse가 없으면 PBR 세트 자체를 포기하고 폴백 텍스처를 쓴다. */
+/** Without a diffuse the whole PBR set is abandoned in favour of the fallback texture. */
 async function loadPBR(dir: string, repeat: number): Promise<PBRMaps | null> {
   const [map, normalMap, roughnessMap] = await Promise.all([
     tryLoadMap(dir, 'diffuse', true),
@@ -94,12 +94,13 @@ async function loadPBR(dir: string, repeat: number): Promise<PBRMaps | null> {
 }
 
 /**
- * 모델의 높이와 바닥 y를 잰다.
+ * Measures a model's height and the y of its lowest point.
  *
- * 스킨드 메시는 화면에 그려질 때 정점이 **본 행렬**로 배치되므로, geometry의
- * 바운딩박스가 실제로 보이는 크기와 전혀 다를 수 있다. FBX2glTF가 내보낸 GLB가
- * 그런 경우로, 박스는 0.44인데 본 기준으로는 1.49였다(3.4배 차이).
- * 그래서 본이 있으면 본 월드 위치로 재고, 없을 때만 박스로 폴백한다.
+ * A skinned mesh has its vertices placed by the **bone matrices** at draw time, so
+ * the geometry's bounding box can bear no relation to the size actually rendered.
+ * The GLB that FBX2glTF produced was one of these: the box read 0.44 while the
+ * bones spanned 1.49, a factor of 3.4. So bones are measured when present, and the
+ * box is only a fallback.
  */
 function measure(root: THREE.Object3D): { height: number; minY: number } {
   root.updateWorldMatrix(false, true);
@@ -120,9 +121,10 @@ function measure(root: THREE.Object3D): { height: number; minY: number } {
 }
 
 /**
- * 모델의 메시/텍스처 상태를 한 줄로 요약한다.
- * Mixamo에서 캐릭터를 안 고르고 받으면 텍스처 없는 기본 마네킹(Beta/Alpha = Y Bot·X Bot)이
- * 딸려오는데, 화면만 봐서는 "왜 스킨이 없지"로 보여서 로그에 바로 드러나게 한다.
+ * One-line summary of a model's meshes and textures.
+ * Downloading from Mixamo without choosing a character hands you the untextured
+ * default mannequin (Beta/Alpha = Y Bot / X Bot). On screen that just looks like a
+ * missing skin, so the log says so outright.
  */
 function describeSkin(root: THREE.Object3D): string {
   let meshes = 0, mannequin = false;
@@ -136,32 +138,34 @@ function describeSkin(root: THREE.Object3D): string {
       if (map) maps.add(map.uuid);
     }
   });
-  const tex = maps.size ? `텍스처 ${maps.size}장` : '텍스처 없음';
-  const hint = !maps.size && mannequin ? ' — Mixamo 기본 마네킹이다. Characters 탭에서 캐릭터를 먼저 고를 것' : '';
-  return `메시 ${meshes} · ${tex}${hint}`;
+  const tex = maps.size ? `${maps.size} texture(s)` : 'no textures';
+  const hint = !maps.size && mannequin
+    ? ' — this is the default Mixamo mannequin. Pick a character on the Characters tab first'
+    : '';
+  return `${meshes} mesh(es) · ${tex}${hint}`;
 }
 
 /**
- * 크기 정규화에 쓸 수 없는 모델이면 사람이 읽을 이유를, 쓸 수 있으면 null을 돌려준다.
- * 메시 없는 FBX(Mixamo "Without Skin")를 그냥 통과시키면 스케일이 0이 되어
- * 아무것도 안 보이는데 로그에는 "로드 완료"가 찍혀 원인을 찾기 어렵다.
+ * Returns a human-readable reason when a model cannot be normalised, or null when it can.
+ * Letting a mesh-less FBX through — Mixamo's "Without Skin" download — yields a scale
+ * of 0 and nothing on screen, while the log cheerfully reports a successful load.
  */
 function unusableReason(root: THREE.Object3D): string | null {
   let verts = 0;
   root.traverse((o) => {
     if (isMesh(o)) verts += o.geometry?.getAttribute('position')?.count ?? 0;
   });
-  if (verts === 0) return '메시 없음 (idle을 With Skin으로 다시 받을 것)';
+  if (verts === 0) return 'no mesh (re-download idle with "With Skin")';
 
   const { height } = measure(root);
-  if (!Number.isFinite(height) || height <= 0) return `높이를 잴 수 없음 (h=${height})`;
+  if (!Number.isFinite(height) || height <= 0) return `cannot measure height (h=${height})`;
   return null;
 }
 
 /**
- * 모델에서 가장 앞쪽(-z) 끝점을 찾는다. 총구 화염과 연기를 붙일 자리다.
- * 최전방 한 점만 쓰면 조준기 끝 같은 엉뚱한 돌기에 걸릴 수 있어서
- * 앞쪽 2cm 안에 든 정점들의 평균을 쓴다.
+ * Finds the frontmost (-z) point of a model — where the muzzle flash and smoke go.
+ * A single extreme vertex can land on some unrelated spur such as the tip of a
+ * scope, so this averages every vertex within 2cm of the front.
  */
 function findTip(root: THREE.Object3D): THREE.Vector3 {
   root.updateWorldMatrix(true, true);
@@ -186,9 +190,9 @@ function findTip(root: THREE.Object3D): THREE.Vector3 {
 }
 
 /**
- * 무기 모델을 손에 맞춘다. cfg의 rot으로 긴 축을 -Z로 돌리고, z 길이를
- * length에 맞춰 균일 스케일한 뒤, 뒤끝이 z=back에 오도록 밀어 손잡이를 원점에 둔다.
- * x·y는 중심을 원점에 맞춘다.
+ * Fits a weapon model to the hand: cfg.rot points the long axis down -Z, a uniform
+ * scale brings the z length to cfg.length, then a translation puts the rear end at
+ * z=back, which leaves the grip at the origin. x and y are centred.
  */
 function normalizeWeapon(model: THREE.Object3D, cfg: WeaponAsset): { group: THREE.Group; tip: THREE.Vector3 } {
   model.rotation.set(cfg.rot[0], cfg.rot[1], cfg.rot[2]);
@@ -210,19 +214,19 @@ function normalizeWeapon(model: THREE.Object3D, cfg: WeaponAsset): { group: THRE
   return { group, tip: findTip(group) };
 }
 
-/** 무기 모델이 있으면 프리미티브를 교체한다. 없으면 조용히 프리미티브를 쓴다. */
+/** Replaces the primitive when a weapon model exists; otherwise the primitive quietly stays. */
 async function loadWeapon(kind: WeaponKind): Promise<string> {
   const cfg = WEAPON_ASSETS[kind];
   let gltf;
   try {
     gltf = await gltfLoader.loadAsync(cfg.url);
   } catch {
-    return `${kind}: 파일 없음 → 기본 모델`;
+    return `${kind}: file missing → primitive model`;
   }
   const { group, tip } = normalizeWeapon(gltf.scene, cfg);
   equipWeaponModel(kind, group, kind === 'musket' ? tip : undefined);
   const s = group.scale.x;
-  return `${kind}: 로드 완료 (x${s.toFixed(2)} · 끝 z=${tip.z.toFixed(2)})`;
+  return `${kind}: loaded (scale x${s.toFixed(2)} · tip z=${tip.z.toFixed(2)})`;
 }
 
 export async function loadAssets(onProgress: (msg: string) => void): Promise<void> {
@@ -230,25 +234,26 @@ export async function loadAssets(onProgress: (msg: string) => void): Promise<voi
 
   for (const key of Object.keys(CREATURE_ASSETS) as CreatureKey[]) {
     const cfg = CREATURE_ASSETS[key];
-    onProgress(`크리처 로딩: ${key}`);
+    onProgress(`Loading creature: ${key}`);
     const base = await tryLoadModel(`${cfg.dir}/idle`);
     if (!base) {
-      log.push(`${key}: 파일 없음 → 기본 모델`);
+      log.push(`${key}: file missing → primitive model`);
       continue;
     }
     const root = base.root;
 
-    // 크기 정규화 (Mixamo FBX는 cm 단위라 100배 크다)
-    // Mixamo에서 idle.fbx를 Without Skin으로 받으면 뼈대만 들어있고 메시가 없다.
-    // 그대로 두면 빈 Box3 때문에 스케일이 0, position이 NaN이 되어 조용히 사라진다.
+    // Normalise the size — Mixamo FBX is in centimetres, so 100x too large.
+    // An idle.fbx downloaded "Without Skin" carries the skeleton but no mesh. Left
+    // alone, the empty Box3 gives a scale of 0 and a NaN position, and the creature
+    // vanishes without a word.
     const reason = unusableReason(root);
     if (reason) {
-      log.push(`${key}: ${reason} → 기본 모델`);
+      log.push(`${key}: ${reason} → primitive model`);
       continue;
     }
     const { height } = measure(root);
     root.scale.multiplyScalar(cfg.height / height);
-    // 발이 바닥(y=0)에 닿게 내린다.
+    // Drop it so the feet rest on the floor at y=0.
     root.position.y = -measure(root).minY;
     root.traverse((o) => {
       if (isMesh(o)) {
@@ -264,16 +269,16 @@ export async function loadAssets(onProgress: (msg: string) => void): Promise<voi
       if (r?.animations[0]) clips[name] = r.animations[0];
     }
     templates[key] = { root, clips };
-    log.push(`${key}: 로드 완료 [${Object.keys(clips).join(', ')}] · ${describeSkin(root)}`);
+    log.push(`${key}: loaded [${Object.keys(clips).join(', ')}] · ${describeSkin(root)}`);
   }
 
-  onProgress('무기 로딩');
+  onProgress('Loading weapons');
   for (const kind of Object.keys(WEAPON_ASSETS) as WeaponKind[]) log.push(await loadWeapon(kind));
 
-  onProgress('텍스처 로딩');
+  onProgress('Loading textures');
   pbr.wall = await loadPBR(WALL_TEX_DIR, 1.5);
   pbr.floor = await loadPBR(FLOOR_TEX_DIR, GRID * 1.2);
-  log.push(`벽 텍스처: ${pbr.wall ? 'PBR' : '기본'} · 바닥 텍스처: ${pbr.floor ? 'PBR' : '기본'}`);
+  log.push(`wall texture: ${pbr.wall ? 'PBR' : 'procedural'} · floor texture: ${pbr.floor ? 'PBR' : 'procedural'}`);
   console.log('[assets]\n' + log.join('\n'));
 }
 
@@ -283,7 +288,7 @@ export interface SpawnedCreature {
   rig: CreatureRig | null;
 }
 
-/** 외부 모델이 있으면 그걸 복제하고, 없으면 절차적 박스 모델을 만든다. */
+/** Clones the external model when there is one, otherwise builds the procedural box model. */
 export function spawnCreature(key: CreatureKey): SpawnedCreature {
   const t = templates[key];
   if (!t) {
@@ -292,7 +297,7 @@ export function spawnCreature(key: CreatureKey): SpawnedCreature {
   }
   const wrap = new THREE.Group();
   const model = cloneSkinned(t.root);
-  // 피격 플래시가 개체별로 되도록 머티리얼을 복제한다.
+  // Clone the materials so the hit flash is per creature.
   model.traverse((o) => {
     if (!isMesh(o) || !o.material) return;
     o.material = Array.isArray(o.material) ? o.material.map((m) => m.clone()) : o.material.clone();
@@ -306,17 +311,17 @@ export function spawnCreature(key: CreatureKey): SpawnedCreature {
 }
 
 export interface SetAnimOptions {
-  /** false면 한 번만 재생하고 마지막 프레임에서 멈춘다. */
+  /** false plays once and holds on the last frame. */
   loop?: boolean;
-  /** 크로스페이드 시간(초) */
+  /** Crossfade duration, in seconds. */
   fade?: number;
-  /** 같은 클립이어도 처음부터 다시 재생한다 (연속 공격 등). */
+  /** Restart from the top even if it is the same clip — back-to-back attacks, say. */
   force?: boolean;
-  /** 재생 시작 위치(초). 개체마다 다르게 줘서 무리가 한 몸처럼 움직이지 않게 한다. */
+  /** Where to start playback, in seconds. Varied per creature so the horde does not move as one. */
   startAt?: number;
 }
 
-/** 같은 클립이 이미 재생 중이면 아무것도 하지 않는다 (force로 무시 가능). */
+/** Does nothing when the same clip is already playing, unless force is set. */
 export function setAnim(pb: MonsterPlayback, name: ClipName, opts: SetAnimOptions = {}): void {
   const { loop = true, fade = 0.15, force = false, startAt = 0 } = opts;
   const clip = pb.clips[name];
@@ -332,18 +337,18 @@ export function setAnim(pb: MonsterPlayback, name: ClipName, opts: SetAnimOption
   a.time = startAt;
   a.setEffectiveWeight(1);
   a.fadeIn(fade).play();
-  // 같은 액션을 재시작하는 경우엔 자기 자신을 페이드아웃하면 안 된다.
+  // Restarting the same action must not fade that action out against itself.
   if (prev && prev !== a) prev.fadeOut(fade);
   pb.action = a;
   pb.animName = name;
 }
 
-/** 클립 길이(초). 클립이 없으면 null. */
+/** Clip duration in seconds, or null when there is no such clip. */
 export function clipDuration(pb: MonsterPlayback, name: ClipName): number | null {
   return pb.clips[name]?.duration ?? null;
 }
 
-/** 외부 모델 크리처의 피격 플래시를 emissive로 표현한다. */
+/** Renders the hit flash on an external-model creature through emissive. */
 export function flashLoadedMesh(mesh: THREE.Object3D, on: boolean): void {
   mesh.traverse((o) => {
     if (!isMesh(o) || !o.material) return;
