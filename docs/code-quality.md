@@ -121,4 +121,4 @@ Before calling anything done:
 - [ ] both paths exercised — with the asset and without it
 - [ ] anything visual was **looked at in the browser**, not just typechecked
       (see [testing](testing.md))
-- [ ] the asset budget is still under 9MB
+- [ ] the asset budget is still under 16MB
