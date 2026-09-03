@@ -82,10 +82,11 @@ model: the bone names match, so the tracks bind.
 
 **The same rule bites again across characters.** Mixamo numbers the rig per
 export, so the same bone is `mixamorig5:Hips` on one download and `mixamorig:Hips`
-on another. Identical skeletons, 52 identical bones, and 0 of 53 tracks bound —
-the mixer plays happily and the creature stands in its bind pose. `MIXAMO_NS` in
-`assets.ts` strips the number from bones and tracks alike, which took it to 53 of
-53 and is what lets the brute wear the zombie's body.
+on another. Identical skeletons, identical bone names underneath, and 0 of 53
+tracks bound — the mixer plays happily and the creature stands in its bind pose.
+`MIXAMO_NS` in `assets.ts` strips the number from bones and tracks alike, which
+took it to 53 of 53. It is what lets a creature's four clips come off four
+different characters, which the brute's do.
 
 Two things make this hard to spot. Nothing throws, and the names differ again by
 container: GLTFLoader runs node names through `PropertyBinding.sanitizeNodeName`,
@@ -137,28 +138,36 @@ a 0.35 m/s shamble.
 
 **Cause.** A capsule or circle sized to the torso says nothing about where the
 arms go. This zombie's body radius is 0.45m while its skinned vertices reach
-1.00m from the origin mid-attack, so it could stand close enough to a wall to put
+0.97m from the origin mid-attack, so it could stand close enough to a wall to put
 an arm through it.
 
 **Fix.** `CreatureType.clearance` is a separate, larger radius used only for
 creature-versus-wall tests. `r` stays the body, because that is what the player's
 attack cone is sized against.
 
-**Measure it per creature, and do not derive it.** The obvious shortcuts are both
-wrong. Scaling `clearance` from `r` ignores that the arms, not the torso, set the
-number; scaling it from height says the brute at 1.27x the zombie needs 1.27x the
-room, when measurement puts the two at 1.02m and 1.00m — the figure comes from the
-pose the clip happens to strike. Bone positions understate it too, because the
-skinned vertices are what gets drawn.
+**Measure it per creature, and do not derive it.** Both shortcuts are wrong.
+Scaling `clearance` from `r` ignores that the arms, not the torso, set the number.
+Scaling it from height gets the direction right and the size badly wrong: the
+brute is 1.27x the zombie but reaches 1.5x as far, 1.45m against 0.97m, because
+the figure comes from the pose its own attack clip strikes. Bone positions
+understate it too — the skinned vertices are what gets drawn.
 
 Stepping every vertex through every clip with `SkinnedMesh.applyBoneTransform()`
-is how those numbers were found, and it is worth doing per clip: the death clip
-throws an arm out to 1.24m, but a dying creature does not move, so it is walk and
-attack that set the clearance. Add the 1.08 top of `SCALE_VARIANCE` and round up.
+is how those numbers were found, and it is worth doing per clip: the brute's death
+clip throws an arm out to 1.67m, but a dying creature does not move, so it is idle,
+walk and attack that set the clearance. Add the 1.08 top of `SCALE_VARIANCE` and
+round up.
 
-Check the pathing after raising it. A 4m corridor leaves `CELL - 2 * clearance`
-of usable width, and even at 1.6 all 279 floor cells and all 346 adjacent links
-still pass.
+**Then check the pathing, twice.** Geometry first: a 4m corridor leaves
+`CELL - 2 * clearance` of usable width, and at the brute's 1.6 that is a 0.8m band
+down the middle. Over 20 fresh mazes — 5,455 floor cells and 6,570 adjacent links
+— nothing is blocked at either 1.1 or 1.6.
+
+Geometry passing is not the same as moving, though, because collision is tested
+per axis and a creature can slide into a corner and sit there. Simulating 250
+chases per creature says it never happens: zero freezes, and the brute at 1.6
+reaches its target as often as at 1.15. What separates them is speed, not
+clearance.
 
 **Measure it, do not guess.** Bone positions understate the reach; the skinned
 vertices are what gets drawn. `SkinnedMesh.applyBoneTransform()` gives the posed

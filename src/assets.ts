@@ -350,33 +350,13 @@ async function loadLantern(): Promise<string> {
 
 /** Stands a model on the floor at the given height, whatever transform it arrives with. */
 function fitToHeight(root: THREE.Object3D, height: number): void {
-  // Reset first: measure() reads world matrices, so a model that already carries
-  // a fit — a borrowed skin does — would otherwise be scaled a second time.
+  // measure() reads world matrices, so the transform has to be identity first or
+  // whatever the file arrived with is folded into the result.
   root.position.set(0, 0, 0);
   root.scale.setScalar(1);
   root.scale.setScalar(height / measure(root).height);
   // Drop it so the feet rest on the floor at y=0.
   root.position.y = -measure(root).minY;
-}
-
-/**
- * Multiplies every material's base colour, so one skin can dress two creatures.
- *
- * Multiplied rather than replaced, so the texture's own shading survives and the
- * result is the same body under a different light rather than a flat repaint.
- * The materials are cloned first: a borrowed skin shares them with the creature
- * it was borrowed from, and tinting in place would repaint that one too.
- */
-function tintModel(root: THREE.Object3D, tint: number): void {
-  const colour = new THREE.Color(tint);
-  root.traverse((o) => {
-    if (!isMesh(o) || !o.material) return;
-    const mats = materialsOf(o).map((m) => m.clone());
-    // Material itself has no colour; the optional chain covers the few subclasses
-    // that do not, so the cast cannot be wrong at runtime.
-    for (const m of mats) (m as THREE.MeshStandardMaterial).color?.multiply(colour);
-    o.material = Array.isArray(o.material) ? mats : mats[0];
-  });
 }
 
 /** Loads one creature into `templates`, returning the line for the [assets] log. */
@@ -395,19 +375,7 @@ async function loadCreature(key: CreatureKey): Promise<string> {
   }
   for (const clip of Object.values(clips)) normalizeTrackNames(clip);
 
-  // ---- The body ----
-  let root: THREE.Object3D;
-  let borrowed = '';
-  if (cfg.skin) {
-    const source = templates[cfg.skin];
-    if (!source) return `${key}: skin source "${cfg.skin}" did not load → primitive model`;
-    // cloneSkinned copies the node graph and rebuilds the skeleton; geometry and
-    // materials stay shared, so a second body costs almost nothing.
-    root = cloneSkinned(source.root);
-    borrowed = ` · wearing the ${cfg.skin} skin`;
-  } else {
-    root = base.root;
-  }
+  const root = base.root;
   normalizeBoneNames(root);
 
   // Normalise the size — Mixamo FBX is in centimetres, so 100x too large.
@@ -417,7 +385,6 @@ async function loadCreature(key: CreatureKey): Promise<string> {
   const reason = unusableReason(root);
   if (reason) return `${key}: ${reason} → primitive model`;
   fitToHeight(root, cfg.height);
-  if (cfg.tint !== undefined) tintModel(root, cfg.tint);
   root.traverse((o) => {
     if (isMesh(o)) {
       o.frustumCulled = false;
@@ -448,7 +415,7 @@ async function loadCreature(key: CreatureKey): Promise<string> {
   const worst = bind.reduce((a, b) => (a.hit / a.total <= b.hit / b.total ? a : b), bind[0]);
   const bindNote = worst && worst.hit < worst.total ? ` · ⚠ only ${worst.hit}/${worst.total} tracks bind` : '';
 
-  const note = borrowed + bindNote
+  const note = bindNote
     + (stripped.length ? ` · root motion removed: ${stripped.join(', ')}` : '')
     + (walkClipSpeed ? ` · walk authored at ${walkClipSpeed.toFixed(2)}m/s` : '');
   return `${key}: loaded [${Object.keys(clips).join(', ')}] · ${describeSkin(root)}${note}`;
