@@ -49,6 +49,9 @@ dungeon/
 
 The zombie is the only creature. Without its files the game falls back to a box model.
 
+Working on this with a coding agent? Start at [AGENTS.md](AGENTS.md) — the ground
+rules, with the detail in [docs/](docs/). `CLAUDE.md` is a symlink to it.
+
 | | |
 |---|---|
 | Move | `WASD` |
