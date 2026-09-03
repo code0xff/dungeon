@@ -6,7 +6,7 @@ export type Maze = number[][];
 export type GridCell = readonly [x: number, z: number];
 
 // ================= Creatures =================
-export type CreatureKey = 'zombie' | 'brute';
+export type CreatureKey = 'zombie' | 'brute' | 'lunatic';
 export type ClipName = 'idle' | 'walk' | 'attack' | 'death';
 
 export interface CreatureType {
@@ -36,13 +36,14 @@ export interface CreatureType {
    *
    * A creature's arms reach far outside its body, so testing at the body radius
    * let arms pass through walls in corners. Stepping every skinned vertex through
-   * every clip puts the furthest point of a moving creature at 0.97m for the
-   * zombie and 1.45m for the brute, times the 1.08 top of SCALE_VARIANCE.
+   * every clip puts the furthest point of a moving creature at 1.03m for the
+   * zombie, 1.46m for the brute and 1.00m for the lunatic, times the 1.08 top of
+   * SCALE_VARIANCE.
    *
    * Measure it per creature rather than deriving it from `r` or from height. The
-   * brute is only 1.27x the zombie's height but reaches 1.5x as far, because the
-   * number comes from the pose its own attack clip strikes — a wide overhead
-   * swing — and not from the size of the body.
+   * brute is 1.27x the zombie's height and reaches 1.4x as far; the lunatic is
+   * shorter than the zombie and reaches the same distance. The number comes from
+   * the pose each creature's own attack clip strikes, not from the body.
    *
    * A 4m corridor leaves CELL - 2*clearance of usable width, so keep it well
    * under 2 or a creature cannot enter a corridor at all.

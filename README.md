@@ -52,6 +52,7 @@ dungeon/
 └─ assets/                  served assets (committed)
    ├─ creatures/zombie/     idle.glb  walk.glb  attack.glb  death.glb
    ├─ creatures/brute/      idle.glb  walk.glb  attack.glb  death.glb
+   ├─ creatures/lunatic/    idle.glb  walk.glb  attack.glb  death.glb
    ├─ weapons/              sword.glb  musket.glb
    ├─ props/                chest.glb  lantern.glb
    ├─ icons/                PWA icons
@@ -62,9 +63,18 @@ dungeon/
       └─ floor/             diffuse.webp  normal.webp  rough.webp
 ```
 
-Two creatures: the **zombie**, and the **brute** — taller, slower, hits twice as
-hard and takes twice as many swings. Without a creature's files the game falls
-back to a box model for it.
+Three creatures, each built around one idea. Without a creature's files the game
+falls back to a box model for it.
+
+| | HP | Damage | Speed | Reward | Per run |
+|---|---|---|---|---|---|
+| **Zombie** | 3 | 14 | 2.2 | 10 G | 15 |
+| **Brute** | 6 | 26 | 1.5 | 45 G | 4 |
+| **Lunatic** | 2 | 10 | 4.4 | 25 G | 5 |
+
+The lunatic is the one to watch: at 4.4 m/s against your 5.2 it cannot quite be
+outrun, and it notices you from 14m — beyond the lantern. It dies to two sword
+swings, which is the only reason that is survivable.
 
 Working on this with a coding agent? Start at [AGENTS.md](AGENTS.md) — the ground
 rules, with the detail in [docs/](docs/). `CLAUDE.md` is a symlink to it.
@@ -134,10 +144,16 @@ With the character selected, go to the **Animations** tab and grab four clips:
 | `attack.fbx` | `zombie attack`, `punch`, `swing` |
 | `death.fbx` | `zombie death`, `dying`, `death` |
 
-For the brute, a heavier character and the same four slots. The four do not have
-to come off one download: Mixamo numbers the rig differently every time
-(`mixamorig5:Hips` on one, `mixamorig:Hips` on another) and the loader strips the
-number, so any character's clips bind to any character's skeleton.
+For the brute and the lunatic, a heavier and a leaner character and the same four
+slots. The four do not have to come off one download: Mixamo numbers the rig
+differently every time (`mixamorig5:Hips` on one, `mixamorig:Hips` on another)
+and the loader strips the number, so any character's clips bind to any
+character's skeleton.
+
+**The filenames are slots, not descriptions.** `walk.fbx` is whatever the
+creature does to cover ground — the lunatic's is a sprint. The loader measures
+the clip's real speed from its root motion and retimes playback to match the
+creature's `speed`, so a run and a shamble both go in the same slot.
 
 **Download settings**
 
