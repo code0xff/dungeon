@@ -69,6 +69,40 @@ export const CELL = 4;
 export const WALL_H = 3.4;
 export const PLAYER_R = 0.45;
 export const SPEED = 5.2;
+// ---- Dodge ----
+/**
+ * The dodge is a short burst along whatever direction the player is already
+ * holding, not a separate set of direction keys. That is the whole reason it
+ * does not cost anything to control: one key, and it goes where you were going.
+ *
+ * It is a velocity for DASH_TIME rather than a teleport, so it still runs
+ * through the same per-axis wall checks as walking and cannot slip through a
+ * corner.
+ */
+export const DASH_SPEED = 22;
+/**
+ * Seconds the burst lasts.
+ *
+ * Distance is not SPEED * TIME: the burst eases out on 1-(t/T)^2, whose integral
+ * is 2T/3, so these two give 3.8m. That number is chosen against creature reach,
+ * which tops out at the brute's 2.2m — a dodge has to clear the reach of the
+ * thing swinging at you or it dodges nothing. The first pass covered 1.67m and
+ * was useless for exactly that reason.
+ */
+export const DASH_TIME = 0.26;
+/**
+ * Seconds before it can be used again.
+ *
+ * The dodge has no invulnerability — it works by taking the player out of a
+ * creature's reach before the blow lands, which is honest and needs no timing
+ * minigame. That means the cooldown is the only thing stopping it from being
+ * plain faster movement. At 1.1s, spamming it averages 3.5m/s against a walk of
+ * SPEED 5.2, so it is a burst and never a way to travel.
+ */
+export const DASH_CD = 1.1;
+/** Camera roll at the peak of a sideways dodge, in radians. Sells the weight. */
+export const DASH_ROLL = 0.09;
+
 export const CHEST_COUNT = 14;
 /**
  * What the chests hold, one entry per chest that is not empty, shuffled across

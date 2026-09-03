@@ -85,10 +85,17 @@ rules, with the detail in [docs/](docs/). `CLAUDE.md` is a symlink to it.
 | | |
 |---|---|
 | Move | `WASD` |
+| Dodge | `Shift` — a 3.8m burst the way you are already moving |
 | Look | move the mouse (click to lock the cursor, `Esc` to release) |
 | Attack / fire | click or `Space` |
 | Open chest | `E` |
 | Swap weapon | `Q` |
+| Drink potion / light lantern | `3` / `4` |
+
+The dodge has no invulnerability frames. It gets you out of a creature's reach
+before the blow lands, which is why 3.8m — the brute swings from 2.2m. On a 1.1s
+cooldown, so spamming it averages 3.5m/s against a walk of 5.2: it is a way out
+of a swing, never a way to cross the dungeon.
 
 ---
 

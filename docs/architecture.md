@@ -89,6 +89,11 @@ without it, so a run is a search rather than a crossing. The key sits a median
 92m from the start across a 124m dungeon. That is what makes the map worth
 finding: it marks which chests are still shut.
 
+The dodge is the other half of that: with every creature slower than the player,
+the pressure has to come from being *surrounded*, and the dodge is what turns a
+blocked corridor from a death into a decision. It takes its direction from the
+movement keys rather than having its own, which is what keeps it to one finger.
+
 Consumables are **carried, not applied**. Opening a chest puts a potion or a
 lantern in the pack; `POTION_KEY` and `LANTERN_KEY` spend one. Both refuse
 rather than waste — at full health the potion stays in the pack. The point is

@@ -285,6 +285,9 @@ export function buildWorld(): void {
   state.atkTimer = 0;
   state.swingT = -1;
   state.swingHit = false;
+  state.dashT = -1;
+  state.dashCd = 0;
+  state.dashSide = 0;
   // Gear carried out of the previous stage. A fresh run has none of it.
   // The map is never carried — see the note on Progress in src/progress.ts.
   state.lanternT = progress.lanternT;
