@@ -1,17 +1,17 @@
 import * as THREE from 'three';
 import { floorPBR, spawnCreature, wallPBR } from './assets';
 import {
-  CELL, CHEST_COUNT, EYE_H, GRID, PLAYER_R, SCALE_VARIANCE, SPAWN,
+  CELL, CHEST_COUNT, CHEST_ITEMS, EYE_H, GRID, PLAYER_R, SCALE_VARIANCE, SPAWN,
   SPEED_VARIANCE, TYPES, WALL_H,
 } from './config';
 import { generateDungeon } from './dungeon';
 import { createChest, makeSconce, rollProp } from './props';
 import { clipDuration, setAnim } from './assets';
 import { progress } from './progress';
-import { portal, portalCore, portalLight, scene, setLampLit, world } from './scene';
+import { portal, portalCore, portalLight, scene, setLampLit, setPortalOpen, world } from './scene';
 import { state } from './state';
 import { ceilTex, floorTex, wallTex } from './textures';
-import type { CreatureKey, GridCell, ItemKind, Monster } from './types';
+import type { CreatureKey, GridCell, Monster } from './types';
 import { cancelLoot, minimapEl, objectiveEl, overlayEl, updateHUD, wpnBtn } from './ui';
 import { pointerLock } from './input';
 import { lockHintEl } from './ui';
@@ -196,8 +196,9 @@ function spawnOne(key: CreatureKey): void {
 }
 
 function spawnChests(): void {
-  // Exactly one lantern and one map are guaranteed. The rest is 2 ammo and 2 potions.
-  const items: ItemKind[] = ['lantern', 'map', 'ammo', 'ammo', 'potion', 'potion'];
+  // CHEST_ITEMS is the guaranteed contents — one key above all, since the run
+  // cannot end without it. Any chest beyond that count is gold only.
+  const items = CHEST_ITEMS;
   for (let i = 0; i < CHEST_COUNT; i++) {
     const [gx, gz] = randomFloorCell(4);
     const c = createChest(20 + ((Math.random() * 60) | 0));
@@ -289,6 +290,12 @@ export function buildWorld(): void {
   state.lanternT = progress.lanternT;
   state.lanternWarned = false;
   state.hasMap = false;
+  // Each dungeon has its own key, so this never carries — it is the objective.
+  state.hasKey = false;
+  state.atPortal = false;
+  setPortalOpen(false);
+  state.potions = progress.potions;
+  state.lanterns = progress.lanterns;
 
   // The sword is the default. Q swaps to the musket: one chambered round plus START_AMMO spare.
   state.hasMusket = true;

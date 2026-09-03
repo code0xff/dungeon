@@ -75,8 +75,25 @@ resets all of it. Anything that has to outlive a run lives in
 
 The map is deliberately absent: it charts *this* dungeon, and the next stage
 generates a new one, so carrying it would hand the player a plan of a maze they
-are not standing in. Health is carried precisely because it makes stopping at
-the portal a decision rather than a formality.
+are not standing in. The **key** is absent for the same reason and a stronger
+one — it is the objective, so every stage has to be searched for its own.
+
+Health is carried precisely because it makes stopping at the portal a decision
+rather than a formality, and unspent potions and lanterns are carried because
+walking out with a full pack is part of what extraction is worth.
+
+## The shape of a run
+
+`CHEST_ITEMS` puts exactly one key in the dungeon and the portal refuses to open
+without it, so a run is a search rather than a crossing. The key sits a median
+92m from the start across a 124m dungeon. That is what makes the map worth
+finding: it marks which chests are still shut.
+
+Consumables are **carried, not applied**. Opening a chest puts a potion or a
+lantern in the pack; `POTION_KEY` and `LANTERN_KEY` spend one. Both refuse
+rather than waste — at full health the potion stays in the pack. The point is
+that light and healing become decisions about *when*, which is the only way a
+resource is really a resource.
 
 The split is the whole point of an extraction game — keep the two apart. A field
 that should reset but lives in `progress` becomes a permanent buff; one that

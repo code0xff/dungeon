@@ -1,4 +1,4 @@
-import { LANTERN_FUEL, START_AMMO } from './config';
+import { LANTERN_FUEL, MAX_HP, START_AMMO } from './config';
 
 /**
  * What survives a run, saved to localStorage.
@@ -24,12 +24,15 @@ export interface Progress {
   /** Seconds of lantern fuel left. */
   lanternT: number;
   ammo: number;
+  /** Unspent slot items. Walking out with a full pack is part of the reward. */
+  potions: number;
+  lanterns: number;
 }
 
 const KEY = 'dungeon.progress.v1';
 
 function fresh(): Progress {
-  return { stage: 1, bankGold: 0, hp: 100, lanternT: 0, ammo: START_AMMO };
+  return { stage: 1, bankGold: 0, hp: MAX_HP, lanternT: 0, ammo: START_AMMO, potions: 0, lanterns: 0 };
 }
 
 export const progress: Progress = fresh();
@@ -44,11 +47,13 @@ function merge(raw: unknown): void {
   const o = raw as Record<string, unknown>;
   if (typeof o.stage === 'number' && Number.isFinite(o.stage)) progress.stage = Math.max(1, o.stage | 0);
   if (typeof o.bankGold === 'number' && Number.isFinite(o.bankGold)) progress.bankGold = Math.max(0, o.bankGold | 0);
-  if (typeof o.hp === 'number' && Number.isFinite(o.hp)) progress.hp = Math.min(100, Math.max(1, o.hp | 0));
+  if (typeof o.hp === 'number' && Number.isFinite(o.hp)) progress.hp = Math.min(MAX_HP, Math.max(1, o.hp | 0));
   if (typeof o.lanternT === 'number' && Number.isFinite(o.lanternT)) {
     progress.lanternT = Math.min(LANTERN_FUEL, Math.max(0, o.lanternT));
   }
   if (typeof o.ammo === 'number' && Number.isFinite(o.ammo)) progress.ammo = Math.max(0, o.ammo | 0);
+  if (typeof o.potions === 'number' && Number.isFinite(o.potions)) progress.potions = Math.max(0, o.potions | 0);
+  if (typeof o.lanterns === 'number' && Number.isFinite(o.lanterns)) progress.lanterns = Math.max(0, o.lanterns | 0);
 }
 
 /**
@@ -74,7 +79,10 @@ export function saveProgress(): void {
 }
 
 /** Extraction: bank the run, keep the gear, move to the next stage. */
-export function bankRun(runGold: number, gear: { hp: number; lanternT: number; ammo: number }): void {
+export function bankRun(
+  runGold: number,
+  gear: { hp: number; lanternT: number; ammo: number; potions: number; lanterns: number },
+): void {
   progress.bankGold += runGold;
   progress.stage += 1;
   // Health is carried as-is. Walking out on 12 HP means walking in on 12 HP,
@@ -82,6 +90,8 @@ export function bankRun(runGold: number, gear: { hp: number; lanternT: number; a
   progress.hp = Math.max(1, Math.round(gear.hp));
   progress.lanternT = Math.max(0, gear.lanternT);
   progress.ammo = gear.ammo;
+  progress.potions = gear.potions;
+  progress.lanterns = gear.lanterns;
   saveProgress();
 }
 

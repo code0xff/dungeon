@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { LIGHT_DIM } from './config';
+import { LIGHT_DIM, MAX_HP } from './config';
 import type { Chest, Looting, Maze, Monster, Prop, Sconce, WeaponKind } from './types';
 
 /**
@@ -15,7 +15,7 @@ export const state = {
   pos: new THREE.Vector3(),
   yaw: 0,
   pitch: 0,
-  hp: 100,
+  hp: MAX_HP,
   runGold: 0,
 
   // ---- World contents ----
@@ -45,6 +45,14 @@ export const state = {
   /** Whether the low-fuel warning has already fired this run. */
   lanternWarned: false,
   hasMap: false,
+  /** The exit will not open without it. One per dungeon, and it does not carry. */
+  hasKey: false,
+  /** Whether the player was inside the portal last frame, so the locked-door
+   *  message fires once on arrival rather than every frame. */
+  atPortal: false,
+  // Carried, not consumed on pickup: pressing the slot key spends one.
+  potions: 0,
+  lanterns: 0,
   /** Base intensity of the player's light. A lit lantern raises it. */
   // Widened: LIGHT_DIM is `as const`, so without this the field types as 1.75.
   lightBase: LIGHT_DIM.intensity as number,

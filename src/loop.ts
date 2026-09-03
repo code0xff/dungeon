@@ -4,7 +4,8 @@ import { audioReady, lastBeat, setLastBeat, sfxCreature, sfxHeartbeat, sfxReload
 import {
   ATTACK_IMPACT, ATTACK_IMPACT_REACH, CELL, CHEST_LID_OPEN, CREATURE_DRAW_DISTANCE, EYE_H,
   FALLBACK_ATTACK_TIME, GEAR_BOB, GEAR_BOB_ROLL, LAMP_SWAY, LAMP_SWAY_LAG,
-  LANTERN_WARN, LOOT_TIME, MUSKET_RELOAD, SPEED, STRIDE_RATE, SWAY_DAMP, SWING_IMPACT,
+  LANTERN_WARN, LOOT_TIME, MUSKET_RELOAD, PORTAL_RADIUS, SPEED, STRIDE_RATE, SWAY_DAMP,
+  SWING_IMPACT,
   SWING_SPEED, SWING_WINDUP, TURN_RATE, WALK_CLIP_SPEED, WALK_TIMESCALE_RANGE, WALL_H,
 } from './config';
 import { playerHurt, resolveSwing } from './combat';
@@ -486,7 +487,12 @@ export function animate(): void {
     }
 
     const ex = portal.position.x - state.pos.x, ez = portal.position.z - state.pos.z;
-    if (ex * ex + ez * ez < 1.6 ** 2) endRun(true);
+    const atPortal = ex * ex + ez * ez < PORTAL_RADIUS ** 2;
+    if (atPortal && state.hasKey) endRun(true);
+    // Told once on arrival. The check runs every frame, so warning here without
+    // the edge test would replace every other message in the game.
+    else if (atPortal && !state.atPortal) showMsg('The portal is sealed — find the key');
+    state.atPortal = atPortal;
     if (state.hasMap) drawMinimap();
   }
 

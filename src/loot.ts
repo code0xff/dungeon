@@ -1,6 +1,8 @@
 import { sfxCreak, sfxPickup } from './audio';
-import { AMMO_PICKUP, LANTERN_FUEL, MUSKET_AMMO } from './config';
-import { setLampLit } from './scene';
+import {
+  AMMO_PICKUP, LANTERN_FUEL, LANTERN_KEY, MAX_HP, MUSKET_AMMO, POTION_HEAL, POTION_KEY,
+} from './config';
+import { setLampLit, setPortalOpen } from './scene';
 import { state } from './state';
 import type { Chest } from './types';
 import { lootBarEl, minimapEl, objectiveEl, showMsg, updateHUD, wpnBtn } from './ui';
@@ -20,13 +22,16 @@ export function openChest(c: Chest): void {
   let msg = `+${c.value} G`;
 
   switch (c.item) {
+    case 'key':
+      state.hasKey = true;
+      setPortalOpen(true);
+      msg += '\nThe key — the portal will open now';
+      break;
     case 'lantern':
-      // Topping up rather than replacing, so a second lantern in a run is worth
-      // finding even while the first is still burning.
-      state.lanternT = Math.min(LANTERN_FUEL, state.lanternT + LANTERN_FUEL);
-      state.lanternWarned = false;
-      state.lightBase = setLampLit(true);
-      msg += `\nLantern lit — ${Math.round(LANTERN_FUEL / 60)} minutes of fuel`;
+      // Into the pack, not lit. Choosing when to burn one is the point: light
+      // costs nothing to carry and everything to waste.
+      state.lanterns++;
+      msg += `\nLantern — press ${LANTERN_KEY} to light it`;
       break;
     case 'map':
       state.hasMap = true;
@@ -35,8 +40,8 @@ export function openChest(c: Chest): void {
       msg += '\nMap — the dungeon layout is revealed';
       break;
     case 'potion':
-      state.hp = Math.min(100, state.hp + 35);
-      msg += '\nPotion +35 HP';
+      state.potions++;
+      msg += `\nPotion — press ${POTION_KEY} to drink it`;
       break;
     case 'musket':
       state.hasMusket = true;
@@ -57,4 +62,34 @@ export function openChest(c: Chest): void {
   if (c.item) sfxPickup();
   updateHUD();
   showMsg(msg);
+}
+
+/**
+ * Slot items are spent by hand rather than on pickup, so both of these refuse
+ * rather than waste. Being told "already at full health" is better than losing
+ * the potion that would have saved the next fight.
+ */
+export function usePotion(): void {
+  if (state.gameOver) return;
+  if (state.potions <= 0) return showMsg('No potions');
+  if (state.hp >= MAX_HP) return showMsg('Already at full health');
+  state.potions--;
+  state.hp = Math.min(MAX_HP, state.hp + POTION_HEAL);
+  sfxPickup();
+  updateHUD();
+  showMsg(`Potion +${POTION_HEAL} HP`);
+}
+
+export function useLantern(): void {
+  if (state.gameOver) return;
+  if (state.lanterns <= 0) return showMsg('No lanterns');
+  if (state.lanternT >= LANTERN_FUEL) return showMsg('The lantern is already full');
+  state.lanterns--;
+  // Topping up rather than replacing, so lighting one early is not a waste.
+  state.lanternT = Math.min(LANTERN_FUEL, state.lanternT + LANTERN_FUEL);
+  state.lanternWarned = false;
+  state.lightBase = setLampLit(true);
+  sfxPickup();
+  updateHUD();
+  showMsg(`Lantern lit — ${Math.round(LANTERN_FUEL / 60)} minutes of fuel`);
 }

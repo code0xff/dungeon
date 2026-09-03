@@ -1,9 +1,9 @@
-import { GRID } from './config';
+import { GRID, ROOM_COUNT } from './config';
 import type { GridCell, Maze } from './types';
 
 /**
- * Carves a maze by recursive backtracking, then stamps six open rooms over it
- * so the layout does not feel like nothing but corridors.
+ * Carves a maze by recursive backtracking, then stamps ROOM_COUNT open rooms over
+ * it so the layout does not feel like nothing but corridors.
  * Returns maze[z][x] — 0 is floor, 1 is wall.
  */
 export function generateDungeon(): Maze {
@@ -29,7 +29,7 @@ export function generateDungeon(): Maze {
   }
 
   // Carve the rooms
-  for (let i = 0; i < 6; i++) {
+  for (let i = 0; i < ROOM_COUNT; i++) {
     const w = 3 + 2 * ((Math.random() * 2) | 0), h = 3 + 2 * ((Math.random() * 2) | 0);
     const x0 = 1 + 2 * ((Math.random() * ((GRID - w - 2) / 2)) | 0);
     const z0 = 1 + 2 * ((Math.random() * ((GRID - h - 2) / 2)) | 0);
