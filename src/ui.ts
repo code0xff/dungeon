@@ -28,6 +28,7 @@ export const potBtn = el('potBtn');
 export const lampBtn = el('lampBtn');
 export const dashBtn = el('dashBtn');
 export const atkBtn = el('atkBtn');
+const atkLabel = queryChild(atkBtn, 'span');
 export const minimapEl = el<HTMLCanvasElement>('minimap');
 
 const potCount = queryChild(potBtn, '.count');
@@ -64,11 +65,27 @@ export function updateHUD(): void {
     slot(POTION_KEY, 'Potion', state.potions),
     slot(LANTERN_KEY, 'Lantern', state.lanterns),
   );
+  atkLabel.textContent = attackLabel();
   dashBtn.classList.add('show');
   potBtn.classList.toggle('show', state.potions > 0);
   lampBtn.classList.toggle('show', state.lanterns > 0);
   potCount.textContent = String(state.potions);
   lampCount.textContent = String(state.lanterns);
+}
+
+/**
+ * What tapping the attack button will actually do.
+ *
+ * On touch there is no ammo counter under the thumb and no keyboard to reach
+ * for, so the button has to carry it: tapping an unloaded musket starts a
+ * reload rather than firing, and a button that still said "Attack" was lying
+ * about that. Mirrors the branches at the top of fireMusket().
+ */
+function attackLabel(): string {
+  if (state.weapon !== 'musket') return 'Attack';
+  if (state.loaded) return 'Fire';
+  if (state.reloadT >= 0) return 'Loading';
+  return state.ammo > 0 ? 'Reload' : 'Empty';
 }
 
 /** One consumable slot: its key, its name and how many are left. */

@@ -32,4 +32,8 @@ export function startReload(): void {
   state.reloadT = 0;
   reloadBarEl.style.display = 'block';
   reloadBarEl.dataset.step = '0';
+  // Both the gear line and the touch button label read reloadT, and every caller
+  // either returns straight after this or has already refreshed — so without
+  // this they sat on the previous state until something unrelated redrew them.
+  updateHUD();
 }
