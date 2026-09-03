@@ -12,6 +12,8 @@ export const CREATURE_ASSETS: Record<CreatureKey, CreatureAsset> = {
   // motion-only downloads off a differently numbered rig, and bind only because
   // the loader normalises the Mixamo namespace — see MIXAMO_NS in assets.ts.
   brute: { dir: 'creatures/brute', height: 2.35 },
+  // WhiteClown. Its walk slot holds a sprint, not a walk — see TYPES.lunatic.
+  lunatic: { dir: 'creatures/lunatic', height: 1.78 },
 };
 export const WALL_TEX_DIR = 'textures/wall';
 export const FLOOR_TEX_DIR = 'textures/floor';
@@ -120,7 +122,7 @@ export const TYPES: Record<CreatureKey, CreatureType> = {
   zombie: {
     name: 'Zombie',
     hp: 3, dmg: 14, speed: 2.2, atkCd: 1.0, attackSpeed: 1.6,
-    reach: 1.6, r: 0.45, clearance: 1.1, reward: 10, aggro: 9,
+    reach: 1.6, r: 0.45, clearance: 1.15, reward: 10, aggro: 9,
     groan: [4, 8], voice: 1,
     animSpeed: 6.5, swing: 0.5,
   },
@@ -138,6 +140,26 @@ export const TYPES: Record<CreatureKey, CreatureType> = {
     groan: [6, 11], voice: 0.55,
     animSpeed: 4.2, swing: 0.42,
   },
+  /**
+   * The sprinter. Everything about it is built around speed 4.4 against the
+   * player's SPEED of 5.2 — fast enough that walking away does not work and
+   * running away barely does, slow enough that the corridor behind you is still
+   * an answer. Push it past 5.2 and there is no counterplay left at all.
+   *
+   * It pays for that in hp 2: two sword swings, or one musket ball. Meeting one
+   * should be a scramble that is over quickly either way, not a fight.
+   *
+   * aggro 14 is the highest of the three and is the real weapon — it notices the
+   * player from beyond the reach of the lantern, so the first warning is the
+   * sound of one already coming.
+   */
+  lunatic: {
+    name: 'Lunatic',
+    hp: 2, dmg: 10, speed: 4.4, atkCd: 0.7, attackSpeed: 3.6,
+    reach: 1.5, r: 0.4, clearance: 1.15, reward: 25, aggro: 14,
+    groan: [3, 6], voice: 1.6,
+    animSpeed: 11, swing: 0.7,
+  },
 };
 
 /**
@@ -145,11 +167,12 @@ export const TYPES: Record<CreatureKey, CreatureType> = {
  * The dungeon is 23x23 cells at 4m each, so this is what sets the odds of
  * turning a corner into something.
  *
- * The mix matters more than the total. Brutes are rare on purpose: a run should
- * be paced by zombies and punctuated by a brute, and four of them across the few
- * hundred floor cells is about one per stage that cannot simply be walked past.
+ * The mix matters more than the total, and the total has stayed near 24 while
+ * the mix changed. Zombies set the pace; brutes and lunatics punctuate it, and
+ * both are rare because each is an interruption rather than a texture. Five
+ * lunatics across a few hundred floor cells is roughly one chase per stage.
  */
-export const SPAWN: Readonly<Record<CreatureKey, number>> = { zombie: 18, brute: 4 };
+export const SPAWN: Readonly<Record<CreatureKey, number>> = { zombie: 15, brute: 4, lunatic: 5 };
 
 // ---- Creature animation ----
 /** Attack duration in seconds when the external model carries no attack clip. */

@@ -114,4 +114,10 @@ export const MAKERS: Record<CreatureKey, () => ProceduralCreature> = {
     skin: 0x7d5147, rag: 0x1b1714, eye: 0xffc21a,
     size: 1.27, bulk: 1.45, hunch: 0.18, armBase: [-0.3, -0.3], limp: 1, shackle: false,
   }),
+  // Thin, pale and pitched forward at a run, with no limp — the one silhouette
+  // of the three that reads as coming at you rather than shambling.
+  lunatic: () => makeHumanoid({
+    skin: 0xd8d2c4, rag: 0x6b2230, eye: 0xff2a2a,
+    size: 0.96, bulk: 0.78, hunch: 0.55, armBase: [-0.9, -0.9], limp: 1, shackle: false,
+  }),
 };

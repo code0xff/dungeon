@@ -138,7 +138,7 @@ a 0.35 m/s shamble.
 
 **Cause.** A capsule or circle sized to the torso says nothing about where the
 arms go. This zombie's body radius is 0.45m while its skinned vertices reach
-0.97m from the origin mid-attack, so it could stand close enough to a wall to put
+1.03m from the origin mid-attack, so it could stand close enough to a wall to put
 an arm through it.
 
 **Fix.** `CreatureType.clearance` is a separate, larger radius used only for
@@ -147,14 +147,22 @@ attack cone is sized against.
 
 **Measure it per creature, and do not derive it.** Both shortcuts are wrong.
 Scaling `clearance` from `r` ignores that the arms, not the torso, set the number.
-Scaling it from height gets the direction right and the size badly wrong: the
-brute is 1.27x the zombie but reaches 1.5x as far, 1.45m against 0.97m, because
-the figure comes from the pose its own attack clip strikes. Bone positions
-understate it too — the skinned vertices are what gets drawn.
+Scaling it from height fails in both directions at once — measured across the
+three creatures, the brute is 1.27x the zombie's height and reaches 1.4x as far,
+while the lunatic is *shorter* than the zombie and reaches exactly as far:
+
+| | height | worst moving reach |
+|---|---|---|
+| zombie | 1.85m | 1.03m |
+| brute | 2.35m | 1.46m |
+| lunatic | 1.78m | 1.00m |
+
+The figure comes from the pose each creature's own attack clip strikes. Bone
+positions understate it too — the skinned vertices are what gets drawn.
 
 Stepping every vertex through every clip with `SkinnedMesh.applyBoneTransform()`
 is how those numbers were found, and it is worth doing per clip: the brute's death
-clip throws an arm out to 1.67m, but a dying creature does not move, so it is idle,
+clip throws an arm out to 1.69m, but a dying creature does not move, so it is idle,
 walk and attack that set the clearance. Add the 1.08 top of `SCALE_VARIANCE` and
 round up.
 
@@ -168,6 +176,12 @@ per axis and a creature can slide into a corner and sit there. Simulating 250
 chases per creature says it never happens: zero freezes, and the brute at 1.6
 reaches its target as often as at 1.15. What separates them is speed, not
 clearance.
+
+Run that simulation against a **moving** target before drawing conclusions from
+it. A flat-0.4s repath and a speed-scaled one look identical chasing a fixed
+point, and they stay identical chasing a fleeing player too — which is how a
+plausible-sounding "the fast one outruns its own waypoints" change was measured
+and then dropped.
 
 **Measure it, do not guess.** Bone positions understate the reach; the skinned
 vertices are what gets drawn. `SkinnedMesh.applyBoneTransform()` gives the posed

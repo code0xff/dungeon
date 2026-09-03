@@ -13,7 +13,7 @@ assets/       Everything the game loads. Committed. Served from the site root.
 URLs in `src/config.ts` drop the leading `assets/`: the file
 `assets/creatures/zombie/idle.glb` is loaded as `creatures/zombie/idle.glb`.
 
-`assets/` is committed on purpose. It is about 8MB of baked derivatives, and
+`assets/` is committed on purpose. It is about 8.5MB of baked derivatives, and
 committing it is what lets a fresh clone run the real game rather than the box
 models. `raw/` is not, both for size and because Mixamo forbids redistributing
 the FBX files themselves.
@@ -78,6 +78,12 @@ wrong on idle is the one failure that costs a round trip: an FBX marked
 `MotionOnlyScene` has no mesh at all, so the game falls back to the box model and
 says `no mesh (re-download idle with "With Skin")`.
 
+The four filenames are **slots, not descriptions**. `walk.fbx` is whatever the
+creature does to cover ground: the zombie's is a 0.35m/s shamble and the
+lunatic's is a 3.96m/s sprint downloaded as `forward.fbx`, renamed on the way in.
+The loader measures the clip's authored speed from its root motion and retimes
+playback to the creature's `speed`, so the slot does not care which it is.
+
 The four clips do not have to come off the same download. Mixamo numbers its rig
 per export — `mixamorig5:Hips` on one character, `mixamorig:Hips` on another —
 and three binds animation tracks to nodes by name, so clips from one download
@@ -88,20 +94,33 @@ different rigs and bind anyway.
 
 ## Budget
 
-Under 8MB total, and that is a ceiling rather than a description to keep raising
-— this ships to phones.
+Under 9MB total, and that is a ceiling rather than a description to keep raising
+— this ships to phones. It has been raised twice; the next creature should come
+out of the existing fat instead.
 
 | | |
 |---|---|
-| creatures | 3.7MB (idle carries the skin and textures; the other clips are curves only) |
+| creatures | 4.5MB (idle carries the skin and textures; the other clips are curves only) |
 | weapons | 1.2MB |
 | props | 1.3MB |
 | textures | 1.4MB |
 
-Creature bulk is **geometry, not texture**. The zombie's idle is 2.4MB for 28,320
-vertices against 0.5MB of maps; the brute's is 1.0MB for 5,630 against 0.4MB. If
-this needs to come down, the lever is mesh compression or decimation, not smaller
-images — the images are already 1K webp and near the floor of what reads.
+Creature bulk is **geometry, not texture**, and it is not spread evenly:
+
+| | vertices | idle.glb | of which maps |
+|---|---|---|---|
+| zombie | 28,320 | 2.4MB | 0.5MB |
+| brute | 5,630 | 1.0MB | 0.4MB |
+| lunatic | 6,083 | 0.6MB | 0.1MB |
+
+The zombie is the outlier — five times the geometry of either of the others for
+no visible gain at the size it renders. `weld()` then `simplify()` at ratio 0.5
+takes it to 14,581 vertices and 1.48MB, which is most of a megabyte for a model
+seen at 300px in the dark. It has not been done because its `raw/` FBX is gone
+and the pipeline bakes from FBX; re-download it and the win is there.
+
+Smaller images are *not* the lever — they are already 1K webp and near the floor
+of what reads.
 
 The three motion clips of a creature cost about 0.2MB between them, because they
 are stripped to curves. Adding a creature is cheap; adding a *body* is not.

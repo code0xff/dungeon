@@ -114,7 +114,7 @@ reason.
 
 Its caching strategy and the reasoning are documented at the top of `sw.js`.
 The short version: navigations are network-first so a deploy is picked up, and
-everything else is stale-while-revalidate so the ~8MB of assets loads instantly
+everything else is stale-while-revalidate so the ~8.5MB of assets loads instantly
 on a second visit and still refreshes itself without a manual version bump.
 
 ## Frame loop
