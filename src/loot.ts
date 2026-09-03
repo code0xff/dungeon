@@ -1,6 +1,6 @@
 import { sfxCreak, sfxPickup } from './audio';
-import { AMMO_PICKUP, FOG_TORCH, MUSKET_AMMO } from './config';
-import { fog, torch } from './scene';
+import { AMMO_PICKUP, LANTERN_FUEL, MUSKET_AMMO } from './config';
+import { setLampLit } from './scene';
 import { state } from './state';
 import type { Chest } from './types';
 import { lootBarEl, minimapEl, objectiveEl, showMsg, updateHUD, wpnBtn } from './ui';
@@ -20,12 +20,13 @@ export function openChest(c: Chest): void {
   let msg = `+${c.value} G`;
 
   switch (c.item) {
-    case 'torch':
-      state.hasTorch = true;
-      torch.distance = 19;
-      state.torchBase = 2.7;
-      fog.density = FOG_TORCH;
-      msg += '\nTorch — you can see further';
+    case 'lantern':
+      // Topping up rather than replacing, so a second lantern in a run is worth
+      // finding even while the first is still burning.
+      state.lanternT = Math.min(LANTERN_FUEL, state.lanternT + LANTERN_FUEL);
+      state.lanternWarned = false;
+      state.lightBase = setLampLit(true);
+      msg += `\nLantern lit — ${Math.round(LANTERN_FUEL / 60)} minutes of fuel`;
       break;
     case 'map':
       state.hasMap = true;

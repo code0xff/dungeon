@@ -22,6 +22,8 @@ export const CLIP_NAMES = ['idle', 'walk', 'attack', 'death'] as const;
  */
 export const PROP_ASSETS = {
   chest: { url: 'props/chest.glb', height: 0.62, lidNode: 'treasure_chest_lid' },
+  /** Held in the left hand. Without the file nothing is drawn — see loadLantern(). */
+  lantern: { url: 'props/lantern.glb', height: 0.29 },
 } as const;
 
 /**
@@ -77,6 +79,20 @@ export const SWING_IMPACT = 0.6;
 export const LOOT_TIME = 1.2;
 export const FOG_BASE = 0.115;
 export const FOG_TORCH = 0.08;
+
+// ---- Lantern ----
+/**
+ * Seconds a lantern burns for. It is the only way to see far, so this is the
+ * real clock on a run: about two and a half minutes of good light per pickup,
+ * and the remainder carries into the next stage.
+ */
+export const LANTERN_FUEL = 150;
+/** Fuel left when the player is warned, in seconds. */
+export const LANTERN_WARN = 30;
+
+/** The player's light, unlit and lit. Fog closes in when the lantern dies. */
+export const LIGHT_DIM = { distance: 11, intensity: 1.75, fog: FOG_BASE } as const;
+export const LIGHT_LIT = { distance: 19, intensity: 2.7, fog: FOG_TORCH } as const;
 
 /** Eye height in metres. Walking bobs the camera around this. */
 export const EYE_H = 1.55;

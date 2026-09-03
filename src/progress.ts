@@ -1,4 +1,4 @@
-import { START_AMMO } from './config';
+import { LANTERN_FUEL, START_AMMO } from './config';
 
 /**
  * What survives a run, saved to localStorage.
@@ -13,16 +13,23 @@ export interface Progress {
   stage: number;
   /** Permanent. Survives death. */
   bankGold: number;
-  /** Gear carried out of the last run. Wiped on death. */
-  hasTorch: boolean;
-  hasMap: boolean;
+  // Carried out of the last run, wiped on death.
+  //
+  // There is deliberately no map here: a map charts *this* dungeon, and the next
+  // stage generates a new one, so carrying it would hand the player a plan of a
+  // maze they are not standing in.
+
+  /** Health carried forward. Extract wounded and the next stage starts wounded. */
+  hp: number;
+  /** Seconds of lantern fuel left. */
+  lanternT: number;
   ammo: number;
 }
 
 const KEY = 'dungeon.progress.v1';
 
 function fresh(): Progress {
-  return { stage: 1, bankGold: 0, hasTorch: false, hasMap: false, ammo: START_AMMO };
+  return { stage: 1, bankGold: 0, hp: 100, lanternT: 0, ammo: START_AMMO };
 }
 
 export const progress: Progress = fresh();
@@ -37,8 +44,10 @@ function merge(raw: unknown): void {
   const o = raw as Record<string, unknown>;
   if (typeof o.stage === 'number' && Number.isFinite(o.stage)) progress.stage = Math.max(1, o.stage | 0);
   if (typeof o.bankGold === 'number' && Number.isFinite(o.bankGold)) progress.bankGold = Math.max(0, o.bankGold | 0);
-  if (typeof o.hasTorch === 'boolean') progress.hasTorch = o.hasTorch;
-  if (typeof o.hasMap === 'boolean') progress.hasMap = o.hasMap;
+  if (typeof o.hp === 'number' && Number.isFinite(o.hp)) progress.hp = Math.min(100, Math.max(1, o.hp | 0));
+  if (typeof o.lanternT === 'number' && Number.isFinite(o.lanternT)) {
+    progress.lanternT = Math.min(LANTERN_FUEL, Math.max(0, o.lanternT));
+  }
   if (typeof o.ammo === 'number' && Number.isFinite(o.ammo)) progress.ammo = Math.max(0, o.ammo | 0);
 }
 
@@ -65,11 +74,13 @@ export function saveProgress(): void {
 }
 
 /** Extraction: bank the run, keep the gear, move to the next stage. */
-export function bankRun(runGold: number, gear: { hasTorch: boolean; hasMap: boolean; ammo: number }): void {
+export function bankRun(runGold: number, gear: { hp: number; lanternT: number; ammo: number }): void {
   progress.bankGold += runGold;
   progress.stage += 1;
-  progress.hasTorch = gear.hasTorch;
-  progress.hasMap = gear.hasMap;
+  // Health is carried as-is. Walking out on 12 HP means walking in on 12 HP,
+  // which is what makes stopping at the portal a decision.
+  progress.hp = Math.max(1, Math.round(gear.hp));
+  progress.lanternT = Math.max(0, gear.lanternT);
   progress.ammo = gear.ammo;
   saveProgress();
 }

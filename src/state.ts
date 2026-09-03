@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { LIGHT_DIM } from './config';
 import type { Chest, Looting, Maze, Monster, Prop, Sconce, WeaponKind } from './types';
 
 /**
@@ -39,10 +40,14 @@ export const state = {
   nearChest: null as Chest | null,
 
   // ---- Items ----
-  hasTorch: false,
+  /** Seconds of lantern fuel left. 0 means unlit. */
+  lanternT: 0,
+  /** Whether the low-fuel warning has already fired this run. */
+  lanternWarned: false,
   hasMap: false,
-  /** Base intensity of the player's light. Picking up a torch raises it. */
-  torchBase: 1.75,
+  /** Base intensity of the player's light. A lit lantern raises it. */
+  // Widened: LIGHT_DIM is `as const`, so without this the field types as 1.75.
+  lightBase: LIGHT_DIM.intensity as number,
 
   // ---- Musket ----
   hasMusket: false,

@@ -35,7 +35,10 @@ export function updateHUD(): void {
   stageEl.textContent = `Stage ${progress.stage}`;
 
   const items: string[] = [];
-  if (state.hasTorch) items.push('Torch');
+  if (state.lanternT > 0) {
+    const s = Math.ceil(state.lanternT);
+    items.push(`Lantern ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`);
+  }
   if (state.hasMap) items.push('Map');
   if (state.weapon === 'musket') {
     // The load state only means anything for the weapon actually in hand.
@@ -116,13 +119,13 @@ export function endRun(extracted: boolean): void {
   if (extracted) {
     // Captured before buildWorld() resets the run, which is why this runs here
     // and not when the player clicks through to the next stage.
-    bankRun(state.runGold, { hasTorch: state.hasTorch, hasMap: state.hasMap, ammo: state.ammo });
+    bankRun(state.runGold, { hp: state.hp, lanternT: state.lanternT, ammo: state.ammo });
     title.textContent = 'Extracted';
     title.className = 'win';
     desc.textContent = `Banked ${state.runGold} G. Your gear carries to stage ${progress.stage}.`;
   } else {
-    const lost = [state.hasTorch && 'torch', state.hasMap && 'map', state.ammo > 0 && `${state.ammo} ammo`]
-      .filter(Boolean).join(', ');
+    const lost = [state.lanternT > 0 && 'lantern', state.ammo > 0 && `${state.ammo} ammo`]
+      .filter(Boolean).join(' and ');
     loseRun();
     title.textContent = 'Killed';
     title.className = 'dead';

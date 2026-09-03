@@ -6,7 +6,7 @@ import {
   CLIP_NAMES, CREATURE_ASSETS, FLOOR_TEX_DIR, GRID, PROP_ASSETS, WALL_TEX_DIR, WEAPON_ASSETS,
 } from './config';
 import { MAKERS } from './creatures';
-import { equipWeaponModel } from './scene';
+import { equipLantern, equipWeaponModel } from './scene';
 import type {
   ClipName, Clips, CreatureKey, CreatureRig, CreatureTemplate, MonsterPlayback, PBRMaps, WeaponAsset, WeaponKind,
 } from './types';
@@ -266,6 +266,42 @@ async function loadChest(): Promise<string> {
   return `chest: loaded (scale x${root.scale.x.toFixed(2)})`;
 }
 
+/**
+ * Loads the lantern into the player's left hand, scaled to PROP_ASSETS.lantern.height
+ * and stood on its own base so the hand position in scene.ts means the same thing
+ * whatever model is swapped in. No fallback: the primitive it replaced looked worse
+ * than an empty hand, and the light works either way.
+ */
+async function loadLantern(): Promise<string> {
+  const cfg = PROP_ASSETS.lantern;
+  let gltf;
+  try {
+    gltf = await gltfLoader.loadAsync(cfg.url);
+  } catch {
+    return 'lantern: file missing → nothing drawn in hand (the light still works)';
+  }
+  const root = gltf.scene;
+  const box = new THREE.Box3().setFromObject(root);
+  root.scale.multiplyScalar(cfg.height / (box.max.y - box.min.y));
+  root.position.y = -new THREE.Box3().setFromObject(root).min.y;
+
+  // The player's light sits at their centre, not inside the lantern, so without
+  // this the thing lighting the dungeon reads as a cold lump of brass.
+  root.traverse((o) => {
+    if (!isMesh(o)) return;
+    for (const m of materialsOf(o)) {
+      if (!/glass/i.test(m.name)) continue;
+      const s = m as THREE.MeshStandardMaterial;
+      s.emissive = new THREE.Color(0xffa542);
+      s.emissiveIntensity = 1.6;
+      s.transparent = true;
+      s.opacity = 0.85;
+    }
+  });
+  equipLantern(root);
+  return `lantern: loaded (scale x${root.scale.x.toFixed(2)})`;
+}
+
 export async function loadAssets(onProgress: (msg: string) => void): Promise<void> {
   const log: string[] = [];
 
@@ -314,6 +350,7 @@ export async function loadAssets(onProgress: (msg: string) => void): Promise<voi
 
   onProgress('Loading props');
   log.push(await loadChest());
+  log.push(await loadLantern());
 
   onProgress('Loading textures');
   pbr.wall = await loadPBR(WALL_TEX_DIR, 1.5);

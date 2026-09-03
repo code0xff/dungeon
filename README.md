@@ -5,9 +5,13 @@ through the blue portal — die and everything you picked up this run stays down
 
 **▶ [Play it](https://code0xff.github.io/dungeon/)**
 
-Extract with your loot and it carries into the next stage. Die and the run's
+Extract and your health, lantern fuel and ammo carry into the next stage — the
+map does not, because the next dungeon is a different one. Die and the run's
 gold and everything you were carrying stays down there. Only the bank survives,
 and it is saved to the browser.
+
+The lantern is the clock: about two and a half minutes of light per pickup, and
+whatever is left burns on into the next stage.
 
 It installs as a PWA and plays offline after the first visit.
 
@@ -48,7 +52,7 @@ dungeon/
 └─ assets/                  served assets (committed)
    ├─ creatures/zombie/     idle.glb  walk.glb  attack.glb  death.glb
    ├─ weapons/              sword.glb  musket.glb
-   ├─ props/                chest.glb
+   ├─ props/                chest.glb  lantern.glb
    ├─ icons/                PWA icons
    ├─ manifest.webmanifest
    ├─ sw.js                 service worker (offline cache)
@@ -171,6 +175,7 @@ in `assets/` directly and nothing is kept under `raw/`. What gets fetched is the
 | wall | `medieval_blocks_05` | https://polyhaven.com/textures (wall) |
 | floor | `cobblestone_floor_08` | https://polyhaven.com/textures (floor) |
 | sword | `wooden_handle_saber` | https://polyhaven.com/models |
+| lantern | `Lantern_01` | https://polyhaven.com/models |
 | musket | `bolt_action_rifle_7_62` | https://polyhaven.com/models |
 | chest | `treasure_chest` | https://polyhaven.com/models |
 
@@ -237,6 +242,6 @@ attribution, redistribution and commercial use allowed.
 ## 6. Ideas
 
 - **Shadows** are off. `renderer.shadowMap.enabled = true` in `src/scene.ts` plus
-  `castShadow` on the torch turns them on, but there are a lot of walls, so check
+  `castShadow` on the player's light turns them on, but there are a lot of walls, so check
   mobile performance.
 - **Better props** — barrels, skulls, chains — from the Poly Haven Models tab.

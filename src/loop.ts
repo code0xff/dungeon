@@ -3,9 +3,8 @@ import { clipDuration, flashLoadedMesh, setAnim } from './assets';
 import { audioReady, lastBeat, setLastBeat, sfxCreature, sfxHeartbeat, sfxReloadStep } from './audio';
 import {
   ATTACK_IMPACT, ATTACK_IMPACT_REACH, ATTACK_SPEED, CELL, CHEST_LID_OPEN, EYE_H,
-  FALLBACK_ATTACK_TIME, LOOT_TIME,
-  MUSKET_RELOAD, SPEED, SWING_IMPACT, SWING_SPEED, SWING_WINDUP, TURN_RATE, WALK_CLIP_SPEED,
-  WALK_TIMESCALE_RANGE, WALL_H,
+  FALLBACK_ATTACK_TIME, LANTERN_WARN, LOOT_TIME, MUSKET_RELOAD, SPEED, SWING_IMPACT,
+  SWING_SPEED, SWING_WINDUP, TURN_RATE, WALK_CLIP_SPEED, WALK_TIMESCALE_RANGE, WALL_H,
 } from './config';
 import { playerHurt, resolveSwing } from './combat';
 import { findPath } from './dungeon';
@@ -13,14 +12,14 @@ import { edgeTurn, keys, moveVec } from './input';
 import { openChest } from './loot';
 import {
   DUST, camera, dustGeo, flashLight, MUSKET_REST, musket, muzzleFlash, portal, portalCore,
-  renderFrame, scene, SMOKE_REST_Y, smoke, sword, SWORD_REST, torch,
+  renderFrame, scene, setLampLit, SMOKE_REST_Y, smoke, sword, SWORD_REST, playerLight,
 } from './scene';
 import { state } from './state';
 import { collides } from './world';
 import type { CreatureRig, Monster, MonsterPlayback } from './types';
 import {
   cancelLoot, drawMinimap, endRun, lootBtn, lootFillEl,
-  promptEl, reloadBarEl, reloadFillEl, updateHUD,
+  promptEl, reloadBarEl, reloadFillEl, showMsg, updateHUD,
 } from './ui';
 
 // ================= Creature animation =================
@@ -367,11 +366,32 @@ function updateChests(dt: number, playerMoving: boolean): void {
   }
 }
 
+/** Burns the lantern down, warns once, and puts it out when the fuel runs dry. */
+function updateLantern(dt: number): void {
+  if (state.lanternT <= 0) return;
+  state.lanternT -= dt;
+
+  if (!state.lanternWarned && state.lanternT <= LANTERN_WARN) {
+    state.lanternWarned = true;
+    showMsg('The lantern is guttering');
+  }
+  if (state.lanternT <= 0) {
+    state.lanternT = 0;
+    state.lightBase = setLampLit(false);
+    showMsg('The lantern goes out');
+  }
+  updateHUD();
+}
+
 // ================= Atmosphere =================
 function updateAmbience(dt: number, now: number): void {
-  torch.position.set(state.pos.x, state.pos.y + 0.25, state.pos.z);
+  playerLight.position.set(state.pos.x, state.pos.y + 0.25, state.pos.z);
   // Two sines plus noise, so the flicker never settles into a pattern.
-  torch.intensity = state.torchBase + Math.sin(now * 0.011) * 0.2 + Math.sin(now * 0.037) * 0.12 + (Math.random() - 0.5) * 0.1;
+  // A lantern running out of fuel gutters before it dies, which is the warning
+  // the player actually reads — the HUD countdown is easy to miss in a fight.
+  const dying = state.lanternT > 0 && state.lanternT < LANTERN_WARN ? 1 - state.lanternT / LANTERN_WARN : 0;
+  const flicker = Math.sin(now * 0.011) * 0.2 + Math.sin(now * 0.037) * 0.12 + (Math.random() - 0.5) * 0.1;
+  playerLight.intensity = Math.max(0.35, state.lightBase + flicker * (1 + dying * 5) - dying * 0.55);
 
   portal.rotation.z += dt * 1.0;
   portalCore.material.opacity = 0.38 + Math.sin(now * 0.004) * 0.12;
@@ -414,6 +434,7 @@ export function animate(): void {
   if (!state.gameOver) {
     const moving = updatePlayer(dt, now);
     updateWeapons(dt);
+    updateLantern(dt);
     const nearest = updateMonsters(dt, now);
     updateChests(dt, moving);
 

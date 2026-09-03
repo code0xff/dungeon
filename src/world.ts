@@ -1,14 +1,14 @@
 import * as THREE from 'three';
 import { floorPBR, spawnCreature, wallPBR } from './assets';
 import {
-  CELL, CHEST_COUNT, EYE_H, FOG_BASE, FOG_TORCH, GRID, PLAYER_R, SCALE_VARIANCE, SPAWN,
+  CELL, CHEST_COUNT, EYE_H, GRID, PLAYER_R, SCALE_VARIANCE, SPAWN,
   SPEED_VARIANCE, TYPES, WALL_H,
 } from './config';
 import { generateDungeon } from './dungeon';
 import { createChest, makeSconce, rollProp } from './props';
 import { clipDuration, setAnim } from './assets';
 import { progress } from './progress';
-import { fog, handTorch, portal, portalCore, portalLight, scene, torch, world } from './scene';
+import { portal, portalCore, portalLight, scene, setLampLit, world } from './scene';
 import { state } from './state';
 import { ceilTex, floorTex, wallTex } from './textures';
 import type { CreatureKey, GridCell, ItemKind, Monster } from './types';
@@ -196,8 +196,8 @@ function spawnOne(key: CreatureKey): void {
 }
 
 function spawnChests(): void {
-  // Exactly one torch and one map are guaranteed. The rest is 2 ammo and 2 potions.
-  const items: ItemKind[] = ['torch', 'map', 'ammo', 'ammo', 'potion', 'potion'];
+  // Exactly one lantern and one map are guaranteed. The rest is 2 ammo and 2 potions.
+  const items: ItemKind[] = ['lantern', 'map', 'ammo', 'ammo', 'potion', 'potion'];
   for (let i = 0; i < CHEST_COUNT; i++) {
     const [gx, gz] = randomFloorCell(4);
     const c = createChest(20 + ((Math.random() * 60) | 0));
@@ -278,16 +278,17 @@ export function buildWorld(): void {
   state.pitch = 0;
   lockHintEl.style.display = pointerLock.locked || pointerLock.tried ? 'none' : 'flex';
 
-  state.hp = 100;
+  state.hp = progress.hp;
   state.runGold = 0;
   state.gameOver = false;
   state.atkTimer = 0;
   state.swingT = -1;
   state.swingHit = false;
   // Gear carried out of the previous stage. A fresh run has none of it.
-  state.hasTorch = progress.hasTorch;
-  state.hasMap = progress.hasMap;
-  handTorch.visible = state.hasTorch;
+  // The map is never carried — see the note on Progress in src/progress.ts.
+  state.lanternT = progress.lanternT;
+  state.lanternWarned = false;
+  state.hasMap = false;
 
   // The sword is the default. Q swaps to the musket: one chambered round plus START_AMMO spare.
   state.hasMusket = true;
@@ -298,22 +299,16 @@ export function buildWorld(): void {
   wpnBtn.classList.add('show');
   setWeapon('sword');
 
-  // The torch and map change how the dungeon reads, so a carried one has to be
-  // applied here rather than only where it is picked up.
-  torch.distance = state.hasTorch ? 19 : 11;
-  state.torchBase = state.hasTorch ? 2.7 : 1.75;
-  fog.density = state.hasTorch ? FOG_TORCH : FOG_BASE;
+  // A carried lantern changes how far the dungeon reads, so the light has to be
+  // applied here and not only where one is picked up.
+  state.lightBase = setLampLit(state.lanternT > 0);
 
-  // Both sit in the top-right corner, so a carried map has to take the slot
-  // straight away rather than waiting out the guide's seven seconds.
-  minimapEl.style.display = state.hasMap ? 'block' : 'none';
-  objectiveEl.style.opacity = state.hasMap ? '0' : '1';
+  minimapEl.style.display = 'none';
+  objectiveEl.style.opacity = '1';
   if (guideTimer !== null) clearTimeout(guideTimer);
-  if (!state.hasMap) {
-    guideTimer = setTimeout(() => {
-      objectiveEl.style.opacity = '0';
-    }, 7000);
-  }
+  guideTimer = setTimeout(() => {
+    objectiveEl.style.opacity = '0';
+  }, 7000);
 
   cancelLoot();
   updateHUD();
