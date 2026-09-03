@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { FOG_BASE, WALL_H } from './config';
+import { FOG_BASE, LIGHT_DIM, LIGHT_LIT, WALL_H } from './config';
 import { el } from './dom';
 import type { WeaponKind } from './types';
 
@@ -36,9 +36,10 @@ ambient.layers.enable(1);
 scene.add(ambient);
 
 /** The torchlight that follows the player. */
-export const torch = new THREE.PointLight(0xff7428, 1.9, 11, 2.0);
-torch.layers.enable(1);
-scene.add(torch);
+/** The light the player carries. A lit lantern widens and brightens it. */
+export const playerLight = new THREE.PointLight(0xff7428, 1.9, 11, 2.0);
+playerLight.layers.enable(1);
+scene.add(playerLight);
 
 // ================= Extraction portal =================
 export const portalLight = new THREE.PointLight(0x3a6fd0, 2.0, 14, 1.6);
@@ -81,39 +82,40 @@ sword.position.copy(SWORD_REST.pos);
 sword.rotation.copy(SWORD_REST.rot);
 camera.add(sword);
 
-// ---- Torch (left hand, shown once picked up) ----
-export const handTorch = new THREE.Group();
-{
-  const stick = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.03, 0.42, 8), new THREE.MeshStandardMaterial({ color: 0x3a2a18, roughness: 1 }));
-  stick.position.y = -0.1;
-  const head = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.03, 0.1, 8), new THREE.MeshStandardMaterial({ color: 0x1a1210, roughness: 1 }));
-  head.position.y = 0.14;
-  // Additive and translucent, so the two cones read as overlapping flame rather
-  // than as a flat paper triangle. More segments because it is held close.
-  const flame = new THREE.Mesh(
-    new THREE.ConeGeometry(0.055, 0.22, 12),
-    new THREE.MeshBasicMaterial({
-      color: 0xff8c30, transparent: true, opacity: 0.32, blending: THREE.AdditiveBlending, depthWrite: false,
-    }),
-  );
-  flame.position.y = 0.3;
-  const flameCore = new THREE.Mesh(
-    new THREE.ConeGeometry(0.028, 0.14, 10),
-    new THREE.MeshBasicMaterial({
-      color: 0xffd274, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false,
-    }),
-  );
-  flameCore.position.y = 0.27;
-  handTorch.add(stick, head, flame, flameCore);
+// ---- Lantern (left hand, shown while it has fuel) ----
+/**
+ * Empty until loadLantern() fills it. There is deliberately no primitive
+ * fallback: the cones this replaced read as a paper triangle held against the
+ * player's cheek, and an unlit hand with a working light is better than that.
+ */
+export const handLamp = new THREE.Group();
+handLamp.position.set(-0.36, -0.40, -0.56);
+handLamp.rotation.set(0.08, 0.55, 0.05);
+handLamp.scale.setScalar(0.82);
+handLamp.visible = false;
+camera.add(handLamp);
+
+/** Puts the loaded lantern model in the player's left hand. */
+export function equipLantern(model: THREE.Object3D): void {
+  handLamp.add(model);
+  model.traverse((o) => {
+    o.layers.set(1);
+    if ((o as THREE.Mesh).isMesh) (o as THREE.Mesh).frustumCulled = false;
+  });
 }
-// Held further out and scaled down: at 45cm the flame cone alone covered a third
-// of the screen height, which was only tolerable because the torch used to turn
-// up mid-run. Carried gear means it is on screen from the first frame.
-handTorch.position.set(-0.42, -0.40, -0.66);
-handTorch.rotation.set(0.22, 0, 0.24);
-handTorch.scale.setScalar(0.78);
-handTorch.visible = false;
-camera.add(handTorch);
+
+/**
+ * Switches the player's light between unlit and lantern-lit, and hands back the
+ * base intensity for the caller to store. It returns rather than writing to
+ * state because scene.ts sits below state in the module layering.
+ */
+export function setLampLit(lit: boolean): number {
+  const l = lit ? LIGHT_LIT : LIGHT_DIM;
+  playerLight.distance = l.distance;
+  fog.density = l.fog;
+  handLamp.visible = lit;
+  return l.intensity;
+}
 
 // ---- Musket (right hand, shown when swapped to) ----
 export const musket = new THREE.Group();
@@ -177,7 +179,6 @@ camera.add(musket);
 // Weapons live on layer 1: drawn over the world in their own pass so they never poke through walls.
 sword.traverse((o) => o.layers.set(1));
 musket.traverse((o) => o.layers.set(1));
-handTorch.traverse((o) => o.layers.set(1));
 
 /**
  * Swap a primitive weapon for an external model.

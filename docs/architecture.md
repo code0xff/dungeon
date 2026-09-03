@@ -48,7 +48,7 @@ separated by layers:
 | Layer | Contents | Pass |
 |---|---|---|
 | 0 | the world — walls, floor, creatures, chests, props | first |
-| 1 | first-person weapons and the torch in hand | second, after `clearDepth()` |
+| 1 | first-person weapons and the lantern in hand | second, after `clearDepth()` |
 
 The depth buffer is cleared between them so a held weapon is never clipped by a
 wall it is standing inside. This is why `renderer.autoClear` is off, and why the
@@ -70,7 +70,13 @@ resets all of it. Anything that has to outlive a run lives in
 |---|---|---|
 | `bankGold` | run gold added | kept |
 | `stage` | +1 | back to 1 |
-| torch, map, ammo | carried into the next stage | lost |
+| `hp` | carried as-is | back to 100 |
+| lantern fuel, ammo | carried into the next stage | lost |
+
+The map is deliberately absent: it charts *this* dungeon, and the next stage
+generates a new one, so carrying it would hand the player a plan of a maze they
+are not standing in. Health is carried precisely because it makes stopping at
+the portal a decision rather than a formality.
 
 The split is the whole point of an extraction game — keep the two apart. A field
 that should reset but lives in `progress` becomes a permanent buff; one that
