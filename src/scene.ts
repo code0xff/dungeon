@@ -89,9 +89,23 @@ camera.add(sword);
  * player's cheek, and an unlit hand with a working light is better than that.
  */
 export const handLamp = new THREE.Group();
-handLamp.position.set(-0.36, -0.40, -0.56);
-handLamp.rotation.set(0.08, 0.55, 0.05);
-handLamp.scale.setScalar(0.82);
+/**
+ * Where it hangs at rest. Deliberately low and far left, so the bottom-left
+ * corner of the frame cuts it: centred in clear air it read as an object
+ * floating beside the player's head, because there is no hand or arm to hold it.
+ * The weapons get away with the same trick only because their grips run off the
+ * bottom of the screen, and the edge implies the hand.
+ *
+ * How much of it the crop takes depends on the viewport: three keeps the vertical
+ * fov fixed and widens horizontally, so a narrow portrait phone pushes the lamp
+ * off screen entirely. That is the right outcome there — the move stick sits in
+ * that same corner — but it does mean this position cannot be tuned by looking at
+ * one window size.
+ */
+export const LAMP_REST = { pos: new THREE.Vector3(-0.40, -0.48, -0.52), rot: new THREE.Euler(0.10, 0.62, 0.06) };
+handLamp.position.copy(LAMP_REST.pos);
+handLamp.rotation.copy(LAMP_REST.rot);
+handLamp.scale.setScalar(0.9);
 handLamp.visible = false;
 camera.add(handLamp);
 
