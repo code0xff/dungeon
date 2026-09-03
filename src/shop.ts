@@ -1,0 +1,126 @@
+import { AMMO_PICKUP, LANTERN_FUEL, POTION_HEAL, SHOP, SWORD_DUR_MAX } from './config';
+import { el } from './dom';
+import { progress, saveProgress } from './progress';
+
+/**
+ * The outfitting screen between stages.
+ *
+ * It works on `progress`, never on `state`: by the time it is on screen the run
+ * is over and buildWorld() has not run yet, so `progress` is the only thing that
+ * survives to the next dungeon. Buying into `state` would be spending gold on a
+ * run that is about to be overwritten.
+ *
+ * It opens after death too. That is deliberate — the bank is the one thing death
+ * does not take, and being able to kit out a fresh stage 1 with it is what makes
+ * banking gold a decision rather than a score.
+ */
+const shopEl = el('shop');
+const bankEl = el('shopBank');
+
+interface Stock {
+  id: string;
+  name: string;
+  /** What the player has now, shown next to the name. */
+  held: () => string;
+  /** Gold for one purchase, or null when there is nothing to buy. */
+  price: () => number | null;
+  buy: () => void;
+}
+
+/**
+ * Repair is priced per point restored rather than as a flat fee, so a lightly
+ * used sword is cheap to top up and a ruined one is a real bill. It is all or
+ * nothing: a partial repair would be another slider for no decision.
+ */
+const repairCost = (): number =>
+  Math.ceil((SWORD_DUR_MAX - progress.swordDur) * SHOP.repairPerPoint);
+
+const STOCK: Stock[] = [
+  {
+    id: 'Repair',
+    name: 'Repair sword',
+    held: () => `${Math.round((progress.swordDur / SWORD_DUR_MAX) * 100)}%`,
+    price: () => (progress.swordDur >= SWORD_DUR_MAX ? null : repairCost()),
+    buy: () => {
+      progress.swordDur = SWORD_DUR_MAX;
+    },
+  },
+  {
+    id: 'Potion',
+    name: 'Potion',
+    held: () => `${progress.potions} held  ·  +${POTION_HEAL} HP`,
+    price: () => SHOP.potion,
+    buy: () => {
+      progress.potions++;
+    },
+  },
+  {
+    id: 'Lantern',
+    name: 'Lantern oil',
+    held: () => `${progress.lanterns} held  ·  ${Math.round(LANTERN_FUEL / 60)} min`,
+    price: () => SHOP.lantern,
+    buy: () => {
+      progress.lanterns++;
+    },
+  },
+  {
+    id: 'Ammo',
+    name: 'Musket balls',
+    held: () => `${progress.ammo} held`,
+    price: () => SHOP.ammo,
+    buy: () => {
+      progress.ammo += AMMO_PICKUP;
+    },
+  },
+];
+
+/** Built once; only the text and the disabled state change per open. */
+const rows = STOCK.map((item) => {
+  const row = document.createElement('div');
+  row.className = 'shopRow';
+  const name = document.createElement('span');
+  name.className = 'shopName';
+  name.textContent = item.name;
+  const held = document.createElement('span');
+  held.className = 'shopHeld';
+  const btn = document.createElement('button');
+  btn.className = 'shopBuy';
+  btn.addEventListener('click', () => {
+    const price = item.price();
+    if (price === null || price > progress.bankGold) return;
+    progress.bankGold -= price;
+    item.buy();
+    saveProgress();
+    render();
+  });
+  row.append(name, held, btn);
+  shopEl.append(row);
+  return { item, held, btn };
+});
+
+/** Ammo is the only one bought in a batch, so it is the only one that says so. */
+function label(item: Stock, price: number | null): string {
+  if (price === null) return 'Full';
+  const many = item.id === 'Ammo' ? ` ×${AMMO_PICKUP}` : '';
+  return `Buy${many}  ·  ${price} G`;
+}
+
+export function render(): void {
+  bankEl.textContent = `${progress.bankGold} G`;
+  for (const { item, held, btn } of rows) {
+    const price = item.price();
+    held.textContent = item.held();
+    btn.textContent = label(item, price);
+    // Disabled rather than hidden: a price you cannot afford yet is information.
+    btn.disabled = price === null || price > progress.bankGold;
+  }
+}
+
+export function openShop(): void {
+  render();
+  shopEl.style.display = 'block';
+}
+
+export function closeShop(): void {
+  shopEl.style.display = 'none';
+}

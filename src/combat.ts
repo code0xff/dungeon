@@ -2,13 +2,25 @@ import { clipDuration, setAnim } from './assets';
 import { sfxHit, sfxShot, sfxSwing } from './audio';
 import {
   ATTACK_CD, ATTACK_RANGE, CORPSE_LINGER, MUSKET_DMG, MUSKET_RANGE, SHOT_ALERT_RADIUS,
-  SWORD_ARC, SWORD_CLEAVE,
+  SWORD_ARC, SWORD_CLEAVE, SWORD_DMG_WORN, SWORD_DUR_MAX, SWORD_WARN_AT, SWORD_WEAR,
 } from './config';
 import { flashLight, muzzleFlash, scene, smoke } from './scene';
 import { state } from './state';
 import type { Monster } from './types';
 import { cancelLoot, flashHurt, endRun, showMsg, updateHUD } from './ui';
 import { startReload } from './weapons';
+
+/**
+ * What one sword hit takes off, scaled by durability.
+ *
+ * Linear from a full 1 down to SWORD_DMG_WORN, so the wear is felt gradually
+ * rather than at a cliff. Creature hp is written in fresh-sword swings — a
+ * zombie is 4 — which makes this directly readable as "how many more swings".
+ */
+function swordDamage(): number {
+  const wear = state.swordDur / SWORD_DUR_MAX;
+  return SWORD_DMG_WORN + (1 - SWORD_DMG_WORN) * Math.max(0, Math.min(1, wear));
+}
 
 /** Unit vector for the camera's horizontal facing. */
 function facing(): [fx: number, fz: number] {
@@ -125,15 +137,24 @@ export function resolveSwing(): void {
   }
   inArc.sort((a, b) => a.d - b.d);
 
+  const dmg = swordDamage();
   for (const { m } of inArc.slice(0, SWORD_CLEAVE)) {
-    m.hp--;
+    m.hp -= dmg;
     m.hurtT = 0.18;
+    // Charged per creature cut, so a cleave that catches two costs two.
+    state.swordDur = Math.max(0, state.swordDur - SWORD_WEAR);
     sfxHit(false);
     if (m.hp <= 0) {
       showMsg(`${m.type.name} killed +${m.type.reward} G`);
       killMonster(m);
     }
   }
+
+  if (!state.swordWarned && state.swordDur <= SWORD_WARN_AT) {
+    state.swordWarned = true;
+    showMsg('The blade is going blunt');
+  }
+  updateHUD();
 }
 
 export function playerHurt(dmg: number): void {

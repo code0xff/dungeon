@@ -59,6 +59,28 @@
   #overlay h1.win { color:#6a9fd8; } #overlay h1.dead { color:#8e2b2b; }
   #overlay p { font-size:17px; margin-bottom:8px; opacity:.8; }
   #overlay .bankline { color:#d4b25a; margin-bottom:26px; }
+  #shop { display:none; width:min(420px, 88vw); margin:0 0 24px; padding:14px 16px 6px;
+          border:1px solid rgba(201,192,174,.18); border-radius:8px; background:rgba(12,13,16,.75); }
+  .shopHead { display:flex; justify-content:space-between; align-items:baseline; font-size:12px;
+              letter-spacing:1.4px; text-transform:uppercase; opacity:.55; margin-bottom:10px; }
+  #shopBank { color:#d4b25a; opacity:1; font-size:14px; letter-spacing:0; text-transform:none; }
+  .shopRow { display:flex; align-items:center; gap:10px; padding:7px 0;
+             border-top:1px solid rgba(201,192,174,.09); }
+  .shopName { flex:0 0 96px; font-size:14px; }
+  /* Fixed width on the button so the right edge stays straight as prices change. */
+  .shopHeld { flex:1; font-size:12px; opacity:.5; text-align:right; padding-right:10px; }
+  .shopBuy { flex:0 0 128px; font-size:12.5px; font-weight:600; padding:6px 0; border-radius:5px;
+             border:1px solid rgba(201,192,174,.3); background:#1a1c20; color:#c9c0ae; cursor:pointer;
+             white-space:nowrap; text-align:center; }
+  .shopBuy:disabled { opacity:.3; cursor:default; }
+  .shopBuy:not(:disabled):active { transform:scale(.97); }
+  /* On a phone the row has ~310px to share, so give the middle column less to do. */
+  @media (max-width:460px) {
+    .shopName { flex-basis:78px; font-size:13px; }
+    .shopHeld { font-size:11px; padding-right:6px; }
+    .shopBuy { flex-basis:104px; font-size:11.5px; }
+  }
+
   #overlay button { font-size:17px; padding:12px 32px; border-radius:6px; border:1px solid rgba(201,192,174,.3); background:#1a1c20; color:#c9c0ae; cursor:pointer; font-weight:600; }
   #overlay button:active { transform:scale(.97); }
 
@@ -219,7 +241,10 @@
   <h1 id="ovTitle"></h1>
   <p id="ovDesc"></p>
   <p class="bankline" id="ovBank"></p>
-  <button id="restart">Next expedition</button>
+  <div id="shop">
+    <div class="shopHead">Outfitting <span id="shopBank"></span></div>
+  </div>
+  <button id="restart">Descend</button>
 </div>
 
 <script type="module" src="/src/main.ts"></script>

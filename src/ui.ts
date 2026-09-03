@@ -1,6 +1,7 @@
-import { CELL, GRID, LANTERN_KEY, POTION_KEY, SPAWN_PEAK_STAGE } from './config';
+import { CELL, GRID, LANTERN_KEY, POTION_KEY, SPAWN_PEAK_STAGE, SWORD_DUR_MAX } from './config';
 import { context2d, el, firstChild, queryChild } from './dom';
 import { bankRun, loseRun, progress } from './progress';
+import { openShop } from './shop';
 import { state } from './state';
 
 // ---- Frequently used elements ----
@@ -52,7 +53,7 @@ export function updateHUD(): void {
     // The load state only means anything for the weapon actually in hand.
     items.push(state.loaded ? 'Musket loaded' : state.reloadT >= 0 ? 'Musket reloading' : 'Musket empty');
   } else {
-    items.push('Sword');
+    items.push(`Sword ${Math.round((state.swordDur / SWORD_DUR_MAX) * 100)}%`);
   }
   if (state.hasMusket || state.ammo > 0) items.push(`${state.ammo} ammo`);
   itemsEl.textContent = items.length ? items.join('   ·   ') : 'No gear';
@@ -162,7 +163,7 @@ export function endRun(extracted: boolean): void {
     // and not when the player clicks through to the next stage.
     bankRun(state.runGold, {
       hp: state.hp, lanternT: state.lanternT, ammo: state.ammo,
-      potions: state.potions, lanterns: state.lanterns,
+      potions: state.potions, lanterns: state.lanterns, swordDur: state.swordDur,
     });
     title.textContent = 'Extracted';
     title.className = 'win';
@@ -182,6 +183,9 @@ export function endRun(extracted: boolean): void {
       : `Your ${state.runGold} G stayed down there...`;
   }
   el('ovBank').textContent = `Bank balance: ${progress.bankGold} G`;
+  // Shown after death as well as after extraction: the bank is the one thing
+  // death does not take, and spending it is what makes banking a decision.
+  openShop();
   overlayEl.style.display = 'flex';
   updateHUD();
 }

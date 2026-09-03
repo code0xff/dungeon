@@ -298,6 +298,8 @@ export function buildWorld(): void {
   state.dashT = -1;
   state.dashCd = 0;
   state.dashSide = 0;
+  state.swordDur = progress.swordDur;
+  state.swordWarned = false;
   // Gear carried out of the previous stage. A fresh run has none of it.
   // The map is never carried — see the note on Progress in src/progress.ts.
   state.lanternT = progress.lanternT;

@@ -28,7 +28,7 @@ loop                        frame loop, creature AI
 world  input  combat  loot  weapons        systems
 props                       world content built from assets
 assets                      external model and texture loading
-scene  ui  textures  dungeon               presentation and generation
+scene  ui  shop  textures  dungeon          presentation and generation
 config  state  progress  creatures  audio     data and primitives
 types  dom                  leaves, no internal imports
 ```
@@ -69,6 +69,7 @@ resets all of it. Anything that has to outlive a run lives in
 | | Extraction | Death |
 |---|---|---|
 | `bankGold` | run gold added | kept |
+| `swordDur` | carried as-is | back to full — a new blade |
 | `stage` | +1 | back to 1 |
 | `hp` | carried as-is | back to 100 |
 | lantern fuel, ammo | carried into the next stage | lost |
@@ -98,6 +99,26 @@ the formula intended.
 The ratio moves on purpose. Brutes and lunatics grow faster than zombies, from
 65% zombies down to 56%, because a deeper stage should change *what* kills you
 and not only how much of it there is.
+
+## Gold has a sink
+
+`src/shop.ts` is the outfitting screen between stages, and it exists because
+`bankGold` had nothing to spend on — it was a score, which meant there was no
+reason to extract rather than push until something killed you.
+
+It works on **`progress`, never on `state`**. By the time it is on screen the run
+is over and `buildWorld()` has not run yet, so `progress` is the only thing that
+reaches the next dungeon; buying into `state` would be spending gold on a run
+about to be overwritten. Nothing has to be handed across as a result — the shop
+writes, `buildWorld()` reads.
+
+It opens after death as well as after extraction. The bank survives death, and
+being able to kit out a fresh stage 1 with it is what turns banking into a
+decision.
+
+The sword's durability is the recurring bill that keeps the sink open. It wears
+per creature *cut*, not per swing, so a cleave that catches two costs two, and
+one thorough run roughly blunts a blade.
 
 ## The shape of a run
 
