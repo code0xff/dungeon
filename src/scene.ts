@@ -59,6 +59,17 @@ export const portalCore = new THREE.Mesh(
 scene.add(portalCore);
 
 // ================= First-person gear =================
+/**
+ * Carries the walk bob for the held weapons.
+ *
+ * A container rather than bobbing the weapons directly: the swing writes
+ * absolute rotations to `sword`, and recoil and reload write absolute positions
+ * to `musket`. Bobbing a parent composes with all of that for free, where adding
+ * it to the same properties would mean every animation having to know about it.
+ */
+export const gearBob = new THREE.Group();
+camera.add(gearBob);
+
 // ---- Sword (right hand) ----
 export const sword = new THREE.Group();
 /** Primitive sword used when no external model is present. Swapped out wholesale once one loads. */
@@ -80,7 +91,7 @@ sword.add(swordFallback);
 export const SWORD_REST = { pos: new THREE.Vector3(0.29, -0.2, -0.42), rot: new THREE.Euler(0.18, -0.26, 0.22) };
 sword.position.copy(SWORD_REST.pos);
 sword.rotation.copy(SWORD_REST.rot);
-camera.add(sword);
+gearBob.add(sword);
 
 // ---- Lantern (left hand, shown while it has fuel) ----
 /**
@@ -188,7 +199,7 @@ musket.add(smoke);
 export const flashLight = new THREE.PointLight(0xffc060, 0, 12, 1.5);
 flashLight.layers.enable(1);
 scene.add(flashLight);
-camera.add(musket);
+gearBob.add(musket);
 
 // Weapons live on layer 1: drawn over the world in their own pass so they never poke through walls.
 sword.traverse((o) => o.layers.set(1));

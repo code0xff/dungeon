@@ -211,6 +211,18 @@ motion that only a held thing would have — the lantern swings on a lag behind 
 stride, ramping in and out over 0.38s rather than snapping on with the keypress.
 The eye reads a swinging weight long before it notices the missing hand.
 
+**Add that motion on a parent, not on the object.** The sword's swing writes
+absolute rotations and the musket's recoil and reload write absolute positions, so
+a bob written to the same properties would be overwritten by whichever animation
+ran last. `gearBob` is an empty Group between the camera and both weapons: it
+carries the stride and composes with everything below it for free. `sword.position`
+still reads exactly `SWORD_REST` mid-walk, which is the check that it is working.
+
+**Hung and gripped do not move alike.** The lantern hangs, so it rolls and lags.
+The weapons are gripped, so they ride the body in a small figure of eight with the
+vertical term at twice the rate — both feet land per cycle. Giving the sword the
+lantern's motion made it look like it was dangling from a strap.
+
 **Position by crop is aspect-dependent.** three keeps the vertical fov fixed and
 widens horizontally, so a model tuned to sit half-cropped on a 2:1 desktop window
 is fully off screen on a portrait phone. Decide whether that is acceptable for the
