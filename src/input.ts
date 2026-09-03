@@ -4,7 +4,7 @@ import { canvasEl } from './scene';
 import { state } from './state';
 import { tryAttack } from './combat';
 import { startLoot } from './loot';
-import { atkBtn, lockHintEl, lootBtn, wpnBtn } from './ui';
+import { atkBtn, lockHintEl, lootBtn, showMsg, wpnBtn } from './ui';
 import { setWeapon, toggleWeapon } from './weapons';
 
 const SENS = 0.0022;
@@ -38,6 +38,13 @@ addEventListener('keyup', (e) => {
 // lock; once locked the cursor hides and the view turns without limit.
 export const pointerLock = { locked: false, tried: false, failed: false };
 
+/**
+ * Whether the lock has ever been granted. Not the same as `tried`: it is what
+ * separates "this browser will not do pointer lock" from "the browser refused
+ * this one request", and the two want opposite handling.
+ */
+let everLocked = false;
+
 let mouseX = -1;
 let mouseInside = false;
 
@@ -49,7 +56,8 @@ function requestLock(): void {
     // Some browsers return a Promise here, others return nothing at all.
     const r = canvasEl.requestPointerLock() as unknown as Promise<void> | undefined;
     r?.catch(() => {
-      pointerLock.failed = true;
+      // Same reasoning as the pointerlockerror handler below.
+      if (!everLocked) pointerLock.failed = true;
       lockHintEl.style.display = 'none';
     });
   } catch {
@@ -58,11 +66,22 @@ function requestLock(): void {
 }
 
 document.addEventListener('pointerlockchange', () => {
+  const was = pointerLock.locked;
   pointerLock.locked = document.pointerLockElement === canvasEl;
   lockHintEl.style.display = 'none';
+  if (pointerLock.locked) {
+    everLocked = true;
+  } else if (was && !state.gameOver) {
+    // Esc is easy to hit by accident, and the game carries on underneath with a
+    // loose cursor. Say how to get back rather than leaving the player to guess.
+    showMsg('Cursor released — click to lock it again');
+  }
 });
 document.addEventListener('pointerlockerror', () => {
-  pointerLock.failed = true;
+  // Chrome refuses a re-lock for about a second after the user pressed Esc, and
+  // that refusal arrives here. Only give up on pointer lock if it has never
+  // worked — otherwise one stray Esc would disable it for the rest of the run.
+  if (!everLocked) pointerLock.failed = true;
   lockHintEl.style.display = 'none';
 });
 
@@ -72,8 +91,11 @@ canvasEl.addEventListener('pointerdown', (e) => {
     tryAttack();
     return;
   }
-  // The first click only asks for the lock.
-  if (!pointerLock.tried && lockSupported) {
+  // Unlocked, a click always asks for the lock back — not just the first one.
+  // This used to run only while `tried` was false, so after Esc released the
+  // lock every later click fell through to the attack below and the cursor
+  // stayed loose for the rest of the run.
+  if (lockSupported && !pointerLock.failed) {
     pointerLock.tried = true;
     lockHintEl.style.display = 'none';
     requestLock();

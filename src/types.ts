@@ -6,7 +6,7 @@ export type Maze = number[][];
 export type GridCell = readonly [x: number, z: number];
 
 // ================= Creatures =================
-export type CreatureKey = 'zombie';
+export type CreatureKey = 'zombie' | 'brute';
 export type ClipName = 'idle' | 'walk' | 'attack' | 'death';
 
 export interface CreatureType {
@@ -17,16 +17,48 @@ export interface CreatureType {
   speed: number;
   /** Attack cooldown in seconds. The longer of this and the attack clip wins. */
   atkCd: number;
+  /**
+   * Playback rate of the attack clip, which is also what sets the real cadence:
+   * startAttack floors the cooldown at the clip's length, so `atkCd` alone can
+   * never make a creature swing more often.
+   *
+   * Per creature because the clips are not the same length — Mixamo gave the
+   * zombie a 2.5s swing and the brute a 4.63s one, and a single global rate that
+   * suits one leaves the other rooted to the spot for three seconds.
+   */
+  attackSpeed: number;
   /** Reach of the attack, in metres. */
   reach: number;
-  /** Collision radius, in metres. */
+  /** Collision radius, in metres. Used for the player's attack cone. */
   r: number;
+  /**
+   * Radius kept from walls, as opposed to `r`, which is the body.
+   *
+   * A creature's arms reach far outside its body, so testing at the body radius
+   * let arms pass through walls in corners. Stepping every skinned vertex through
+   * every clip puts the furthest point of a moving creature at 1.00m for the
+   * zombie and 1.02m for the brute, times the 1.08 top of SCALE_VARIANCE.
+   *
+   * Measure it per creature rather than deriving it from `r` or from height: the
+   * brute is 1.27x the zombie but reaches barely further, because the number
+   * comes from the pose the clip happens to strike and not from the body.
+   *
+   * A 4m corridor leaves CELL - 2*clearance of usable width, so keep it well
+   * under 2 or a creature cannot enter a corridor at all.
+   */
+  clearance: number;
   /** Gold awarded for the kill. */
   reward: number;
   /** Distance at which the player is noticed, in metres. */
   aggro: number;
   /** Groan interval as [min, max] seconds. */
   groan: readonly [number, number];
+  /**
+   * Groan pitch multiplier. 1 is the zombie. Below 1 is a bigger chest cavity —
+   * it is the only thing that tells the player which of the two is in the dark
+   * ahead of them, so keep the values well apart.
+   */
+  voice: number;
   /** Limb swing rate of the fallback box model. */
   animSpeed: number;
   /** Limb swing amplitude of the fallback box model, in radians. */
@@ -51,6 +83,29 @@ export interface CreatureRig {
 
 // ---- Creatures from external models (FBX/GLB) ----
 export type Clips = Partial<Record<ClipName, THREE.AnimationClip>>;
+
+/** Where a creature's model and clips come from. See CREATURE_ASSETS in config.ts. */
+export interface CreatureAsset {
+  /** Folder under assets/, holding idle/walk/attack/death in fbx, glb or gltf. */
+  dir: string;
+  /** Height in metres the model is normalised to, feet on the floor. */
+  height: number;
+  /**
+   * Borrow another creature's mesh, keeping this one's own clips.
+   *
+   * Mixamo will happily hand you an animation with no character attached, and
+   * a creature with clips but no body cannot be drawn. Rather than drop to the
+   * box model, it wears the named creature's skin at its own `height`. The
+   * source must appear earlier in CREATURE_ASSETS; it is loaded in order.
+   */
+  skin?: CreatureKey;
+  /**
+   * Hex colour multiplied into the model's materials. Mostly for a borrowed skin:
+   * size alone does not separate two creatures at ten metres in a dark corridor,
+   * and a torch reads colour long before it reads silhouette.
+   */
+  tint?: number;
+}
 
 export interface CreatureTemplate {
   root: THREE.Object3D;

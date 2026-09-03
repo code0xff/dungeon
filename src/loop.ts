@@ -2,8 +2,8 @@ import * as THREE from 'three';
 import { clipDuration, flashLoadedMesh, setAnim } from './assets';
 import { audioReady, lastBeat, setLastBeat, sfxCreature, sfxHeartbeat, sfxReloadStep } from './audio';
 import {
-  ATTACK_IMPACT, ATTACK_IMPACT_REACH, ATTACK_SPEED, CELL, CHEST_LID_OPEN, EYE_H,
-  CREATURE_WALL_CLEARANCE, FALLBACK_ATTACK_TIME, LANTERN_WARN, LOOT_TIME, MUSKET_RELOAD,
+  ATTACK_IMPACT, ATTACK_IMPACT_REACH, CELL, CHEST_LID_OPEN, EYE_H,
+  FALLBACK_ATTACK_TIME, LANTERN_WARN, LOOT_TIME, MUSKET_RELOAD,
   SPEED, SWING_IMPACT,
   SWING_SPEED, SWING_WINDUP, TURN_RATE, WALK_CLIP_SPEED, WALK_TIMESCALE_RANGE, WALL_H,
 } from './config';
@@ -80,15 +80,15 @@ function animProcedural(m: Monster, rig: CreatureRig, dt: number, now: number): 
 /** Starts the attack animation, honouring the clip's own length when there is one. */
 function startAttack(m: Monster): void {
   const clip = m.playback ? clipDuration(m.playback, 'attack') : null;
-  // ATTACK_SPEED shortens the clip, so every timing below scales with it.
-  const dur = (clip ?? FALLBACK_ATTACK_TIME) / ATTACK_SPEED;
+  // attackSpeed shortens the clip, so every timing below scales with it.
+  const dur = (clip ?? FALLBACK_ATTACK_TIME) / m.type.attackSpeed;
   m.attackT = dur;
   // The hit lands partway through, as the arm comes down — not at the start.
   m.pendingHit = dur * ATTACK_IMPACT;
   // Keep the next attack from overlapping before this animation ends.
   m.atkCd = Math.max(m.type.atkCd, dur);
   if (m.playback) {
-    setAnim(m.playback, 'attack', { loop: false, force: true, fade: 0.08, speed: ATTACK_SPEED });
+    setAnim(m.playback, 'attack', { loop: false, force: true, fade: 0.08, speed: m.type.attackSpeed });
   }
 }
 
@@ -277,7 +277,7 @@ function updateMonsters(dt: number, now: number): number {
     m.groanT -= dt;
     if (m.groanT <= 0) {
       m.groanT = t.groan[0] + Math.random() * (t.groan[1] - t.groan[0]);
-      if (dist < 13) sfxCreature(m.key, Math.max(0.15, 1 - dist / 13));
+      if (dist < 13) sfxCreature(t.voice, Math.max(0.15, 1 - dist / 13));
     }
     if (m.alert > 0) m.alert -= dt;
 
@@ -313,8 +313,8 @@ function updateMonsters(dt: number, now: number): number {
           const step = t.speed * m.speedMul * dt;
           const nx = m.mesh.position.x + (ddx / dl) * step;
           const nz = m.mesh.position.z + (ddz / dl) * step;
-          if (!collides(nx, m.mesh.position.z, CREATURE_WALL_CLEARANCE)) m.mesh.position.x = nx;
-          if (!collides(m.mesh.position.x, nz, CREATURE_WALL_CLEARANCE)) m.mesh.position.z = nz;
+          if (!collides(nx, m.mesh.position.z, t.clearance)) m.mesh.position.x = nx;
+          if (!collides(m.mesh.position.x, nz, t.clearance)) m.mesh.position.z = nz;
         }
       }
       // Turn toward the player smoothly rather than snapping.

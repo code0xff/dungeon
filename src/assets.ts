@@ -103,6 +103,52 @@ async function loadPBR(dir: string, repeat: number): Promise<PBRMaps | null> {
 }
 
 /**
+ * Mixamo numbers the rig per export: the zombie's bones are `mixamorig5:Hips`
+ * while the brute's clips target `mixamorig:Hips`. Same skeleton, same 52 bones,
+ * different namespace.
+ *
+ * three binds animation tracks to nodes **by name**, and a track that resolves to
+ * nothing is skipped without a word — the creature simply stands in its bind pose
+ * while the mixer reports a happily playing action. Measured with the brute clips
+ * on the zombie skeleton: 0 of 53 tracks bound before this, 53 of 53 after.
+ *
+ * The colon is optional in the pattern because GLTFLoader runs node names through
+ * PropertyBinding.sanitizeNodeName, which strips `.:/[]` — so the same bone is
+ * `mixamorig5:Hips` out of an FBX and `mixamorig5Hips` out of a GLB. Dropping the
+ * number from both forms puts every Mixamo asset here in one namespace, and any
+ * clip then binds to any body.
+ */
+const MIXAMO_NS = /mixamorig\d*:?/g;
+
+function normalizeBoneNames(root: THREE.Object3D): void {
+  root.traverse((o) => {
+    o.name = o.name.replace(MIXAMO_NS, 'mixamorig');
+  });
+}
+
+function normalizeTrackNames(clip: THREE.AnimationClip): void {
+  for (const track of clip.tracks) track.name = track.name.replace(MIXAMO_NS, 'mixamorig');
+}
+
+/**
+ * How many of a clip's tracks name a node that exists on the model.
+ *
+ * Reported per creature because a mismatched rig is invisible otherwise: the
+ * animation plays, nothing moves, and there is no error to search for.
+ */
+function bindableTracks(root: THREE.Object3D, clip: THREE.AnimationClip): { hit: number; total: number } {
+  const names = new Set<string>();
+  root.traverse((o) => names.add(o.name));
+  let hit = 0;
+  for (const track of clip.tracks) {
+    // Track names are "<node>.<property>", and the node part may itself be a path.
+    const node = track.name.slice(0, track.name.lastIndexOf('.'));
+    if (names.has(node.slice(node.lastIndexOf('/') + 1))) hit++;
+  }
+  return { hit, total: clip.tracks.length };
+}
+
+/**
  * Measures a model's height and the y of its lowest point.
  *
  * A skinned mesh has its vertices placed by the **bone matrices** at draw time, so
@@ -302,64 +348,119 @@ async function loadLantern(): Promise<string> {
   return `lantern: loaded (scale x${root.scale.x.toFixed(2)})`;
 }
 
+/** Stands a model on the floor at the given height, whatever transform it arrives with. */
+function fitToHeight(root: THREE.Object3D, height: number): void {
+  // Reset first: measure() reads world matrices, so a model that already carries
+  // a fit — a borrowed skin does — would otherwise be scaled a second time.
+  root.position.set(0, 0, 0);
+  root.scale.setScalar(1);
+  root.scale.setScalar(height / measure(root).height);
+  // Drop it so the feet rest on the floor at y=0.
+  root.position.y = -measure(root).minY;
+}
+
+/**
+ * Multiplies every material's base colour, so one skin can dress two creatures.
+ *
+ * Multiplied rather than replaced, so the texture's own shading survives and the
+ * result is the same body under a different light rather than a flat repaint.
+ * The materials are cloned first: a borrowed skin shares them with the creature
+ * it was borrowed from, and tinting in place would repaint that one too.
+ */
+function tintModel(root: THREE.Object3D, tint: number): void {
+  const colour = new THREE.Color(tint);
+  root.traverse((o) => {
+    if (!isMesh(o) || !o.material) return;
+    const mats = materialsOf(o).map((m) => m.clone());
+    // Material itself has no colour; the optional chain covers the few subclasses
+    // that do not, so the cast cannot be wrong at runtime.
+    for (const m of mats) (m as THREE.MeshStandardMaterial).color?.multiply(colour);
+    o.material = Array.isArray(o.material) ? mats : mats[0];
+  });
+}
+
+/** Loads one creature into `templates`, returning the line for the [assets] log. */
+async function loadCreature(key: CreatureKey): Promise<string> {
+  const cfg = CREATURE_ASSETS[key];
+  const base = await tryLoadModel(`${cfg.dir}/idle`);
+  if (!base) return `${key}: file missing → primitive model`;
+
+  // Every clip is a separate download, idle included — it is the one that also
+  // carries the body.
+  const clips: Clips = {};
+  if (base.animations[0]) clips.idle = base.animations[0];
+  for (const name of CLIP_NAMES.slice(1) as ClipName[]) {
+    const r = await tryLoadModel(`${cfg.dir}/${name}`);
+    if (r?.animations[0]) clips[name] = r.animations[0];
+  }
+  for (const clip of Object.values(clips)) normalizeTrackNames(clip);
+
+  // ---- The body ----
+  let root: THREE.Object3D;
+  let borrowed = '';
+  if (cfg.skin) {
+    const source = templates[cfg.skin];
+    if (!source) return `${key}: skin source "${cfg.skin}" did not load → primitive model`;
+    // cloneSkinned copies the node graph and rebuilds the skeleton; geometry and
+    // materials stay shared, so a second body costs almost nothing.
+    root = cloneSkinned(source.root);
+    borrowed = ` · wearing the ${cfg.skin} skin`;
+  } else {
+    root = base.root;
+  }
+  normalizeBoneNames(root);
+
+  // Normalise the size — Mixamo FBX is in centimetres, so 100x too large.
+  // An idle.fbx downloaded "Without Skin" carries the skeleton but no mesh. Left
+  // alone, the empty Box3 gives a scale of 0 and a NaN position, and the creature
+  // vanishes without a word.
+  const reason = unusableReason(root);
+  if (reason) return `${key}: ${reason} → primitive model`;
+  fitToHeight(root, cfg.height);
+  if (cfg.tint !== undefined) tintModel(root, cfg.tint);
+  root.traverse((o) => {
+    if (isMesh(o)) {
+      o.frustumCulled = false;
+      o.castShadow = false;
+    }
+  });
+
+  // Named in the log because a clip with root motion is a download mistake the
+  // player would otherwise only see as a creature walking through a wall.
+  const drift = new Map<ClipName, number>();
+  for (const [name, clip] of Object.entries(clips) as [ClipName, THREE.AnimationClip][]) {
+    drift.set(name, stripRootMotion(clip));
+  }
+  const stripped = [...drift].filter(([, d]) => d > 0.05).map(([n, d]) => `${n} ${d.toFixed(2)}m`);
+
+  // How fast the walk was authored to travel. Measuring it beats guessing: the
+  // hand-set constant said 1.45 m/s where this clip is a 0.35 m/s shamble, and
+  // the retiming that stops the feet sliding depends on getting it right.
+  const walkDrift = drift.get('walk') ?? 0;
+  const walkDur = clips.walk?.duration ?? 0;
+  const walkClipSpeed = walkDrift > 0.05 && walkDur > 0 ? walkDrift / walkDur : null;
+
+  templates[key] = { root, clips, walkClipSpeed };
+
+  // Worst binding rate across the clips. Anything under 100% means this body and
+  // these clips came off different rigs, and the creature will barely move.
+  const bind = Object.values(clips).map((c) => bindableTracks(root, c));
+  const worst = bind.reduce((a, b) => (a.hit / a.total <= b.hit / b.total ? a : b), bind[0]);
+  const bindNote = worst && worst.hit < worst.total ? ` · ⚠ only ${worst.hit}/${worst.total} tracks bind` : '';
+
+  const note = borrowed + bindNote
+    + (stripped.length ? ` · root motion removed: ${stripped.join(', ')}` : '')
+    + (walkClipSpeed ? ` · walk authored at ${walkClipSpeed.toFixed(2)}m/s` : '');
+  return `${key}: loaded [${Object.keys(clips).join(', ')}] · ${describeSkin(root)}${note}`;
+}
+
 export async function loadAssets(onProgress: (msg: string) => void): Promise<void> {
   const log: string[] = [];
 
+  // In declaration order, because a creature may borrow an earlier one's skin.
   for (const key of Object.keys(CREATURE_ASSETS) as CreatureKey[]) {
-    const cfg = CREATURE_ASSETS[key];
     onProgress(`Loading creature: ${key}`);
-    const base = await tryLoadModel(`${cfg.dir}/idle`);
-    if (!base) {
-      log.push(`${key}: file missing → primitive model`);
-      continue;
-    }
-    const root = base.root;
-
-    // Normalise the size — Mixamo FBX is in centimetres, so 100x too large.
-    // An idle.fbx downloaded "Without Skin" carries the skeleton but no mesh. Left
-    // alone, the empty Box3 gives a scale of 0 and a NaN position, and the creature
-    // vanishes without a word.
-    const reason = unusableReason(root);
-    if (reason) {
-      log.push(`${key}: ${reason} → primitive model`);
-      continue;
-    }
-    const { height } = measure(root);
-    root.scale.multiplyScalar(cfg.height / height);
-    // Drop it so the feet rest on the floor at y=0.
-    root.position.y = -measure(root).minY;
-    root.traverse((o) => {
-      if (isMesh(o)) {
-        o.frustumCulled = false;
-        o.castShadow = false;
-      }
-    });
-
-    const clips: Clips = {};
-    if (base.animations[0]) clips.idle = base.animations[0];
-    for (const name of CLIP_NAMES.slice(1) as ClipName[]) {
-      const r = await tryLoadModel(`${cfg.dir}/${name}`);
-      if (r?.animations[0]) clips[name] = r.animations[0];
-    }
-    // Named in the log because a clip with root motion is a download mistake the
-    // player would otherwise only see as a creature walking through a wall.
-    const drift = new Map<ClipName, number>();
-    for (const [name, clip] of Object.entries(clips) as [ClipName, THREE.AnimationClip][]) {
-      drift.set(name, stripRootMotion(clip));
-    }
-    const stripped = [...drift].filter(([, d]) => d > 0.05).map(([n, d]) => `${n} ${d.toFixed(2)}m`);
-
-    // How fast the walk was authored to travel. Measuring it beats guessing: the
-    // hand-set constant said 1.45 m/s where this clip is a 0.35 m/s shamble, and
-    // the retiming that stops the feet sliding depends on getting it right.
-    const walkDrift = drift.get('walk') ?? 0;
-    const walkDur = clips.walk?.duration ?? 0;
-    const walkClipSpeed = walkDrift > 0.05 && walkDur > 0 ? walkDrift / walkDur : null;
-
-    templates[key] = { root, clips, walkClipSpeed };
-    const note = (stripped.length ? ` · root motion removed: ${stripped.join(', ')}` : '')
-      + (walkClipSpeed ? ` · walk authored at ${walkClipSpeed.toFixed(2)}m/s` : '');
-    log.push(`${key}: loaded [${Object.keys(clips).join(', ')}] · ${describeSkin(root)}${note}`);
+    log.push(await loadCreature(key));
   }
 
   onProgress('Loading weapons');
