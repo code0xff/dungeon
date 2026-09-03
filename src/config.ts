@@ -1,4 +1,4 @@
-import type { CreatureAsset, CreatureKey, CreatureType, WeaponAsset, WeaponKind } from './types';
+import type { CreatureAsset, CreatureKey, CreatureType, ItemKind, WeaponAsset, WeaponKind } from './types';
 
 // ================= Asset configuration =================
 // publicDir='assets' in vite.config.ts is why none of these paths carry an 'assets/' prefix.
@@ -51,13 +51,49 @@ export const WEAPON_ASSETS: Record<WeaponKind, WeaponAsset> = {
 };
 
 // ================= Tuning =================
-export const MAZE_CELLS = 11;
+/**
+ * Maze cells per side. GRID is the actual grid, walls included, so the dungeon is
+ * GRID * CELL metres square — at 15 that is a 31x31 grid and 124m a side, about
+ * 490 floor cells.
+ *
+ * Everything placed per run scales off this: SPAWN and CHEST_COUNT are set to
+ * hold the density steady, and ROOM_COUNT to keep the same ratio of open rooms
+ * to corridor. Change this and check all three, or a bigger dungeon just means a
+ * longer walk between the same amount of content.
+ */
+export const MAZE_CELLS = 15;
 export const GRID = MAZE_CELLS * 2 + 1;
+/** Open rooms stamped over the corridors, so it is not corridors end to end. */
+export const ROOM_COUNT = 11;
 export const CELL = 4;
 export const WALL_H = 3.4;
 export const PLAYER_R = 0.45;
 export const SPEED = 5.2;
-export const CHEST_COUNT = 10;
+export const CHEST_COUNT = 14;
+/**
+ * What the chests hold, one entry per chest that is not empty, shuffled across
+ * CHEST_COUNT of them.
+ *
+ * The key is what makes this list the run rather than a bonus: without it the
+ * portal will not open, so the dungeon has to be searched instead of crossed.
+ * Exactly one is placed. The map is worth far more now that it marks where the
+ * unopened chests are.
+ */
+export const CHEST_ITEMS: readonly ItemKind[] = [
+  'key', 'lantern', 'map', 'ammo', 'ammo', 'potion', 'potion',
+];
+
+/**
+ * Number keys for the consumable slots. 1 and 2 are the weapons, so the pack
+ * starts at 3. These are the labels shown in the HUD and in pickup messages too,
+ * so the binding and what the player is told can never drift apart.
+ */
+export const POTION_KEY = '3';
+export const LANTERN_KEY = '4';
+
+export const MAX_HP = 100;
+/** Health one potion restores. */
+export const POTION_HEAL = 35;
 /**
  * How far the lid swings open, in radians. Negative tips the front up.
  * Past about -1.6 the lid clears vertical and looks detached rather than open.
@@ -99,6 +135,8 @@ export const SWING_WINDUP = 0.33;
  */
 export const SWING_IMPACT = 0.6;
 export const LOOT_TIME = 1.2;
+/** How close the player must be to the portal to use it, in metres. */
+export const PORTAL_RADIUS = 1.6;
 export const FOG_BASE = 0.115;
 export const FOG_TORCH = 0.08;
 
@@ -226,12 +264,12 @@ export const TYPES: Record<CreatureKey, CreatureType> = {
  * turning a corner into something.
  *
  * The mix matters more than the total. Zombies set the pace; brutes and lunatics
- * punctuate it. 40 across roughly 270 floor cells is one creature every seven
- * cells, which is dense enough that backing away from one tends to back you into
- * another — the thing that actually makes a dungeon feel dangerous, more than any
- * single creature's stat line does.
+ * punctuate it. What is tuned here is **density, not headcount**: one creature
+ * per seven floor cells is dense enough that backing away from one tends to back
+ * you into another, and that is what makes a dungeon feel dangerous — more than
+ * any single creature's stat line does. Scale these with MAZE_CELLS to hold it.
  */
-export const SPAWN: Readonly<Record<CreatureKey, number>> = { zombie: 24, brute: 7, lunatic: 9 };
+export const SPAWN: Readonly<Record<CreatureKey, number>> = { zombie: 43, brute: 13, lunatic: 16 };
 
 // ---- Creature animation ----
 /** Attack duration in seconds when the external model carries no attack clip. */

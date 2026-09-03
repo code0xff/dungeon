@@ -1,5 +1,5 @@
-import { CELL, GRID } from './config';
-import { context2d, el, firstChild } from './dom';
+import { CELL, GRID, LANTERN_KEY, POTION_KEY } from './config';
+import { context2d, el, firstChild, queryChild } from './dom';
 import { bankRun, loseRun, progress } from './progress';
 import { state } from './state';
 
@@ -9,6 +9,7 @@ export const goldEl = el('gold');
 export const bankEl = el('bank');
 const stageEl = el('stage');
 export const itemsEl = el('items');
+const slotsEl = el('slots');
 export const msgEl = el('msg');
 export const vignetteEl = el('vignette');
 export const objectiveEl = el('objective');
@@ -22,8 +23,13 @@ export const crosshairEl = el('crosshair');
 export const lockHintEl = el('lockHint');
 export const lootBtn = el('lootBtn');
 export const wpnBtn = el('wpnBtn');
+export const potBtn = el('potBtn');
+export const lampBtn = el('lampBtn');
 export const atkBtn = el('atkBtn');
 export const minimapEl = el<HTMLCanvasElement>('minimap');
+
+const potCount = queryChild(potBtn, '.count');
+const lampCount = queryChild(lampBtn, '.count');
 
 const mctx = context2d(minimapEl);
 
@@ -40,6 +46,7 @@ export function updateHUD(): void {
     items.push(`Lantern ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`);
   }
   if (state.hasMap) items.push('Map');
+  if (state.hasKey) items.push('Key');
   if (state.weapon === 'musket') {
     // The load state only means anything for the weapon actually in hand.
     items.push(state.loaded ? 'Musket loaded' : state.reloadT >= 0 ? 'Musket reloading' : 'Musket empty');
@@ -48,6 +55,27 @@ export function updateHUD(): void {
   }
   if (state.hasMusket || state.ammo > 0) items.push(`${state.ammo} ammo`);
   itemsEl.textContent = items.length ? items.join('   ·   ') : 'No gear';
+
+  // The pack. Empty slots stay listed so the key that spends them is learnable
+  // before there is anything to spend.
+  slotsEl.replaceChildren(
+    slot(POTION_KEY, 'Potion', state.potions),
+    slot(LANTERN_KEY, 'Lantern', state.lanterns),
+  );
+  potBtn.classList.toggle('show', state.potions > 0);
+  lampBtn.classList.toggle('show', state.lanterns > 0);
+  potCount.textContent = String(state.potions);
+  lampCount.textContent = String(state.lanterns);
+}
+
+/** One consumable slot: its key, its name and how many are left. */
+function slot(key: string, name: string, count: number): HTMLElement {
+  const wrap = document.createElement('span');
+  wrap.className = count > 0 ? 'slot' : 'slot empty';
+  const k = document.createElement('b');
+  k.textContent = key;
+  wrap.append(k, document.createTextNode(`${name} ${count}`));
+  return wrap;
 }
 
 // ================= Centre-screen message =================
@@ -130,7 +158,10 @@ export function endRun(extracted: boolean): void {
   if (extracted) {
     // Captured before buildWorld() resets the run, which is why this runs here
     // and not when the player clicks through to the next stage.
-    bankRun(state.runGold, { hp: state.hp, lanternT: state.lanternT, ammo: state.ammo });
+    bankRun(state.runGold, {
+      hp: state.hp, lanternT: state.lanternT, ammo: state.ammo,
+      potions: state.potions, lanterns: state.lanterns,
+    });
     title.textContent = 'Extracted';
     title.className = 'win';
     desc.textContent = `Banked ${state.runGold} G. Your gear carries to stage ${progress.stage}.`;

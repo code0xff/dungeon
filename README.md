@@ -68,11 +68,11 @@ falls back to a box model for it.
 
 | | HP | Damage | Speed | Notices you | Reward | Per run |
 |---|---|---|---|---|---|---|
-| **Zombie** | 4 | 17 | 2.9 | 13m | 12 G | 24 |
-| **Brute** | 9 | 32 | 2.0 | 13m | 55 G | 7 |
-| **Lunatic** | 3 | 14 | 4.5 | 18m | 30 G | 9 |
+| **Zombie** | 4 | 17 | 2.9 | 13m | 12 G | 43 |
+| **Brute** | 9 | 32 | 2.0 | 13m | 55 G | 13 |
+| **Lunatic** | 3 | 14 | 4.5 | 18m | 30 G | 16 |
 
-Forty of them, and standing still is how you die. **The sword cuts the two
+Seventy-odd of them across a 124m dungeon, and standing still is how you die. **The sword cuts the two
 nearest creatures in its arc, not everything in front of it**, so a crowd is a
 crowd — the answer to being surrounded is the corridor behind you, or the musket
 before they arrive. Every creature is slower than you even at the top of its

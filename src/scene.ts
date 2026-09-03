@@ -52,6 +52,21 @@ export const portal = new THREE.Mesh(
 );
 scene.add(portal);
 
+/**
+ * Whether the exit is unlocked, shown rather than only told.
+ *
+ * A sealed portal is dim and colourless; taking the key brings it up to full.
+ * The player should be able to tell from across a room, because walking all the
+ * way there to read a refusal is the worst version of this.
+ */
+export function setPortalOpen(open: boolean): void {
+  portalLight.intensity = open ? 2.0 : 0.5;
+  portalCore.material.color.setHex(open ? 0x1c4a9a : 0x2a2f38);
+  const m = portal.material as THREE.MeshStandardMaterial;
+  m.emissive.setHex(open ? 0x3a7fe0 : 0x2b3340);
+  m.emissiveIntensity = open ? 1.3 : 0.5;
+}
+
 export const portalCore = new THREE.Mesh(
   new THREE.CircleGeometry(0.95, 28),
   new THREE.MeshBasicMaterial({ color: 0x1c4a9a, transparent: true, opacity: 0.45, side: THREE.DoubleSide }),

@@ -1,10 +1,11 @@
 import { initAudio } from './audio';
+import { LANTERN_KEY, POTION_KEY } from './config';
 import { el, queryChild } from './dom';
 import { canvasEl } from './scene';
 import { state } from './state';
 import { tryAttack } from './combat';
-import { startLoot } from './loot';
-import { atkBtn, lockHintEl, lootBtn, showMsg, wpnBtn } from './ui';
+import { startLoot, useLantern, usePotion } from './loot';
+import { atkBtn, lampBtn, lockHintEl, lootBtn, potBtn, showMsg, wpnBtn } from './ui';
 import { setWeapon, toggleWeapon } from './weapons';
 
 const SENS = 0.0022;
@@ -28,6 +29,9 @@ addEventListener('keydown', (e) => {
   if (e.code === 'KeyQ' || e.key === 'q' || e.key === 'Q' || e.key === 'ㅂ') toggleWeapon();
   if (e.code === 'Digit1') setWeapon('sword');
   if (e.code === 'Digit2' && state.hasMusket) setWeapon('musket');
+  // Matched on e.key as well as e.code so the digits still work on a numpad.
+  if (e.code === `Digit${POTION_KEY}` || e.key === POTION_KEY) usePotion();
+  if (e.code === `Digit${LANTERN_KEY}` || e.key === LANTERN_KEY) useLantern();
 });
 addEventListener('keyup', (e) => {
   keys[e.code] = false;
@@ -167,7 +171,12 @@ function resetStick(): void {
   knob.style.top = '28%';
 }
 
-for (const [btn, action] of [[atkBtn, tryAttack], [lootBtn, startLoot], [wpnBtn, toggleWeapon]] as const) {
+const touchButtons = [
+  [atkBtn, tryAttack], [lootBtn, startLoot], [wpnBtn, toggleWeapon],
+  [potBtn, usePotion], [lampBtn, useLantern],
+] as const;
+
+for (const [btn, action] of touchButtons) {
   btn.addEventListener(
     'touchstart',
     (e) => {
@@ -184,7 +193,7 @@ addEventListener(
   'touchstart',
   (e) => {
     for (const t of Array.from(e.changedTouches)) {
-      if (t.target === atkBtn || t.target === lootBtn || t.target === wpnBtn) continue;
+      if (touchButtons.some(([btn]) => t.target === btn)) continue;
       // Left half of the screen is the move stick, right half drags the view.
       if (t.clientX < innerWidth / 2 && stickId === null) {
         stickId = t.identifier;
