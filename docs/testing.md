@@ -49,6 +49,12 @@ Object.assign(window, { __dbg: { state: __state, scene: __scene } });
 Then drive it from the console — teleport to `state.chests[0]`, force a weapon,
 set a pose. **Remove the hook before committing.**
 
+**`monster.type` is shared, not per creature.** It is the entry in `TYPES`, so
+`m.type.aggro = 0` to quiet one zombie silently rewrites the config for every
+zombie, for the rest of the page's life. A measurement taken after that reads the
+value you poked in, not the one that ships — a density survey came back as a
+clean column of zeros this way. Reload before measuring anything you have poked.
+
 A dynamic `import('/src/scene.ts')` from the console does *not* work for this:
 Vite's HMR query string can hand you a second module instance whose objects are
 not the ones being rendered.

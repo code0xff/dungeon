@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { clipDuration, flashLoadedMesh, setAnim } from './assets';
 import { audioReady, lastBeat, setLastBeat, sfxCreature, sfxHeartbeat, sfxReloadStep } from './audio';
 import {
-  ATTACK_IMPACT, ATTACK_IMPACT_REACH, CELL, CHEST_LID_OPEN, EYE_H,
+  ATTACK_IMPACT, ATTACK_IMPACT_REACH, CELL, CHEST_LID_OPEN, CREATURE_DRAW_DISTANCE, EYE_H,
   FALLBACK_ATTACK_TIME, GEAR_BOB, GEAR_BOB_ROLL, LAMP_SWAY, LAMP_SWAY_LAG,
   LANTERN_WARN, LOOT_TIME, MUSKET_RELOAD, SPEED, STRIDE_RATE, SWAY_DAMP, SWING_IMPACT,
   SWING_SPEED, SWING_WINDUP, TURN_RATE, WALK_CLIP_SPEED, WALK_TIMESCALE_RANGE, WALL_H,
@@ -260,6 +260,8 @@ function updateMonsters(dt: number, now: number): number {
     const dx = state.pos.x - m.mesh.position.x, dz = state.pos.z - m.mesh.position.z;
     const dist = Math.hypot(dx, dz);
     nearest = Math.min(nearest, dist);
+    // Drawing only, not thinking — see CREATURE_DRAW_DISTANCE.
+    m.mesh.visible = dist < CREATURE_DRAW_DISTANCE;
 
     // ---- Attack animation in progress ----
     const attacking = m.attackT > 0;
