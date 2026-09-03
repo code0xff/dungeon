@@ -4,6 +4,8 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    // import.meta.env, used to keep the service worker out of dev.
+    "types": ["vite/client"],
 
     "strict": true,
     "noUncheckedIndexedAccess": false,

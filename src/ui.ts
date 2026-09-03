@@ -1,11 +1,13 @@
 import { CELL, GRID } from './config';
 import { context2d, el, firstChild } from './dom';
+import { bankRun, loseRun, progress } from './progress';
 import { state } from './state';
 
 // ---- Frequently used elements ----
 export const hpbarEl = el('hpbar');
 export const goldEl = el('gold');
 export const bankEl = el('bank');
+const stageEl = el('stage');
 export const itemsEl = el('items');
 export const msgEl = el('msg');
 export const vignetteEl = el('vignette');
@@ -29,7 +31,8 @@ const mctx = context2d(minimapEl);
 export function updateHUD(): void {
   hpbarEl.style.width = Math.max(0, state.hp) + '%';
   goldEl.textContent = String(state.runGold);
-  bankEl.textContent = `Bank: ${state.bankGold} G`;
+  bankEl.textContent = `Bank: ${progress.bankGold} G`;
+  stageEl.textContent = `Stage ${progress.stage}`;
 
   const items: string[] = [];
   if (state.hasTorch) items.push('🔥 Torch');
@@ -101,16 +104,23 @@ export function endRun(extracted: boolean): void {
   const title = el('ovTitle');
   const desc = el('ovDesc');
   if (extracted) {
-    state.bankGold += state.runGold;
+    // Captured before buildWorld() resets the run, which is why this runs here
+    // and not when the player clicks through to the next stage.
+    bankRun(state.runGold, { hasTorch: state.hasTorch, hasMap: state.hasMap, ammo: state.ammo });
     title.textContent = 'Extracted';
     title.className = 'win';
-    desc.textContent = `Banked ${state.runGold} G from this run.`;
+    desc.textContent = `Banked ${state.runGold} G. Your gear carries to stage ${progress.stage}.`;
   } else {
+    const lost = [state.hasTorch && 'torch', state.hasMap && 'map', state.ammo > 0 && `${state.ammo} ammo`]
+      .filter(Boolean).join(', ');
+    loseRun();
     title.textContent = 'Killed';
     title.className = 'dead';
-    desc.textContent = `Your ${state.runGold} G stayed down there...`;
+    desc.textContent = lost
+      ? `Your ${state.runGold} G and your ${lost} stayed down there...`
+      : `Your ${state.runGold} G stayed down there...`;
   }
-  el('ovBank').textContent = `Bank balance: ${state.bankGold} G`;
+  el('ovBank').textContent = `Bank balance: ${progress.bankGold} G`;
   overlayEl.style.display = 'flex';
   updateHUD();
 }

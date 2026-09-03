@@ -1,12 +1,13 @@
 import * as THREE from 'three';
 import { floorPBR, spawnCreature, wallPBR } from './assets';
 import {
-  CELL, CHEST_COUNT, EYE_H, FOG_BASE, GRID, PLAYER_R, SCALE_VARIANCE, SPAWN,
-  SPEED_VARIANCE, START_AMMO, TYPES, WALL_H,
+  CELL, CHEST_COUNT, EYE_H, FOG_BASE, FOG_TORCH, GRID, PLAYER_R, SCALE_VARIANCE, SPAWN,
+  SPEED_VARIANCE, TYPES, WALL_H,
 } from './config';
 import { generateDungeon } from './dungeon';
 import { createChest, makeSconce, rollProp } from './props';
 import { clipDuration, setAnim } from './assets';
+import { progress } from './progress';
 import { fog, handTorch, portal, portalCore, portalLight, scene, torch, world } from './scene';
 import { state } from './state';
 import { ceilTex, floorTex, wallTex } from './textures';
@@ -283,24 +284,27 @@ export function buildWorld(): void {
   state.atkTimer = 0;
   state.swingT = -1;
   state.swingHit = false;
-  state.hasTorch = false;
-  state.hasMap = false;
-  handTorch.visible = false;
+  // Gear carried out of the previous stage. A fresh run has none of it.
+  state.hasTorch = progress.hasTorch;
+  state.hasMap = progress.hasMap;
+  handTorch.visible = state.hasTorch;
 
   // The sword is the default. Q swaps to the musket: one chambered round plus START_AMMO spare.
   state.hasMusket = true;
-  state.ammo = START_AMMO;
+  state.ammo = progress.ammo;
   state.loaded = true;
   state.reloadT = -1;
   state.recoilT = -1;
   wpnBtn.classList.add('show');
   setWeapon('sword');
 
-  torch.distance = 11;
-  state.torchBase = 1.75;
-  fog.density = FOG_BASE;
+  // The torch and map change how the dungeon reads, so a carried one has to be
+  // applied here rather than only where it is picked up.
+  torch.distance = state.hasTorch ? 19 : 11;
+  state.torchBase = state.hasTorch ? 2.7 : 1.75;
+  fog.density = state.hasTorch ? FOG_TORCH : FOG_BASE;
 
-  minimapEl.style.display = 'none';
+  minimapEl.style.display = state.hasMap ? 'block' : 'none';
   objectiveEl.style.opacity = '1';
   if (guideTimer !== null) clearTimeout(guideTimer);
   guideTimer = setTimeout(() => {

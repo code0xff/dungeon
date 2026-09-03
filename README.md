@@ -5,6 +5,12 @@ through the blue portal — die and everything you picked up this run stays down
 
 **▶ [Play it](https://code0xff.github.io/dungeon/)**
 
+Extract with your loot and it carries into the next stage. Die and the run's
+gold and everything you were carrying stays down there. Only the bank survives,
+and it is saved to the browser.
+
+It installs as a PWA and plays offline after the first visit.
+
 Creatures (FBX/GLB plus animations) and the wall/floor PBR textures load from
 external files, and **anything missing falls back to a box model or a texture drawn
 in code**. So the game runs on a fresh clone and you can drop assets in one at a
@@ -19,6 +25,7 @@ dungeon/
 │  ├─ config.ts      constants, creature stats (TYPES), asset paths
 │  ├─ types.ts       domain types — Monster, Chest, CreatureRig …
 │  ├─ state.ts       mutable state for one run
+│  ├─ progress.ts    what survives a run — bank, stage, carried gear
 │  ├─ scene.ts       renderer, camera, lights, first-person weapons
 │  ├─ textures.ts    procedural fallback textures (stone, cobble, wood)
 │  ├─ dungeon.ts     maze generation and BFS pathfinding
@@ -42,6 +49,9 @@ dungeon/
    ├─ creatures/zombie/     idle.glb  walk.glb  attack.glb  death.glb
    ├─ weapons/              sword.glb  musket.glb
    ├─ props/                chest.glb
+   ├─ icons/                PWA icons
+   ├─ manifest.webmanifest
+   ├─ sw.js                 service worker (offline cache)
    └─ textures/
       ├─ wall/              diffuse.webp  normal.webp  rough.webp
       └─ floor/             diffuse.webp  normal.webp  rough.webp

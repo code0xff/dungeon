@@ -359,11 +359,13 @@ export interface SetAnimOptions {
   force?: boolean;
   /** Where to start playback, in seconds. Varied per creature so the horde does not move as one. */
   startAt?: number;
+  /** Playback rate. The walk clip is retimed per frame instead; this is for one-shots. */
+  speed?: number;
 }
 
 /** Does nothing when the same clip is already playing, unless force is set. */
 export function setAnim(pb: MonsterPlayback, name: ClipName, opts: SetAnimOptions = {}): void {
-  const { loop = true, fade = 0.15, force = false, startAt = 0 } = opts;
+  const { loop = true, fade = 0.15, force = false, startAt = 0, speed = 1 } = opts;
   const clip = pb.clips[name];
   if (!clip || (pb.animName === name && !force)) return;
 
@@ -373,7 +375,7 @@ export function setAnim(pb: MonsterPlayback, name: ClipName, opts: SetAnimOption
   a.setLoop(loop ? THREE.LoopRepeat : THREE.LoopOnce, Infinity);
   a.clampWhenFinished = !loop;
   a.enabled = true;
-  a.timeScale = 1;
+  a.timeScale = speed;
   a.time = startAt;
   a.setEffectiveWeight(1);
   a.fadeIn(fade).play();

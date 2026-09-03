@@ -2,7 +2,8 @@ import * as THREE from 'three';
 import { clipDuration, flashLoadedMesh, setAnim } from './assets';
 import { audioReady, lastBeat, setLastBeat, sfxCreature, sfxHeartbeat, sfxReloadStep } from './audio';
 import {
-  ATTACK_IMPACT, ATTACK_IMPACT_REACH, CELL, CHEST_LID_OPEN, EYE_H, FALLBACK_ATTACK_TIME, LOOT_TIME,
+  ATTACK_IMPACT, ATTACK_IMPACT_REACH, ATTACK_SPEED, CELL, CHEST_LID_OPEN, EYE_H,
+  FALLBACK_ATTACK_TIME, LOOT_TIME,
   MUSKET_RELOAD, SPEED, SWING_IMPACT, SWING_SPEED, SWING_WINDUP, TURN_RATE, WALK_CLIP_SPEED,
   WALK_TIMESCALE_RANGE, WALL_H,
 } from './config';
@@ -79,13 +80,16 @@ function animProcedural(m: Monster, rig: CreatureRig, dt: number, now: number): 
 /** Starts the attack animation, honouring the clip's own length when there is one. */
 function startAttack(m: Monster): void {
   const clip = m.playback ? clipDuration(m.playback, 'attack') : null;
-  const dur = clip ?? FALLBACK_ATTACK_TIME;
+  // ATTACK_SPEED shortens the clip, so every timing below scales with it.
+  const dur = (clip ?? FALLBACK_ATTACK_TIME) / ATTACK_SPEED;
   m.attackT = dur;
   // The hit lands partway through, as the arm comes down — not at the start.
   m.pendingHit = dur * ATTACK_IMPACT;
   // Keep the next attack from overlapping before this animation ends.
   m.atkCd = Math.max(m.type.atkCd, dur);
-  if (m.playback) setAnim(m.playback, 'attack', { loop: false, force: true, fade: 0.08 });
+  if (m.playback) {
+    setAnim(m.playback, 'attack', { loop: false, force: true, fade: 0.08, speed: ATTACK_SPEED });
+  }
 }
 
 /** Turns an angle toward a target by at most maxStep, along the shortest path in -π..π. */
