@@ -96,6 +96,29 @@ export const LANTERN_FUEL = 150;
 /** Fuel left when the player is warned, in seconds. */
 export const LANTERN_WARN = 30;
 
+/**
+ * How far the carried lantern swings, in radians, and how fast.
+ *
+ * A lantern that hangs rigid is the tell that nothing is holding it — the eye
+ * reads a swinging weight long before it notices there is no hand. The swing
+ * lags the stride rather than matching it: the arm leads, the lantern follows,
+ * which is what LAMP_SWAY_LAG is for.
+ *
+ * Keep the amplitude small. Past about 0.12 it stops looking carried and starts
+ * looking thrown.
+ */
+export const LAMP_SWAY = 0.075;
+/** Sway cycles per second while walking. Roughly one per stride. */
+export const LAMP_SWAY_SPEED = 3.4;
+/** Radians the swing trails the stride by. */
+export const LAMP_SWAY_LAG = 0.9;
+/**
+ * How fast the swing spins up and settles again, in units per second — 0.38s
+ * either way. Both directions on purpose: a swing that appears the instant a key
+ * goes down is as wrong as one that stops dead when it comes up.
+ */
+export const LAMP_SWAY_DAMP = 2.6;
+
 /** The player's light, unlit and lit. Fog closes in when the lantern dies. */
 export const LIGHT_DIM = { distance: 11, intensity: 1.75, fog: FOG_BASE } as const;
 export const LIGHT_LIT = { distance: 19, intensity: 2.7, fog: FOG_TORCH } as const;

@@ -198,6 +198,25 @@ emissive flash bleeds across every creature.
 per-instance state. Chests deliberately do not, because nothing writes to a
 chest material.
 
+## A held object looks like it is floating beside your head
+
+**Cause.** Nothing in a first-person view holds anything — there is no hand and no
+arm, only a model parented to the camera. Weapons get away with it because their
+grips run off the bottom of the frame and the edge implies the hand. An object
+fully inside the frame with clear air around it has nothing to imply, and reads as
+floating. The carried lantern did exactly this.
+
+**Fix, in two parts.** Push it out until the frame corner crops it, and give it
+motion that only a held thing would have — the lantern swings on a lag behind the
+stride, ramping in and out over 0.38s rather than snapping on with the keypress.
+The eye reads a swinging weight long before it notices the missing hand.
+
+**Position by crop is aspect-dependent.** three keeps the vertical fov fixed and
+widens horizontally, so a model tuned to sit half-cropped on a 2:1 desktop window
+is fully off screen on a portrait phone. Decide whether that is acceptable for the
+object in question — for the lantern it is, because the touch move stick occupies
+the same corner — but never tune it against a single window size.
+
 ## A camera-child object disappears at the screen edge
 
 **Cause.** Frustum culling misjudges objects parented to the camera.
