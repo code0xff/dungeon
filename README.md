@@ -48,9 +48,10 @@ dungeon/
 │  ├─ optimize-assets.mjs   raw/ FBX → assets/ GLB, textures shrunk
 │  └─ fetch-assets.mjs      pull textures and weapons from Poly Haven
 ├─ raw/                     Mixamo FBX sources (never served, git-ignored)
-│  └─ creatures/zombie/     idle.fbx  walk.fbx  attack.fbx  death.fbx
+│  └─ creatures/<key>/      idle.fbx  walk.fbx  attack.fbx  death.fbx
 └─ assets/                  served assets (committed)
    ├─ creatures/zombie/     idle.glb  walk.glb  attack.glb  death.glb
+   ├─ creatures/brute/      idle.glb  walk.glb  attack.glb  death.glb
    ├─ weapons/              sword.glb  musket.glb
    ├─ props/                chest.glb  lantern.glb
    ├─ icons/                PWA icons
@@ -61,7 +62,13 @@ dungeon/
       └─ floor/             diffuse.webp  normal.webp  rough.webp
 ```
 
-The zombie is the only creature. Without its files the game falls back to a box model.
+Two creatures: the **zombie**, and the **brute** — taller, slower, hits twice as
+hard and takes twice as many swings. Without a creature's files the game falls
+back to a box model for it.
+
+The brute's clips were downloaded motion-only, so it has no body of its own and
+wears the zombie's, scaled up and tinted (`skin` and `tint` in `CREATURE_ASSETS`).
+Give it a body by adding a With Skin `idle.fbx` and dropping the `skin` line.
 
 Working on this with a coding agent? Start at [AGENTS.md](AGENTS.md) — the ground
 rules, with the detail in [docs/](docs/). `CLAUDE.md` is a symlink to it.
@@ -131,6 +138,12 @@ With the character selected, go to the **Animations** tab and grab four clips:
 | `attack.fbx` | `zombie attack`, `punch`, `swing` |
 | `death.fbx` | `zombie death`, `dying`, `death` |
 
+For the brute, the same four clips from a heavier animation set — `zombie
+brute`, `mutant walking`, `mutant swiping`, `mutant dying`. Mixamo numbers the
+rig differently on every download (`mixamorig5:Hips` on one, `mixamorig:Hips` on
+another); the loader strips the number, so clips from one character bind to
+another's skeleton.
+
 **Download settings**
 
 - Format: **FBX Binary (.fbx)**
@@ -148,8 +161,10 @@ With the character selected, go to the **Animations** tab and grab four clips:
 > renders. That shows up in the log as `no mesh (re-download idle with "With Skin")`
 > and falls back to the box model.
 
-Rename the files as above and drop them in `raw/creatures/zombie/`, then run
-`npm run optimize-assets`. No Blender round-trip needed.
+Rename the files as above and drop them in `raw/creatures/<key>/` — the folder
+name is the key in `CREATURE_ASSETS` — then run `npm run optimize-assets`. No
+Blender round-trip needed. `raw/` is git-ignored, so delete the FBX once the GLB
+are baked; nothing reads them again.
 
 ### Checking it worked
 

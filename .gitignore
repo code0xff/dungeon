@@ -2,8 +2,8 @@ node_modules/
 dist/
 .DS_Store
 
-# 에셋 원본(FBX). 용량이 크고(개당 100MB+) Mixamo 재배포 대상이라 커밋하지 않는다.
-# npm run optimize-assets 로 raw/ → assets/**/*.glb 를 굽는다.
+# Mixamo FBX sources. Large, and Mixamo forbids redistributing them.
+# npm run optimize-assets bakes raw/ into assets/**/*.glb; delete raw/ afterwards.
 raw/
 
-# assets/**/*.glb 는 게임 실행에 필요하므로 커밋한다(전부 합쳐 ~3MB).
+# assets/**/*.glb IS committed — the game needs it to run from a fresh clone.

@@ -13,7 +13,7 @@ assets/       Everything the game loads. Committed. Served from the site root.
 URLs in `src/config.ts` drop the leading `assets/`: the file
 `assets/creatures/zombie/idle.glb` is loaded as `creatures/zombie/idle.glb`.
 
-`assets/` is committed on purpose. It is about 6MB of baked derivatives, and
+`assets/` is committed on purpose. It is about 7MB of baked derivatives, and
 committing it is what lets a fresh clone run the real game rather than the box
 models. `raw/` is not, both for size and because Mixamo forbids redistributing
 the FBX files themselves.
@@ -69,19 +69,40 @@ from the model over adding a constant someone has to keep in sync.
 **Props** (`PROP_ASSETS`) — `height` in metres, plus any node names the game
 needs to drive, such as the chest's `lidNode`.
 
-Creature sizing is in `CREATURE_ASSETS.height` and is measured from bones, not
-the bounding box. See [three.js pitfalls](threejs-pitfalls.md).
+**Creatures** (`CREATURE_ASSETS`) — `height` in metres, measured from bones and
+not the bounding box (see [three.js pitfalls](threejs-pitfalls.md)), plus two
+fields for a creature that has clips but no body of its own:
+
+| Field | Meaning |
+|---|---|
+| `skin` | wear another creature's mesh, keeping these clips. The source must be declared earlier; they load in order |
+| `tint` | hex colour multiplied into the materials, so the borrowed body is not mistaken for the one it came from |
+
+The brute is the case this exists for: its four Mixamo downloads are all
+`MotionOnlyScene`, animation with no mesh attached, so it wears the zombie at
+2.35m and ashen. Adding a With Skin `idle.fbx` and deleting the `skin` line is
+the whole migration.
+
+Mixamo numbers its rig per export — `mixamorig5:Hips` on one character,
+`mixamorig:Hips` on another — and three binds animation tracks to nodes by name,
+so clips from one download bind to nothing on another and the creature stands
+still. The loader strips the number from both bones and tracks, and the
+`[assets]` line warns when a clip still fails to bind.
 
 ## Budget
 
-Roughly 6MB total, and it should stay in that range — this ships to phones.
+Roughly 6.9MB total, and it should stay in that range — this ships to phones.
 
 | | |
 |---|---|
-| creatures | 2.6MB (idle carries the skin and textures; the other clips are curves only) |
+| creatures | 2.8MB (idle carries the skin and textures; the other clips are curves only) |
 | weapons | 1.2MB |
-| props | 0.9MB |
+| props | 1.3MB |
 | textures | 1.4MB |
+
+A second creature costs almost nothing here: the brute's four clips are 0.26MB
+in total, because it borrows a body that is already loaded and its own files hold
+nothing but curves.
 
 Rules of thumb that got it there:
 

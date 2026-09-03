@@ -49,8 +49,8 @@ fixed.
 Domain types belong in `src/types.ts`.
 
 **9. `raw/` is never committed; `assets/` always is.** Mixamo forbids
-redistributing the FBX sources, and the ~6MB of baked output is what lets a fresh
-clone run the real game. Keep the asset budget near 6MB — this ships to phones.
+redistributing the FBX sources, and the ~7MB of baked output is what lets a fresh
+clone run the real game. Keep the asset budget near 7MB — this ships to phones.
 
 **10. Do not add dependencies casually.** `three` is pinned to `0.152.2` with a
 matching `@types/three`; upgrading is a deliberate task, not a side effect.

@@ -80,6 +80,20 @@ tracks point at helpers rather than real bones — 12 of 156 tracks matched.
 The same name-binding rule is what lets a Without-Skin clip drive a With-Skin
 model: the bone names match, so the tracks bind.
 
+**The same rule bites again across characters.** Mixamo numbers the rig per
+export, so the same bone is `mixamorig5:Hips` on one download and `mixamorig:Hips`
+on another. Identical skeletons, 52 identical bones, and 0 of 53 tracks bound —
+the mixer plays happily and the creature stands in its bind pose. `MIXAMO_NS` in
+`assets.ts` strips the number from bones and tracks alike, which took it to 53 of
+53 and is what lets the brute wear the zombie's body.
+
+Two things make this hard to spot. Nothing throws, and the names differ again by
+container: GLTFLoader runs node names through `PropertyBinding.sanitizeNodeName`,
+which strips `.:/[]`, so the bone that is `mixamorig5:Hips` out of an FBX is
+`mixamorig5Hips` out of a GLB. Any pattern matching these names has to allow for
+both. The `[assets]` log now prints the worst binding rate per creature so a
+mismatch shows up as a warning rather than as a puzzled look.
+
 ## Simplification barely reduces the triangle count
 
 **Cause.** Exporters duplicate vertices along every UV and normal seam.
@@ -123,12 +137,28 @@ a 0.35 m/s shamble.
 
 **Cause.** A capsule or circle sized to the torso says nothing about where the
 arms go. This zombie's body radius is 0.45m while its skinned vertices reach
-0.82m from the origin mid-attack, so it could stand close enough to a wall to put
+1.00m from the origin mid-attack, so it could stand close enough to a wall to put
 an arm through it.
 
-**Fix.** `CREATURE_WALL_CLEARANCE` is a separate, larger radius used only for
+**Fix.** `CreatureType.clearance` is a separate, larger radius used only for
 creature-versus-wall tests. `r` stays the body, because that is what the player's
 attack cone is sized against.
+
+**Measure it per creature, and do not derive it.** The obvious shortcuts are both
+wrong. Scaling `clearance` from `r` ignores that the arms, not the torso, set the
+number; scaling it from height says the brute at 1.27x the zombie needs 1.27x the
+room, when measurement puts the two at 1.02m and 1.00m — the figure comes from the
+pose the clip happens to strike. Bone positions understate it too, because the
+skinned vertices are what gets drawn.
+
+Stepping every vertex through every clip with `SkinnedMesh.applyBoneTransform()`
+is how those numbers were found, and it is worth doing per clip: the death clip
+throws an arm out to 1.24m, but a dying creature does not move, so it is walk and
+attack that set the clearance. Add the 1.08 top of `SCALE_VARIANCE` and round up.
+
+Check the pathing after raising it. A 4m corridor leaves `CELL - 2 * clearance`
+of usable width, and even at 1.6 all 279 floor cells and all 346 adjacent links
+still pass.
 
 **Measure it, do not guess.** Bone positions understate the reach; the skinned
 vertices are what gets drawn. `SkinnedMesh.applyBoneTransform()` gives the posed

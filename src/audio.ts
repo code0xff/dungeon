@@ -1,5 +1,3 @@
-import type { CreatureKey } from './types';
-
 declare global {
   interface Window {
     webkitAudioContext?: typeof AudioContext;
@@ -124,7 +122,15 @@ export function sfxHeartbeat(strength: number): void {
   }
 }
 
-export function sfxCreature(_key: CreatureKey, vol: number): void {
+/**
+ * A groan, pitched by `voice` (see CreatureType). Everything scales with it: the
+ * fundamental, the filter cutoff and the vibrato rate, because dropping the pitch
+ * alone gives a slowed-down zombie rather than a bigger animal.
+ *
+ * Sound arrives before sight down a corridor, so this is the player's first
+ * warning of which creature is ahead — the two pitches have to be far apart.
+ */
+export function sfxCreature(voice: number, vol: number): void {
   if (!audio) return;
   const { ctx, master } = audio;
   const t = ctx.currentTime;
@@ -132,20 +138,20 @@ export function sfxCreature(_key: CreatureKey, vol: number): void {
   // Hoarse groan: a sawtooth shaved down by a low-pass, wavering with vibrato.
   const o = ctx.createOscillator();
   o.type = 'sawtooth';
-  const f0 = 70 + Math.random() * 50;
+  const f0 = (70 + Math.random() * 50) * voice;
   o.frequency.setValueAtTime(f0, t);
   o.frequency.linearRampToValueAtTime(f0 * 0.6, t + 0.9);
 
   const lp = ctx.createBiquadFilter();
   lp.type = 'lowpass';
-  lp.frequency.setValueAtTime(600, t);
-  lp.frequency.linearRampToValueAtTime(150, t + 1);
+  lp.frequency.setValueAtTime(600 * voice, t);
+  lp.frequency.linearRampToValueAtTime(150 * voice, t + 1);
 
   const g = ctx.createGain();
   env(g, t, 0.15, 0.35 * vol, 1.0);
 
   const v = ctx.createOscillator();
-  v.frequency.value = 9;
+  v.frequency.value = 9 * voice;
   const vg = ctx.createGain();
   vg.gain.value = 6;
   v.connect(vg);

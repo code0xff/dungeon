@@ -1,4 +1,4 @@
-import type { CreatureKey, CreatureType, WeaponAsset, WeaponKind } from './types';
+import type { CreatureAsset, CreatureKey, CreatureType, WeaponAsset, WeaponKind } from './types';
 
 // ================= Asset configuration =================
 // publicDir='assets' in vite.config.ts is why none of these paths carry an 'assets/' prefix.
@@ -6,8 +6,19 @@ import type { CreatureKey, CreatureType, WeaponAsset, WeaponKind } from './types
 //          death.fbx (glb/gltf work too), assets/textures/wall/{diffuse,normal,rough}.webp,
 //          assets/textures/floor/...
 // Anything missing falls back to the models and textures built in code.
-export const CREATURE_ASSETS: Record<CreatureKey, { dir: string; height: number }> = {
+export const CREATURE_ASSETS: Record<CreatureKey, CreatureAsset> = {
   zombie: { dir: 'creatures/zombie', height: 1.85 },
+  /**
+   * `skin: 'zombie'` because the brute's Mixamo clips were exported motion-only
+   * ("MotionOnlyScene" in the FBX, no mesh at all), so there is no brute body to
+   * draw. It borrows the zombie's, scaled up to 2.35m, which is what makes it
+   * read as the same rot gone large rather than as a second monster.
+   *
+   * To give it a body of its own: download idle again with a character picked on
+   * the Characters tab and the **With Skin** option, re-run
+   * `npm run optimize-assets`, then delete this `skin` line. Nothing else changes.
+   */
+  brute: { dir: 'creatures/brute', height: 2.35, skin: 'zombie', tint: 0xbcd0e2 },
 };
 export const WALL_TEX_DIR = 'textures/wall';
 export const FLOOR_TEX_DIR = 'textures/floor';
@@ -115,10 +126,24 @@ export const SHOT_ALERT_RADIUS = 20;
 export const TYPES: Record<CreatureKey, CreatureType> = {
   zombie: {
     name: 'Zombie',
-    hp: 3, dmg: 14, speed: 2.2, atkCd: 1.0,
-    reach: 1.6, r: 0.45, reward: 10, aggro: 9,
-    groan: [4, 8],
+    hp: 3, dmg: 14, speed: 2.2, atkCd: 1.0, attackSpeed: 1.6,
+    reach: 1.6, r: 0.45, clearance: 1.1, reward: 10, aggro: 9,
+    groan: [4, 8], voice: 1,
     animSpeed: 6.5, swing: 0.5,
+  },
+  /**
+   * The heavy. Twice the sword hits and twice the damage of a zombie, but slow
+   * enough to back away from — the answer to a brute is the corridor behind you,
+   * or the musket, and neither works if it can keep pace.
+   *
+   * hp 6 is six sword swings at ATTACK_CD, or two musket balls at MUSKET_DMG 3.
+   */
+  brute: {
+    name: 'Brute',
+    hp: 6, dmg: 26, speed: 1.5, atkCd: 1.6, attackSpeed: 2.3,
+    reach: 2.1, r: 0.62, clearance: 1.15, reward: 45, aggro: 11,
+    groan: [6, 11], voice: 0.55,
+    animSpeed: 4.2, swing: 0.42,
   },
 };
 
@@ -126,18 +151,14 @@ export const TYPES: Record<CreatureKey, CreatureType> = {
  * How many of each creature spawn in one run.
  * The dungeon is 23x23 cells at 4m each, so this is what sets the odds of
  * turning a corner into something.
+ *
+ * The mix matters more than the total. Brutes are rare on purpose: a run should
+ * be paced by zombies and punctuated by a brute, and four of them across the few
+ * hundred floor cells is about one per stage that cannot simply be walked past.
  */
-export const SPAWN: Readonly<Record<CreatureKey, number>> = { zombie: 20 };
+export const SPAWN: Readonly<Record<CreatureKey, number>> = { zombie: 18, brute: 4 };
 
 // ---- Creature animation ----
-/**
- * Playback rate of the attack clip.
- *
- * The Mixamo attack is 2.5s, and startAttack floors the cooldown at the clip
- * length, so atkCd alone cannot make a creature swing more often — the clip has
- * to run faster. At 1.6 the swing takes 1.56s, which is also the real cadence.
- */
-export const ATTACK_SPEED = 1.6;
 /** Attack duration in seconds when the external model carries no attack clip. */
 export const FALLBACK_ATTACK_TIME = 0.9;
 /** Where in the attack clip the hit resolves (0 = start, 1 = end) — as the arm comes down. */
@@ -154,15 +175,6 @@ export const ATTACK_IMPACT_REACH = 1.3;
 export const WALK_CLIP_SPEED = 1.45;
 /** Allowed range for the walk clip's timeScale, clamped so it never crawls or blurs. */
 export const WALK_TIMESCALE_RANGE: readonly [number, number] = [0.6, 1.9];
-/**
- * Radius creatures keep from walls, as opposed to `r`, which is the body used
- * for the player's attack cone.
- *
- * A zombie's arms reach about 1.0m from its origin while the body is only 0.45m
- * across, so testing at the body radius let arms pass through walls in corners.
- * A 4m corridor still leaves 2.1m of usable width at this clearance.
- */
-export const CREATURE_WALL_CLEARANCE = 0.95;
 /** Top turn rate in rad/s, so creatures rotate rather than snap. */
 export const TURN_RATE = 6.0;
 /** Seconds the corpse lingers after the death animation ends. */
