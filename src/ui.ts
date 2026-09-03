@@ -109,6 +109,17 @@ export function drawMinimap(): void {
 
 // ================= End of run =================
 export function endRun(extracted: boolean): void {
+  // Whatever ends the run first is what happened. Without this, dying on the
+  // extraction portal counted as both: updateMonsters() kills the player and
+  // calls endRun(false), and then the portal check a few lines further down the
+  // *same* frame calls endRun(true) — because `if (!state.gameOver)` was
+  // evaluated before the death, and setting the flag inside the block does not
+  // stop the rest of the block. The player was shown "Killed", lost the run,
+  // and was then banked and advanced a stage anyway.
+  //
+  // Creatures also land more than one hit per frame, so this guards the double
+  // loseRun() that came with that.
+  if (state.gameOver) return;
   state.gameOver = true;
   cancelLoot();
   if (document.pointerLockElement) document.exitPointerLock();
