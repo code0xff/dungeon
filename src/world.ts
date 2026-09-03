@@ -304,12 +304,16 @@ export function buildWorld(): void {
   state.torchBase = state.hasTorch ? 2.7 : 1.75;
   fog.density = state.hasTorch ? FOG_TORCH : FOG_BASE;
 
+  // Both sit in the top-right corner, so a carried map has to take the slot
+  // straight away rather than waiting out the guide's seven seconds.
   minimapEl.style.display = state.hasMap ? 'block' : 'none';
-  objectiveEl.style.opacity = '1';
+  objectiveEl.style.opacity = state.hasMap ? '0' : '1';
   if (guideTimer !== null) clearTimeout(guideTimer);
-  guideTimer = setTimeout(() => {
-    objectiveEl.style.opacity = '0';
-  }, 7000);
+  if (!state.hasMap) {
+    guideTimer = setTimeout(() => {
+      objectiveEl.style.opacity = '0';
+    }, 7000);
+  }
 
   cancelLoot();
   updateHUD();

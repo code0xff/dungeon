@@ -35,29 +35,39 @@ export function updateHUD(): void {
   stageEl.textContent = `Stage ${progress.stage}`;
 
   const items: string[] = [];
-  if (state.hasTorch) items.push('🔥 Torch');
-  if (state.hasMap) items.push('🗺 Map');
-  if (state.hasMusket) {
-    const equipped = state.weapon === 'musket' ? '[equipped] ' : '';
-    const loadState = state.loaded ? 'loaded' : state.reloadT >= 0 ? 'reloading' : 'empty';
-    items.push(`🔫 ${equipped}${loadState} · ${state.ammo} ammo`);
-  } else if (state.ammo > 0) {
-    items.push(`${state.ammo} ammo`);
+  if (state.hasTorch) items.push('Torch');
+  if (state.hasMap) items.push('Map');
+  if (state.weapon === 'musket') {
+    // The load state only means anything for the weapon actually in hand.
+    items.push(state.loaded ? 'Musket loaded' : state.reloadT >= 0 ? 'Musket reloading' : 'Musket empty');
+  } else {
+    items.push('Sword');
   }
-  itemsEl.textContent = 'Gear: ' + (items.length ? items.join(' · ') : 'none');
+  if (state.hasMusket || state.ammo > 0) items.push(`${state.ammo} ammo`);
+  itemsEl.textContent = items.length ? items.join('   ·   ') : 'No gear';
 }
 
 // ================= Centre-screen message =================
 let msgTimer: ReturnType<typeof setTimeout> | null = null;
 
 export function showMsg(text: string): void {
-  msgEl.textContent = text;
-  msgEl.style.whiteSpace = 'pre-line';
-  msgEl.style.opacity = '1';
+  // The gold line comes first and gets the accent; the rest is the pickup detail.
+  // Only the wrapper is markup — the text itself goes in as a text node, so a
+  // message can never inject anything.
+  const [head, ...rest] = text.split('\n');
+  msgEl.replaceChildren();
+  if (head !== undefined) {
+    const lead = document.createElement('span');
+    if (/^[+-]/.test(head)) lead.className = 'gold';
+    lead.textContent = head;
+    msgEl.append(lead);
+  }
+  if (rest.length) msgEl.append(document.createTextNode('\n' + rest.join('\n')));
+  msgEl.classList.add('show');
   if (msgTimer !== null) clearTimeout(msgTimer);
   msgTimer = setTimeout(() => {
-    msgEl.style.opacity = '0';
-  }, 1800);
+    msgEl.classList.remove('show');
+  }, 2200);
 }
 
 /** Flash a red vignette when the player is hit. */

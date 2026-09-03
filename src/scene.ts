@@ -88,10 +88,22 @@ export const handTorch = new THREE.Group();
   stick.position.y = -0.1;
   const head = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.03, 0.1, 8), new THREE.MeshStandardMaterial({ color: 0x1a1210, roughness: 1 }));
   head.position.y = 0.14;
-  const flame = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.2, 7), new THREE.MeshBasicMaterial({ color: 0xffa040, transparent: true, opacity: 0.9 }));
-  flame.position.y = 0.29;
-  const flameCore = new THREE.Mesh(new THREE.ConeGeometry(0.035, 0.13, 6), new THREE.MeshBasicMaterial({ color: 0xfff0a0, transparent: true, opacity: 0.9 }));
-  flameCore.position.y = 0.28;
+  // Additive and translucent, so the two cones read as overlapping flame rather
+  // than as a flat paper triangle. More segments because it is held close.
+  const flame = new THREE.Mesh(
+    new THREE.ConeGeometry(0.055, 0.22, 12),
+    new THREE.MeshBasicMaterial({
+      color: 0xff8c30, transparent: true, opacity: 0.32, blending: THREE.AdditiveBlending, depthWrite: false,
+    }),
+  );
+  flame.position.y = 0.3;
+  const flameCore = new THREE.Mesh(
+    new THREE.ConeGeometry(0.028, 0.14, 10),
+    new THREE.MeshBasicMaterial({
+      color: 0xffd274, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false,
+    }),
+  );
+  flameCore.position.y = 0.27;
   handTorch.add(stick, head, flame, flameCore);
 }
 // Held further out and scaled down: at 45cm the flame cone alone covered a third
