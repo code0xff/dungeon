@@ -120,29 +120,26 @@
              border:1px solid rgba(212,178,90,.55); color:#efdca6;
              background:radial-gradient(circle at 50% 32%, rgba(150,118,44,.55), rgba(64,50,18,.5) 72%);
              box-shadow:0 6px 22px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,230,160,.16); }
-  /* The pack stacks upward above the weapon swap rather than reaching further
-     left along the bottom: on a portrait phone that row runs into the move
-     stick, which sits at left:24px and is 114px wide. */
-  #potBtn, #lampBtn { right:calc(134px + env(safe-area-inset-right)); width:52px; height:52px;
+  /* The inner column is ordered by how fast the hand has to reach it: dodge is a
+     reflex, so it sits level with attack one thumb-width inboard, and the rest
+     stacks upward where nothing is needed in a hurry. It stacks rather than
+     reaching further left because on a portrait phone that row runs into the
+     move stick, which is at left:24px and 114px wide. */
+  #potBtn, #lampBtn, #wpnBtn { right:calc(134px + env(safe-area-inset-right)); width:52px; height:52px;
                       border:1px solid rgba(201,192,174,.4); color:#c9c0ae;
                       background:radial-gradient(circle at 50% 32%, rgba(70,66,58,.62), rgba(28,26,22,.5) 72%);
                       box-shadow:0 5px 18px rgba(0,0,0,.45); }
-  #potBtn { bottom:calc(118px + env(safe-area-inset-bottom)); }
-  #lampBtn { bottom:calc(180px + env(safe-area-inset-bottom)); }
-  #dashBtn { right:calc(128px + env(safe-area-inset-right)); bottom:calc(242px + env(safe-area-inset-bottom));
-             width:62px; height:62px; border:1px solid rgba(140,170,210,.5); color:#c3d6ee;
+  #wpnBtn { bottom:calc(120px + env(safe-area-inset-bottom)); }
+  #potBtn { bottom:calc(182px + env(safe-area-inset-bottom)); }
+  #lampBtn { bottom:calc(244px + env(safe-area-inset-bottom)); }
+  #dashBtn { right:calc(128px + env(safe-area-inset-right)); bottom:calc(40px + env(safe-area-inset-bottom));
+             width:68px; height:68px; border:1px solid rgba(140,170,210,.5); color:#c3d6ee;
              background:radial-gradient(circle at 50% 32%, rgba(46,74,116,.6), rgba(18,28,44,.5) 72%);
              box-shadow:0 5px 18px rgba(0,0,0,.45); }
   #dashBtn .ico { width:22px; height:22px; }
-  #potBtn .ico, #lampBtn .ico { width:20px; height:20px; }
+  #potBtn .ico, #lampBtn .ico, #wpnBtn .ico { width:20px; height:20px; }
   #potBtn .count, #lampBtn .count { opacity:.9; font-size:11px; }
-
-  #wpnBtn { right:calc(128px + env(safe-area-inset-right)); bottom:calc(48px + env(safe-area-inset-bottom));
-            width:62px; height:62px; font-size:9.5px;
-            border:1px solid rgba(201,192,174,.32); color:#c9c0ae;
-            background:radial-gradient(circle at 50% 32%, rgba(46,48,54,.7), rgba(12,13,16,.6) 72%);
-            box-shadow:0 5px 18px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.07); }
-  #wpnBtn .ico { width:20px; height:20px; }
+  #wpnBtn { font-size:9.5px; }
   #crosshair { position:fixed; left:50%; top:50%; width:6px; height:6px; margin:-3px 0 0 -3px; border-radius:50%; background:rgba(201,192,174,.7); z-index:10; display:none; pointer-events:none; }
   #reloadBar { position:fixed; top:calc(50% + 18px); left:50%; transform:translateX(-50%); width:90px; height:4px; z-index:10; display:none; background:rgba(201,192,174,.15); border-radius:2px; overflow:hidden; }
   #reloadBar div { height:100%; width:0; background:#c9c0ae; }
