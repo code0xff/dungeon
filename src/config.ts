@@ -111,9 +111,17 @@ export const TYPES: Record<CreatureKey, CreatureType> = {
  * The dungeon is 23x23 cells at 4m each, so this is what sets the odds of
  * turning a corner into something.
  */
-export const SPAWN: Readonly<Record<CreatureKey, number>> = { zombie: 14 };
+export const SPAWN: Readonly<Record<CreatureKey, number>> = { zombie: 20 };
 
 // ---- Creature animation ----
+/**
+ * Playback rate of the attack clip.
+ *
+ * The Mixamo attack is 2.5s, and startAttack floors the cooldown at the clip
+ * length, so atkCd alone cannot make a creature swing more often — the clip has
+ * to run faster. At 1.6 the swing takes 1.56s, which is also the real cadence.
+ */
+export const ATTACK_SPEED = 1.6;
 /** Attack duration in seconds when the external model carries no attack clip. */
 export const FALLBACK_ATTACK_TIME = 0.9;
 /** Where in the attack clip the hit resolves (0 = start, 1 = end) — as the arm comes down. */

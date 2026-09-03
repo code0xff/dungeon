@@ -2,8 +2,8 @@ import * as THREE from 'three';
 import type { Chest, Looting, Maze, Monster, Prop, Sconce, WeaponKind } from './types';
 
 /**
- * Mutable state for one run. buildWorld resets nearly all of it.
- * Only bankGold survives from run to run.
+ * Mutable state for one run. buildWorld() resets all of it.
+ * Anything that has to survive a run lives in src/progress.ts instead.
  */
 export const state = {
   // ---- Dungeon ----
@@ -16,8 +16,6 @@ export const state = {
   pitch: 0,
   hp: 100,
   runGold: 0,
-  /** Only a successful extraction moves gold here. Die and runGold is lost. */
-  bankGold: 0,
 
   // ---- World contents ----
   monsters: [] as Monster[],

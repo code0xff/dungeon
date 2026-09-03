@@ -29,7 +29,7 @@ world  input  combat  loot  weapons        systems
 props                       world content built from assets
 assets                      external model and texture loading
 scene  ui  textures  dungeon               presentation and generation
-config  state  creatures  audio            data and primitives
+config  state  progress  creatures  audio     data and primitives
 types  dom                  leaves, no internal imports
 ```
 
@@ -62,14 +62,46 @@ primitives at module load.
 
 ## State
 
-`src/state.ts` is one mutable object for the current run. `buildWorld()` resets
-nearly all of it; **`bankGold` is the only field that survives a run**, because
-that is the whole point of an extraction game.
+`src/state.ts` is one mutable object for the current run, and `buildWorld()`
+resets all of it. Anything that has to outlive a run lives in
+**`src/progress.ts`** instead, saved to localStorage:
+
+| | Extraction | Death |
+|---|---|---|
+| `bankGold` | run gold added | kept |
+| `stage` | +1 | back to 1 |
+| torch, map, ammo | carried into the next stage | lost |
+
+The split is the whole point of an extraction game — keep the two apart. A field
+that should reset but lives in `progress` becomes a permanent buff; one that
+should persist but lives in `state` is silently wiped every run.
+
+`endRun()` captures the carry **before** `buildWorld()` runs, which is why it
+banks at the end of the old run rather than at the start of the next one.
 
 There is no reactivity. Systems read and write `state` directly, and `ui.ts`
-pushes to the DOM when something calls `updateHUD()`. If you add a field, reset
-it in `buildWorld()` — a field that persists across runs by accident is a bug
-that only shows up on the second run.
+pushes to the DOM when something calls `updateHUD()`. If you add a field to
+`state`, reset it in `buildWorld()` — a field that persists across runs by
+accident is a bug that only shows up on the second run. If you add one to
+`progress`, handle it in both `bankRun()` and `loseRun()`, and read it back
+defensively: `merge()` type-checks every stored field so a corrupt save
+degrades to the default instead of poisoning a run with NaN.
+
+## Offline and install
+
+The game is a PWA. `assets/manifest.webmanifest` and `assets/sw.js` sit in
+`publicDir`, so vite copies them verbatim to the site root and both use relative
+paths — that is what lets the whole thing work under the `/dungeon/` project
+sub-path without a build-time rewrite.
+
+The worker is registered from `main.ts` **only in a production build**
+(`import.meta.env.PROD`); a caching worker in dev would serve stale modules and
+make HMR lie about what is running.
+
+Its caching strategy and the reasoning are documented at the top of `sw.js`.
+The short version: navigations are network-first so a deploy is picked up, and
+everything else is stale-while-revalidate so the ~6MB of assets loads instantly
+on a second visit and still refreshes itself without a manual version bump.
 
 ## Frame loop
 

@@ -94,8 +94,12 @@ export const handTorch = new THREE.Group();
   flameCore.position.y = 0.28;
   handTorch.add(stick, head, flame, flameCore);
 }
-handTorch.position.set(-0.34, -0.32, -0.45);
-handTorch.rotation.set(0.25, 0, 0.2);
+// Held further out and scaled down: at 45cm the flame cone alone covered a third
+// of the screen height, which was only tolerable because the torch used to turn
+// up mid-run. Carried gear means it is on screen from the first frame.
+handTorch.position.set(-0.42, -0.40, -0.66);
+handTorch.rotation.set(0.22, 0, 0.24);
+handTorch.scale.setScalar(0.78);
 handTorch.visible = false;
 camera.add(handTorch);
 
@@ -161,6 +165,7 @@ camera.add(musket);
 // Weapons live on layer 1: drawn over the world in their own pass so they never poke through walls.
 sword.traverse((o) => o.layers.set(1));
 musket.traverse((o) => o.layers.set(1));
+handTorch.traverse((o) => o.layers.set(1));
 
 /**
  * Swap a primitive weapon for an external model.
