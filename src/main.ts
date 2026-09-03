@@ -13,7 +13,9 @@ loadProgress();
 // HMR lie about what is running.
 if (import.meta.env.PROD && 'serviceWorker' in navigator) {
   addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js').catch((err: unknown) => {
+    // The version on the URL is what makes the browser re-install the worker when
+    // an asset changes, which is what lets it start a clean cache.
+    navigator.serviceWorker.register(`./sw.js?v=${__ASSET_VERSION__}`).catch((err: unknown) => {
       // Not fatal — the game just will not work offline.
       console.warn('[pwa] service worker registration failed', err);
     });

@@ -115,7 +115,27 @@ reason.
 Its caching strategy and the reasoning are documented at the top of `sw.js`.
 The short version: navigations are network-first so a deploy is picked up, and
 everything else is stale-while-revalidate so the ~8.5MB of assets loads instantly
-on a second visit and still refreshes itself without a manual version bump.
+on a second visit.
+
+**Assets carry a version on their URL, and it is load-bearing.** Vite
+content-hashes the bundle filenames, so code changes reach everyone by
+themselves; models and textures keep fixed names, so they do not.
+`creatures/brute/idle.glb` was the same URL before and after the model behind it
+was replaced, and stale-while-revalidate answered from cache — a returning player
+kept last deploy's creature, and because a model with no mesh falls back to the
+box model, it looked like a regression rather than a stale cache. `hashAssets()`
+in `vite.config.ts` hashes the whole `assets/` folder into `__ASSET_VERSION__`,
+which goes onto every asset URL and onto the worker's own registration URL. A
+changed asset is now a different URL, and so a cache miss.
+
+The version is **not** part of the cache name, and that is the subtle half. It
+was, briefly, and it broke offline: the page's requests are served by whichever
+worker is already in control, so on the load after a deploy they land in the
+*old* cache, and the new worker's activate sweep then deletes them — the JS
+bundle included. The game came back from that with a loading screen and no error
+in the console. One durable `dungeon-v1` cache, pruned on activate of entries
+whose `?v=` no longer matches, has no such window: the shell and the
+content-hashed bundles are never touched, only superseded assets are.
 
 ## Frame loop
 

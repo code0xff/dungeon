@@ -1,6 +1,40 @@
+import { createHash } from 'node:crypto';
+import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { join } from 'node:path';
 import { defineConfig } from 'vite';
 
+/**
+ * A short hash of everything under assets/.
+ *
+ * The bundle filenames are content-hashed by vite, so a code change reaches
+ * everyone automatically. The models and textures are not — their names are
+ * fixed, so a returning player's service worker kept serving the old bytes and
+ * a swapped model silently did not appear. This is the version that goes on
+ * their URLs and on the service worker's cache name, so changing an asset
+ * changes what is asked for.
+ *
+ * Deliberately one hash for the whole folder rather than one per file: it is a
+ * few lines instead of a manifest, and assets change rarely enough that
+ * re-fetching all of them on the runs where they do is the cheaper trade.
+ */
+function hashAssets(dir: string): string {
+  const h = createHash('sha1');
+  const walk = (d: string): void => {
+    for (const name of readdirSync(d).sort()) {
+      const p = join(d, name);
+      if (statSync(p).isDirectory()) walk(p);
+      else {
+        h.update(name);
+        h.update(readFileSync(p));
+      }
+    }
+  };
+  walk(dir);
+  return h.digest('hex').slice(0, 8);
+}
+
 export default defineConfig({
+  define: { __ASSET_VERSION__: JSON.stringify(hashAssets('assets')) },
   // Build with relative paths so dist/ can be served from any sub-path,
   // which is what makes the GitHub Pages project URL work unchanged.
   base: './',
