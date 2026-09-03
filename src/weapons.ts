@@ -23,7 +23,7 @@ export function toggleWeapon(): void {
     return;
   }
   setWeapon(state.weapon === 'sword' ? 'musket' : 'sword');
-  showMsg(state.weapon === 'musket' ? '🔫 Musket' : '🗡 Sword');
+  showMsg(state.weapon === 'musket' ? 'Musket' : 'Sword');
 }
 
 /** Ignored when already loaded, mid-reload, or out of ammo. */
