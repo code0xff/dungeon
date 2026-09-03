@@ -55,6 +55,12 @@ export type Clips = Partial<Record<ClipName, THREE.AnimationClip>>;
 export interface CreatureTemplate {
   root: THREE.Object3D;
   clips: Clips;
+  /**
+   * Ground speed the walk clip was authored at, in m/s, measured from the root
+   * motion before it was stripped. null when the clip was already in place and
+   * there was nothing to measure — then WALK_CLIP_SPEED is the only estimate.
+   */
+  walkClipSpeed: number | null;
 }
 
 /** Animation playback state for a creature spawned from an external model. */
@@ -63,6 +69,8 @@ export interface MonsterPlayback {
   clips: Clips;
   action: THREE.AnimationAction | null;
   animName: ClipName | null;
+  /** See CreatureTemplate.walkClipSpeed. */
+  walkClipSpeed: number | null;
 }
 
 export interface Monster {

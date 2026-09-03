@@ -127,7 +127,7 @@ With the character selected, go to the **Animations** tab and grab four clips:
 | Filename | Search for |
 |---|---|
 | `idle.fbx` | `zombie idle`, `idle` |
-| `walk.fbx` | `zombie walk`, `walk` — **tick In Place**, or the animation drives the character forward and the position drifts |
+| `walk.fbx` | `zombie walk`, `walk` — tick **In Place** if you can; the loader strips root motion either way and says so in the `[assets]` log |
 | `attack.fbx` | `zombie attack`, `punch`, `swing` |
 | `death.fbx` | `zombie death`, `dying`, `death` |
 

@@ -97,6 +97,44 @@ it.
 colour and roughness go at 80. Also: Poly Haven's `nor_gl` (OpenGL) is the
 correct variant — `nor_dx` inverts the relief in Three.js.
 
+## A character walks out of its own collision circle
+
+**Cause.** A Mixamo clip downloaded without **In Place** carries root motion: the
+hips translate across the cycle and snap back. Collision only ever tests the
+group's position, so the body travels outside its own circle and through walls.
+This project's walk clip moved 1.38m over a 4s cycle — three times the 0.45m
+body radius.
+
+**Fix.** `stripRootMotion()` in `src/assets.ts` flattens the X and Z of the hips
+position track on every clip at load. Y is left alone so the body still rises and
+falls. The rule it enforces: **the game owns where a creature is, the clip owns
+only how it is posed.**
+
+The drift it removed is reported in the `[assets]` log, because a clip with root
+motion is a download mistake that otherwise surfaces only as a creature walking
+through a wall.
+
+It is also worth measuring rather than discarding: the drift divided by the clip
+duration is the speed the walk was authored at, which is exactly the number the
+foot-slide retiming needs. The hand-set constant said 1.45 m/s where the clip was
+a 0.35 m/s shamble.
+
+## Limbs reach far outside the collision radius
+
+**Cause.** A capsule or circle sized to the torso says nothing about where the
+arms go. This zombie's body radius is 0.45m while its skinned vertices reach
+0.82m from the origin mid-attack, so it could stand close enough to a wall to put
+an arm through it.
+
+**Fix.** `CREATURE_WALL_CLEARANCE` is a separate, larger radius used only for
+creature-versus-wall tests. `r` stays the body, because that is what the player's
+attack cone is sized against.
+
+**Measure it, do not guess.** Bone positions understate the reach; the skinned
+vertices are what gets drawn. `SkinnedMesh.applyBoneTransform()` gives the posed
+position of a vertex, and stepping the mixer through a clip while tracking the
+extreme is how the 0.82m above was found.
+
 ## Cloned objects share materials, so a hit flash lights up the whole horde
 
 **Cause.** `Object3D.clone()` shares geometry *and* materials by reference. That

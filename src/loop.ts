@@ -3,7 +3,8 @@ import { clipDuration, flashLoadedMesh, setAnim } from './assets';
 import { audioReady, lastBeat, setLastBeat, sfxCreature, sfxHeartbeat, sfxReloadStep } from './audio';
 import {
   ATTACK_IMPACT, ATTACK_IMPACT_REACH, ATTACK_SPEED, CELL, CHEST_LID_OPEN, EYE_H,
-  FALLBACK_ATTACK_TIME, LANTERN_WARN, LOOT_TIME, MUSKET_RELOAD, SPEED, SWING_IMPACT,
+  CREATURE_WALL_CLEARANCE, FALLBACK_ATTACK_TIME, LANTERN_WARN, LOOT_TIME, MUSKET_RELOAD,
+  SPEED, SWING_IMPACT,
   SWING_SPEED, SWING_WINDUP, TURN_RATE, WALK_CLIP_SPEED, WALK_TIMESCALE_RANGE, WALL_H,
 } from './config';
 import { playerHurt, resolveSwing } from './combat';
@@ -36,7 +37,7 @@ function animLoaded(m: Monster, pb: MonsterPlayback, dt: number): void {
     // Match playback rate to actual ground speed so the feet stop sliding.
     if (pb.action) {
       const [lo, hi] = WALK_TIMESCALE_RANGE;
-      const scale = (m.type.speed * m.speedMul) / WALK_CLIP_SPEED;
+      const scale = (m.type.speed * m.speedMul) / (pb.walkClipSpeed ?? WALK_CLIP_SPEED);
       pb.action.timeScale = Math.max(lo, Math.min(hi, scale));
     }
   } else {
@@ -312,8 +313,8 @@ function updateMonsters(dt: number, now: number): number {
           const step = t.speed * m.speedMul * dt;
           const nx = m.mesh.position.x + (ddx / dl) * step;
           const nz = m.mesh.position.z + (ddz / dl) * step;
-          if (!collides(nx, m.mesh.position.z, t.r)) m.mesh.position.x = nx;
-          if (!collides(m.mesh.position.x, nz, t.r)) m.mesh.position.z = nz;
+          if (!collides(nx, m.mesh.position.z, CREATURE_WALL_CLEARANCE)) m.mesh.position.x = nx;
+          if (!collides(m.mesh.position.x, nz, CREATURE_WALL_CLEARANCE)) m.mesh.position.z = nz;
         }
       }
       // Turn toward the player smoothly rather than snapping.

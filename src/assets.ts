@@ -341,8 +341,25 @@ export async function loadAssets(onProgress: (msg: string) => void): Promise<voi
       const r = await tryLoadModel(`${cfg.dir}/${name}`);
       if (r?.animations[0]) clips[name] = r.animations[0];
     }
-    templates[key] = { root, clips };
-    log.push(`${key}: loaded [${Object.keys(clips).join(', ')}] · ${describeSkin(root)}`);
+    // Named in the log because a clip with root motion is a download mistake the
+    // player would otherwise only see as a creature walking through a wall.
+    const drift = new Map<ClipName, number>();
+    for (const [name, clip] of Object.entries(clips) as [ClipName, THREE.AnimationClip][]) {
+      drift.set(name, stripRootMotion(clip));
+    }
+    const stripped = [...drift].filter(([, d]) => d > 0.05).map(([n, d]) => `${n} ${d.toFixed(2)}m`);
+
+    // How fast the walk was authored to travel. Measuring it beats guessing: the
+    // hand-set constant said 1.45 m/s where this clip is a 0.35 m/s shamble, and
+    // the retiming that stops the feet sliding depends on getting it right.
+    const walkDrift = drift.get('walk') ?? 0;
+    const walkDur = clips.walk?.duration ?? 0;
+    const walkClipSpeed = walkDrift > 0.05 && walkDur > 0 ? walkDrift / walkDur : null;
+
+    templates[key] = { root, clips, walkClipSpeed };
+    const note = (stripped.length ? ` · root motion removed: ${stripped.join(', ')}` : '')
+      + (walkClipSpeed ? ` · walk authored at ${walkClipSpeed.toFixed(2)}m/s` : '');
+    log.push(`${key}: loaded [${Object.keys(clips).join(', ')}] · ${describeSkin(root)}${note}`);
   }
 
   onProgress('Loading weapons');
@@ -382,9 +399,42 @@ export function spawnCreature(key: CreatureKey): SpawnedCreature {
   wrap.add(model);
   return {
     mesh: wrap,
-    playback: { mixer: new THREE.AnimationMixer(model), clips: t.clips, action: null, animName: null },
+    playback: {
+      mixer: new THREE.AnimationMixer(model),
+      clips: t.clips,
+      action: null,
+      animName: null,
+      walkClipSpeed: t.walkClipSpeed,
+    },
     rig: null,
   };
+}
+
+/**
+ * Flattens the horizontal root motion out of a clip, returning how much it took
+ * out in metres.
+ *
+ * Mixamo's walk is only in place if "In Place" was ticked at download time, and
+ * this one was not: the hips travelled 1.38m across the cycle and snapped back.
+ * That carries the whole body out of its collision circle and through walls,
+ * because collision only ever tests the group's position.
+ *
+ * The rule this enforces is that the game owns where a creature is and the clip
+ * owns only how it is posed. Y is left alone so the body still rises and falls.
+ */
+function stripRootMotion(clip: THREE.AnimationClip): number {
+  let drift = 0;
+  for (const track of clip.tracks) {
+    if (!/(hips|root)\.position$/i.test(track.name)) continue;
+    const v = track.values;
+    const [x0, , z0] = [v[0] ?? 0, 0, v[2] ?? 0];
+    for (let i = 0; i < v.length; i += 3) {
+      drift = Math.max(drift, Math.hypot((v[i] ?? 0) - x0, (v[i + 2] ?? 0) - z0));
+      v[i] = x0;
+      v[i + 2] = z0;
+    }
+  }
+  return drift;
 }
 
 export interface SetAnimOptions {

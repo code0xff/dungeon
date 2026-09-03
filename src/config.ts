@@ -144,10 +144,25 @@ export const FALLBACK_ATTACK_TIME = 0.9;
 export const ATTACK_IMPACT = 0.45;
 /** At impact the player must be within reach times this. Kept slightly generous. */
 export const ATTACK_IMPACT_REACH = 1.3;
-/** Ground speed in m/s that the Mixamo in-place walk clip assumes. Used to cancel foot sliding. */
+/**
+ * Fallback ground speed of the walk clip, in m/s.
+ *
+ * Only used when the clip is genuinely in place and its authored speed cannot be
+ * measured. Any clip with root motion is measured instead — see
+ * CreatureTemplate.walkClipSpeed.
+ */
 export const WALK_CLIP_SPEED = 1.45;
 /** Allowed range for the walk clip's timeScale, clamped so it never crawls or blurs. */
 export const WALK_TIMESCALE_RANGE: readonly [number, number] = [0.6, 1.9];
+/**
+ * Radius creatures keep from walls, as opposed to `r`, which is the body used
+ * for the player's attack cone.
+ *
+ * A zombie's arms reach about 1.0m from its origin while the body is only 0.45m
+ * across, so testing at the body radius let arms pass through walls in corners.
+ * A 4m corridor still leaves 2.1m of usable width at this clearance.
+ */
+export const CREATURE_WALL_CLEARANCE = 0.95;
 /** Top turn rate in rad/s, so creatures rotate rather than snap. */
 export const TURN_RATE = 6.0;
 /** Seconds the corpse lingers after the death animation ends. */
