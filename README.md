@@ -66,10 +66,6 @@ Two creatures: the **zombie**, and the **brute** — taller, slower, hits twice 
 hard and takes twice as many swings. Without a creature's files the game falls
 back to a box model for it.
 
-The brute's clips were downloaded motion-only, so it has no body of its own and
-wears the zombie's, scaled up and tinted (`skin` and `tint` in `CREATURE_ASSETS`).
-Give it a body by adding a With Skin `idle.fbx` and dropping the `skin` line.
-
 Working on this with a coding agent? Start at [AGENTS.md](AGENTS.md) — the ground
 rules, with the detail in [docs/](docs/). `CLAUDE.md` is a symlink to it.
 
@@ -138,11 +134,10 @@ With the character selected, go to the **Animations** tab and grab four clips:
 | `attack.fbx` | `zombie attack`, `punch`, `swing` |
 | `death.fbx` | `zombie death`, `dying`, `death` |
 
-For the brute, the same four clips from a heavier animation set — `zombie
-brute`, `mutant walking`, `mutant swiping`, `mutant dying`. Mixamo numbers the
-rig differently on every download (`mixamorig5:Hips` on one, `mixamorig:Hips` on
-another); the loader strips the number, so clips from one character bind to
-another's skeleton.
+For the brute, a heavier character and the same four slots. The four do not have
+to come off one download: Mixamo numbers the rig differently every time
+(`mixamorig5:Hips` on one, `mixamorig:Hips` on another) and the loader strips the
+number, so any character's clips bind to any character's skeleton.
 
 **Download settings**
 
@@ -169,6 +164,8 @@ are baked; nothing reads them again.
 ### Checking it worked
 
 - Reload and look for `zombie: loaded [idle, walk, attack, death]` in the console.
+  A `⚠ only n/m tracks bind` on that line means the clips and the body came off
+  rigs the loader could not reconcile.
 - Wrong size? Adjust `height` (metres) in `CREATURE_ASSETS`, `src/config.ts`.
 - Walking at you backwards? That character's origin faces the other way. Rare, but
   the fix is `model.rotation.y = Math.PI` in `spawnCreature()`, `src/assets.ts`.

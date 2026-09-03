@@ -8,17 +8,10 @@ import type { CreatureAsset, CreatureKey, CreatureType, WeaponAsset, WeaponKind 
 // Anything missing falls back to the models and textures built in code.
 export const CREATURE_ASSETS: Record<CreatureKey, CreatureAsset> = {
   zombie: { dir: 'creatures/zombie', height: 1.85 },
-  /**
-   * `skin: 'zombie'` because the brute's Mixamo clips were exported motion-only
-   * ("MotionOnlyScene" in the FBX, no mesh at all), so there is no brute body to
-   * draw. It borrows the zombie's, scaled up to 2.35m, which is what makes it
-   * read as the same rot gone large rather than as a second monster.
-   *
-   * To give it a body of its own: download idle again with a character picked on
-   * the Characters tab and the **With Skin** option, re-run
-   * `npm run optimize-assets`, then delete this `skin` line. Nothing else changes.
-   */
-  brute: { dir: 'creatures/brute', height: 2.35, skin: 'zombie', tint: 0xbcd0e2 },
+  // PumpkinHulk. Its idle carries the body; walk, attack and death are
+  // motion-only downloads off a differently numbered rig, and bind only because
+  // the loader normalises the Mixamo namespace — see MIXAMO_NS in assets.ts.
+  brute: { dir: 'creatures/brute', height: 2.35 },
 };
 export const WALL_TEX_DIR = 'textures/wall';
 export const FLOOR_TEX_DIR = 'textures/floor';
@@ -141,7 +134,7 @@ export const TYPES: Record<CreatureKey, CreatureType> = {
   brute: {
     name: 'Brute',
     hp: 6, dmg: 26, speed: 1.5, atkCd: 1.6, attackSpeed: 2.3,
-    reach: 2.1, r: 0.62, clearance: 1.15, reward: 45, aggro: 11,
+    reach: 2.1, r: 0.62, clearance: 1.6, reward: 45, aggro: 11,
     groan: [6, 11], voice: 0.55,
     animSpeed: 4.2, swing: 0.42,
   },

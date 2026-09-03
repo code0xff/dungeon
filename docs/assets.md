@@ -13,7 +13,7 @@ assets/       Everything the game loads. Committed. Served from the site root.
 URLs in `src/config.ts` drop the leading `assets/`: the file
 `assets/creatures/zombie/idle.glb` is loaded as `creatures/zombie/idle.glb`.
 
-`assets/` is committed on purpose. It is about 7MB of baked derivatives, and
+`assets/` is committed on purpose. It is about 8MB of baked derivatives, and
 committing it is what lets a fresh clone run the real game rather than the box
 models. `raw/` is not, both for size and because Mixamo forbids redistributing
 the FBX files themselves.
@@ -69,40 +69,42 @@ from the model over adding a constant someone has to keep in sync.
 **Props** (`PROP_ASSETS`) — `height` in metres, plus any node names the game
 needs to drive, such as the chest's `lidNode`.
 
-**Creatures** (`CREATURE_ASSETS`) — `height` in metres, measured from bones and
-not the bounding box (see [three.js pitfalls](threejs-pitfalls.md)), plus two
-fields for a creature that has clips but no body of its own:
+**Creatures** (`CREATURE_ASSETS`) — `dir` and `height` in metres, measured from
+bones and not the bounding box (see [three.js pitfalls](threejs-pitfalls.md)).
 
-| Field | Meaning |
-|---|---|
-| `skin` | wear another creature's mesh, keeping these clips. The source must be declared earlier; they load in order |
-| `tint` | hex colour multiplied into the materials, so the borrowed body is not mistaken for the one it came from |
+Only `idle` carries a body. **Download it With Skin**, and a character picked on
+Mixamo's Characters tab first. Every other clip is animation only. Getting this
+wrong on idle is the one failure that costs a round trip: an FBX marked
+`MotionOnlyScene` has no mesh at all, so the game falls back to the box model and
+says `no mesh (re-download idle with "With Skin")`.
 
-The brute is the case this exists for: its four Mixamo downloads are all
-`MotionOnlyScene`, animation with no mesh attached, so it wears the zombie at
-2.35m and ashen. Adding a With Skin `idle.fbx` and deleting the `skin` line is
-the whole migration.
-
-Mixamo numbers its rig per export — `mixamorig5:Hips` on one character,
-`mixamorig:Hips` on another — and three binds animation tracks to nodes by name,
-so clips from one download bind to nothing on another and the creature stands
-still. The loader strips the number from both bones and tracks, and the
-`[assets]` line warns when a clip still fails to bind.
+The four clips do not have to come off the same download. Mixamo numbers its rig
+per export — `mixamorig5:Hips` on one character, `mixamorig:Hips` on another —
+and three binds animation tracks to nodes by name, so clips from one download
+would bind to nothing on another and the creature would stand still. The loader
+strips the number from both bones and tracks, and the `[assets]` line warns when
+a clip still fails to bind. The brute's body and its three motion clips came off
+different rigs and bind anyway.
 
 ## Budget
 
-Roughly 6.9MB total, and it should stay in that range — this ships to phones.
+Under 8MB total, and that is a ceiling rather than a description to keep raising
+— this ships to phones.
 
 | | |
 |---|---|
-| creatures | 2.8MB (idle carries the skin and textures; the other clips are curves only) |
+| creatures | 3.7MB (idle carries the skin and textures; the other clips are curves only) |
 | weapons | 1.2MB |
 | props | 1.3MB |
 | textures | 1.4MB |
 
-A second creature costs almost nothing here: the brute's four clips are 0.26MB
-in total, because it borrows a body that is already loaded and its own files hold
-nothing but curves.
+Creature bulk is **geometry, not texture**. The zombie's idle is 2.4MB for 28,320
+vertices against 0.5MB of maps; the brute's is 1.0MB for 5,630 against 0.4MB. If
+this needs to come down, the lever is mesh compression or decimation, not smaller
+images — the images are already 1K webp and near the floor of what reads.
+
+The three motion clips of a creature cost about 0.2MB between them, because they
+are stripped to curves. Adding a creature is cheap; adding a *body* is not.
 
 Rules of thumb that got it there:
 

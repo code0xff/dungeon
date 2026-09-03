@@ -36,12 +36,13 @@ export interface CreatureType {
    *
    * A creature's arms reach far outside its body, so testing at the body radius
    * let arms pass through walls in corners. Stepping every skinned vertex through
-   * every clip puts the furthest point of a moving creature at 1.00m for the
-   * zombie and 1.02m for the brute, times the 1.08 top of SCALE_VARIANCE.
+   * every clip puts the furthest point of a moving creature at 0.97m for the
+   * zombie and 1.45m for the brute, times the 1.08 top of SCALE_VARIANCE.
    *
-   * Measure it per creature rather than deriving it from `r` or from height: the
-   * brute is 1.27x the zombie but reaches barely further, because the number
-   * comes from the pose the clip happens to strike and not from the body.
+   * Measure it per creature rather than deriving it from `r` or from height. The
+   * brute is only 1.27x the zombie's height but reaches 1.5x as far, because the
+   * number comes from the pose its own attack clip strikes — a wide overhead
+   * swing — and not from the size of the body.
    *
    * A 4m corridor leaves CELL - 2*clearance of usable width, so keep it well
    * under 2 or a creature cannot enter a corridor at all.
@@ -90,21 +91,6 @@ export interface CreatureAsset {
   dir: string;
   /** Height in metres the model is normalised to, feet on the floor. */
   height: number;
-  /**
-   * Borrow another creature's mesh, keeping this one's own clips.
-   *
-   * Mixamo will happily hand you an animation with no character attached, and
-   * a creature with clips but no body cannot be drawn. Rather than drop to the
-   * box model, it wears the named creature's skin at its own `height`. The
-   * source must appear earlier in CREATURE_ASSETS; it is loaded in order.
-   */
-  skin?: CreatureKey;
-  /**
-   * Hex colour multiplied into the model's materials. Mostly for a borrowed skin:
-   * size alone does not separate two creatures at ten metres in a dark corridor,
-   * and a torch reads colour long before it reads silhouette.
-   */
-  tint?: number;
 }
 
 export interface CreatureTemplate {
