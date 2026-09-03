@@ -94,9 +94,16 @@ different rigs and bind anyway.
 
 ## Budget
 
-Under 9MB total, and that is a ceiling rather than a description to keep raising
-— this ships to phones. It has been raised twice; the next creature should come
-out of the existing fat instead.
+**Under 16MB total**, currently 8.6MB.
+
+The ceiling was 6MB, then 7, then 8, then 9 — raised once per creature, which
+made it a running total wearing a limit's clothing. It is set at 16MB now to be
+what a limit is for: a line that says something when you cross it. Roughly seven
+more creatures of the current size fit under it, so adding one is a design
+decision rather than a budget conversation.
+
+It is still a real number. This is one uncached first load on a phone; the
+service worker only makes the second visit free.
 
 | | |
 |---|---|
@@ -116,8 +123,10 @@ Creature bulk is **geometry, not texture**, and it is not spread evenly:
 The zombie is the outlier — five times the geometry of either of the others for
 no visible gain at the size it renders. `weld()` then `simplify()` at ratio 0.5
 takes it to 14,581 vertices and 1.48MB, which is most of a megabyte for a model
-seen at 300px in the dark. It has not been done because its `raw/` FBX is gone
-and the pipeline bakes from FBX; re-download it and the win is there.
+seen at 300px in the dark. Not urgent under the current ceiling, and it needs the
+zombie's `raw/` FBX back because the pipeline bakes from FBX — but it is the first
+thing to reach for when the budget does start to bite, and it is the pattern for
+any creature that arrives heavy.
 
 Smaller images are *not* the lever — they are already 1K webp and near the floor
 of what reads.

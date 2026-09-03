@@ -50,9 +50,11 @@ Domain types belong in `src/types.ts`.
 
 **9. `raw/` is never committed; `assets/` always is.** Mixamo forbids
 redistributing the FBX sources, and the ~8.5MB of baked output is what lets a
-fresh clone run the real game. Keep the asset budget **under 9MB** — this ships
-to phones. Before raising that again, decimate: the zombie's mesh alone is worth
-about a megabyte (see [docs/assets.md](docs/assets.md)).
+fresh clone run the real game. Keep the asset budget **under 16MB** — deliberate
+headroom, so adding a creature is not a budget conversation every time. It is
+still a real limit: this is one first load on a phone, and the service worker
+only makes the *second* visit free. See [docs/assets.md](docs/assets.md) for
+where the weight actually sits.
 
 **10. Do not add dependencies casually.** `three` is pinned to `0.152.2` with a
 matching `@types/three`; upgrading is a deliberate task, not a side effect.
