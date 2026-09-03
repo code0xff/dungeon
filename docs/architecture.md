@@ -98,6 +98,14 @@ The worker is registered from `main.ts` **only in a production build**
 (`import.meta.env.PROD`); a caching worker in dev would serve stale modules and
 make HMR lie about what is running.
 
+One trap worth stating outside the file: **`code0xff.github.io` is a single
+origin for every project page on the account**, so Cache Storage, localStorage
+and service worker registrations are shared with the other apps published there.
+Cache names carry a `dungeon-` prefix and the activate sweep only deletes within
+it; a sweep written as "delete everything that is not the current cache" wipes a
+neighbouring app's offline copy. The localStorage key is namespaced for the same
+reason.
+
 Its caching strategy and the reasoning are documented at the top of `sw.js`.
 The short version: navigations are network-first so a deploy is picked up, and
 everything else is stale-while-revalidate so the ~6MB of assets loads instantly
