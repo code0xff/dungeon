@@ -25,6 +25,7 @@ export const lootBtn = el('lootBtn');
 export const wpnBtn = el('wpnBtn');
 export const potBtn = el('potBtn');
 export const lampBtn = el('lampBtn');
+export const dashBtn = el('dashBtn');
 export const atkBtn = el('atkBtn');
 export const minimapEl = el<HTMLCanvasElement>('minimap');
 
@@ -62,6 +63,7 @@ export function updateHUD(): void {
     slot(POTION_KEY, 'Potion', state.potions),
     slot(LANTERN_KEY, 'Lantern', state.lanterns),
   );
+  dashBtn.classList.add('show');
   potBtn.classList.toggle('show', state.potions > 0);
   lampBtn.classList.toggle('show', state.lanterns > 0);
   potCount.textContent = String(state.potions);

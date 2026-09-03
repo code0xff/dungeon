@@ -2,7 +2,8 @@ import * as THREE from 'three';
 import { clipDuration, flashLoadedMesh, setAnim } from './assets';
 import { audioReady, lastBeat, setLastBeat, sfxCreature, sfxHeartbeat, sfxReloadStep } from './audio';
 import {
-  ATTACK_IMPACT, ATTACK_IMPACT_REACH, CELL, CHEST_LID_OPEN, CREATURE_DRAW_DISTANCE, EYE_H,
+  ATTACK_IMPACT, ATTACK_IMPACT_REACH, CELL, CHEST_LID_OPEN, CREATURE_DRAW_DISTANCE,
+  DASH_ROLL, DASH_SPEED, DASH_TIME, EYE_H,
   FALLBACK_ATTACK_TIME, GEAR_BOB, GEAR_BOB_ROLL, LAMP_SWAY, LAMP_SWAY_LAG,
   LANTERN_WARN, LOOT_TIME, MUSKET_RELOAD, PORTAL_RADIUS, SPEED, STRIDE_RATE, SWAY_DAMP,
   SWING_IMPACT,
@@ -10,7 +11,7 @@ import {
 } from './config';
 import { playerHurt, resolveSwing } from './combat';
 import { findPath } from './dungeon';
-import { edgeTurn, keys, moveVec } from './input';
+import { edgeTurn, keys, moveInput } from './input';
 import { openChest } from './loot';
 import {
   DUST, camera, dustGeo, flashLight, gearBob, handLamp, LAMP_REST, MUSKET_REST, musket,
@@ -107,14 +108,27 @@ function updatePlayer(dt: number, now: number): boolean {
   if (keys['ArrowRight']) state.yaw -= 2.2 * dt;
   edgeTurn(dt);
 
-  let f = 0, s = 0;
-  if (keys['KeyW'] || keys['ArrowUp']) f += 1;
-  if (keys['KeyS'] || keys['ArrowDown']) f -= 1;
-  if (keys['KeyA']) s -= 1;
-  if (keys['KeyD']) s += 1;
-  f += -moveVec.y;
-  s += moveVec.x;
+  state.dashCd = Math.max(0, state.dashCd - dt);
 
+  // Moving each axis separately is what lets the player slide along a wall.
+  const step = (dx: number, dz: number): void => {
+    if (!collides(state.pos.x + dx, state.pos.z)) state.pos.x += dx;
+    if (!collides(state.pos.x, state.pos.z + dz)) state.pos.z += dz;
+  };
+
+  // ---- Dodging: the locked direction overrides input until it ends ----
+  if (state.dashT >= 0) {
+    state.dashT += dt;
+    // Eased out, so it leaves fast and arrives settled rather than stopping dead.
+    const k = 1 - (state.dashT / DASH_TIME) ** 2;
+    step(state.dashX * DASH_SPEED * Math.max(0, k) * dt, state.dashZ * DASH_SPEED * Math.max(0, k) * dt);
+    if (state.dashT >= DASH_TIME) state.dashT = -1;
+    state.pos.y = EYE_H;
+    return true;
+  }
+
+  const { f: rawF, s: rawS } = moveInput();
+  let f = rawF, s = rawS;
   const len = Math.hypot(f, s);
   let moving = false;
   if (len > 0.01) {
@@ -122,11 +136,10 @@ function updatePlayer(dt: number, now: number): boolean {
     // Normalise so diagonals are not faster, but leave small stick inputs alone.
     f /= Math.max(len, 1);
     s /= Math.max(len, 1);
-    const dx = (Math.sin(state.yaw) * f - Math.cos(state.yaw) * s) * SPEED * dt;
-    const dz = (Math.cos(state.yaw) * f + Math.sin(state.yaw) * s) * SPEED * dt;
-    // Moving each axis separately is what lets the player slide along a wall.
-    if (!collides(state.pos.x + dx, state.pos.z)) state.pos.x += dx;
-    if (!collides(state.pos.x, state.pos.z + dz)) state.pos.z += dz;
+    step(
+      (Math.sin(state.yaw) * f - Math.cos(state.yaw) * s) * SPEED * dt,
+      (Math.cos(state.yaw) * f + Math.sin(state.yaw) * s) * SPEED * dt,
+    );
   }
   state.pos.y = EYE_H + (moving ? Math.sin(now * 0.012) * 0.045 : 0);
   return moving;
@@ -497,7 +510,10 @@ export function animate(): void {
   }
 
   camera.position.copy(state.pos);
-  camera.rotation.set(state.pitch, state.yaw + Math.PI, 0, 'YXZ');
+  // A sideways dodge rolls the view into it and back out. Straight dodges do not
+  // roll, because rolling a forward lunge reads as a stumble.
+  const dashK = state.dashT >= 0 ? Math.sin((state.dashT / DASH_TIME) * Math.PI) : 0;
+  camera.rotation.set(state.pitch, state.yaw + Math.PI, state.dashSide * DASH_ROLL * dashK, 'YXZ');
   updateAmbience(dt, now);
   renderFrame();
 }

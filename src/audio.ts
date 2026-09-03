@@ -166,6 +166,28 @@ export function sfxCreature(voice: number, vol: number): void {
   o.stop(t + 1.6);
 }
 
+/** The dodge: a short downward whoosh, so it does not read as another sword swing. */
+export function sfxDash(): void {
+  if (!audio) return;
+  const { ctx, master, noiseBuf } = audio;
+  const t = ctx.currentTime;
+  const s = ctx.createBufferSource();
+  s.buffer = noiseBuf;
+  const bp = ctx.createBiquadFilter();
+  bp.type = 'bandpass';
+  bp.Q.value = 0.8;
+  // Falling, where the sword's sweep rises — the ear tells them apart instantly.
+  bp.frequency.setValueAtTime(1800, t);
+  bp.frequency.exponentialRampToValueAtTime(320, t + 0.18);
+  const g = ctx.createGain();
+  env(g, t, 0.02, 0.3, 0.22);
+  s.connect(bp);
+  bp.connect(g);
+  g.connect(master);
+  s.start(t);
+  s.stop(t + 0.3);
+}
+
 export function sfxSwing(): void {
   if (!audio) return;
   const { ctx, master, noiseBuf } = audio;

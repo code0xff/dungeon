@@ -1,11 +1,11 @@
-import { initAudio } from './audio';
-import { LANTERN_KEY, POTION_KEY } from './config';
+import { initAudio, sfxDash } from './audio';
+import { DASH_CD, LANTERN_KEY, POTION_KEY } from './config';
 import { el, queryChild } from './dom';
 import { canvasEl } from './scene';
 import { state } from './state';
 import { tryAttack } from './combat';
 import { startLoot, useLantern, usePotion } from './loot';
-import { atkBtn, lampBtn, lockHintEl, lootBtn, potBtn, showMsg, wpnBtn } from './ui';
+import { atkBtn, dashBtn, lampBtn, lockHintEl, lootBtn, potBtn, showMsg, wpnBtn } from './ui';
 import { setWeapon, toggleWeapon } from './weapons';
 
 const SENS = 0.0022;
@@ -18,6 +18,45 @@ const EDGE_TURN = 1.6;
 // ================= Keyboard =================
 export const keys: Record<string, boolean> = {};
 
+/**
+ * The move input this frame, as forward and strafe in -1..1, keyboard and
+ * virtual stick summed. Lives here rather than in the frame loop because both
+ * the loop and the dodge below need it, and the raw inputs are here.
+ */
+export function moveInput(): { f: number; s: number } {
+  let f = 0, s = 0;
+  if (keys['KeyW'] || keys['ArrowUp']) f += 1;
+  if (keys['KeyS'] || keys['ArrowDown']) f -= 1;
+  if (keys['KeyA']) s -= 1;
+  if (keys['KeyD']) s += 1;
+  f += -moveVec.y;
+  s += moveVec.x;
+  return { f, s };
+}
+
+/**
+ * Starts a dodge in whatever direction the player is already holding, or
+ * straight ahead when they are standing still.
+ *
+ * The direction is locked in here rather than read every frame, so turning the
+ * mouse mid-dodge does not curve it. A dodge that steers is just fast walking.
+ * All this does is set state; updatePlayer() moves the player, which is what
+ * keeps the dodge inside the same wall checks as walking.
+ */
+export function tryDash(): void {
+  if (state.gameOver || state.dashT >= 0 || state.dashCd > 0) return;
+
+  const { f, s } = moveInput();
+  const len = Math.hypot(f, s);
+  const [nf, ns] = len > 0.01 ? [f / len, s / len] : [1, 0];
+  state.dashX = Math.sin(state.yaw) * nf - Math.cos(state.yaw) * ns;
+  state.dashZ = Math.cos(state.yaw) * nf + Math.sin(state.yaw) * ns;
+  state.dashSide = Math.abs(ns) > 0.2 ? Math.sign(ns) : 0;
+  state.dashT = 0;
+  state.dashCd = DASH_CD;
+  sfxDash();
+}
+
 addEventListener('keydown', (e) => {
   keys[e.code] = true;
   if (e.code === 'Space') {
@@ -25,6 +64,9 @@ addEventListener('keydown', (e) => {
     tryAttack();
   }
   if (e.code === 'KeyE') startLoot();
+  // Shift, not a direction key of its own: the dodge goes where you are already
+  // going, so it adds a finger rather than a decision.
+  if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') tryDash();
   // Keep Q working on a Korean keyboard layout, where it types ㅂ.
   if (e.code === 'KeyQ' || e.key === 'q' || e.key === 'Q' || e.key === 'ㅂ') toggleWeapon();
   if (e.code === 'Digit1') setWeapon('sword');
@@ -173,7 +215,7 @@ function resetStick(): void {
 
 const touchButtons = [
   [atkBtn, tryAttack], [lootBtn, startLoot], [wpnBtn, toggleWeapon],
-  [potBtn, usePotion], [lampBtn, useLantern],
+  [potBtn, usePotion], [lampBtn, useLantern], [dashBtn, tryDash],
 ] as const;
 
 for (const [btn, action] of touchButtons) {

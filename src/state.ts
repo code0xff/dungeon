@@ -35,6 +35,17 @@ export const state = {
   /** Whether this swing already resolved, so one swing cuts once. */
   swingHit: false,
 
+  // ---- Dodge ----
+  /** Seconds of dodge left; -1 when not dodging. */
+  dashT: -1,
+  /** Seconds until it can be used again. */
+  dashCd: 0,
+  /** Direction locked in when the dodge started, as a world-space unit vector. */
+  dashX: 0,
+  dashZ: 0,
+  /** -1 left, +1 right, 0 straight. Only used for the camera roll. */
+  dashSide: 0,
+
   // ---- Looting ----
   looting: null as Looting | null,
   nearChest: null as Chest | null,
