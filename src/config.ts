@@ -108,16 +108,28 @@ export const LANTERN_WARN = 30;
  * looking thrown.
  */
 export const LAMP_SWAY = 0.075;
-/** Sway cycles per second while walking. Roughly one per stride. */
-export const LAMP_SWAY_SPEED = 3.4;
+/** Stride rate in cycles per second — what both the lantern and the weapons move to. */
+export const STRIDE_RATE = 3.4;
 /** Radians the swing trails the stride by. */
 export const LAMP_SWAY_LAG = 0.9;
 /**
- * How fast the swing spins up and settles again, in units per second — 0.38s
- * either way. Both directions on purpose: a swing that appears the instant a key
- * goes down is as wrong as one that stops dead when it comes up.
+ * How fast held gear starts moving and settles again, in units per second —
+ * 0.38s either way. Both directions on purpose: motion that appears the instant
+ * a key goes down is as wrong as motion that stops dead when it comes up.
  */
-export const LAMP_SWAY_DAMP = 2.6;
+export const SWAY_DAMP = 2.6;
+
+/**
+ * How far the held weapons travel with the stride, in metres, and how far they
+ * roll, in radians.
+ *
+ * Much smaller than the lantern's swing, and for a different reason: a weapon is
+ * gripped, not hung, so it moves with the body rather than swinging from it. It
+ * also sits close to the camera, where a centimetre reads as a lot. The vertical
+ * term runs at twice the rate because both feet land per cycle.
+ */
+export const GEAR_BOB = 0.013;
+export const GEAR_BOB_ROLL = 0.014;
 
 /** The player's light, unlit and lit. Fog closes in when the lantern dies. */
 export const LIGHT_DIM = { distance: 11, intensity: 1.75, fog: FOG_BASE } as const;

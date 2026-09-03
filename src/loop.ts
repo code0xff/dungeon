@@ -3,8 +3,8 @@ import { clipDuration, flashLoadedMesh, setAnim } from './assets';
 import { audioReady, lastBeat, setLastBeat, sfxCreature, sfxHeartbeat, sfxReloadStep } from './audio';
 import {
   ATTACK_IMPACT, ATTACK_IMPACT_REACH, CELL, CHEST_LID_OPEN, EYE_H,
-  FALLBACK_ATTACK_TIME, LAMP_SWAY, LAMP_SWAY_DAMP, LAMP_SWAY_LAG, LAMP_SWAY_SPEED,
-  LANTERN_WARN, LOOT_TIME, MUSKET_RELOAD, SPEED, SWING_IMPACT,
+  FALLBACK_ATTACK_TIME, GEAR_BOB, GEAR_BOB_ROLL, LAMP_SWAY, LAMP_SWAY_LAG,
+  LANTERN_WARN, LOOT_TIME, MUSKET_RELOAD, SPEED, STRIDE_RATE, SWAY_DAMP, SWING_IMPACT,
   SWING_SPEED, SWING_WINDUP, TURN_RATE, WALK_CLIP_SPEED, WALK_TIMESCALE_RANGE, WALL_H,
 } from './config';
 import { playerHurt, resolveSwing } from './combat';
@@ -12,9 +12,9 @@ import { findPath } from './dungeon';
 import { edgeTurn, keys, moveVec } from './input';
 import { openChest } from './loot';
 import {
-  DUST, camera, dustGeo, flashLight, handLamp, LAMP_REST, MUSKET_REST, musket, muzzleFlash,
-  portal, portalCore, renderFrame, scene, setLampLit, SMOKE_REST_Y, smoke, sword, SWORD_REST,
-  playerLight,
+  DUST, camera, dustGeo, flashLight, gearBob, handLamp, LAMP_REST, MUSKET_REST, musket,
+  muzzleFlash, portal, portalCore, renderFrame, scene, setLampLit, SMOKE_REST_Y, smoke, sword,
+  SWORD_REST, playerLight,
 } from './scene';
 import { state } from './state';
 import { collides } from './world';
@@ -387,19 +387,32 @@ function updateLantern(dt: number): void {
 
 // ================= Atmosphere =================
 /**
- * Swings the carried lantern while the player walks and lets it settle when they
- * stop. `swayT` ramps 0..1 with movement so the swing starts and ends smoothly
+ * Moves everything held in hand with the player's stride, and lets it settle when
+ * they stop. `swayT` ramps 0..1 with movement so it starts and ends smoothly
  * instead of snapping on the frame the player touches a key.
+ *
+ * The two hands do not move alike, on purpose. The lantern *hangs*, so it swings
+ * on a lag behind the stride and its motion is mostly roll. The weapons are
+ * *gripped*, so they ride the body: a small figure of eight, with the vertical
+ * term at twice the rate because both feet land per cycle. Giving them the same
+ * motion made the sword look like it was dangling from a strap.
  */
 let swayT = 0;
 
-function updateLamp(dt: number, now: number, moving: boolean): void {
+function updateHeldGear(dt: number, now: number, moving: boolean): void {
+  swayT = Math.max(0, Math.min(1, swayT + (moving ? dt : -dt) * SWAY_DAMP));
+  const t = (now / 1000) * STRIDE_RATE;
+
+  // ---- Weapons: carried by the body ----
+  const b = swayT * GEAR_BOB;
+  gearBob.position.x = Math.sin(t) * b;
+  gearBob.position.y = Math.abs(Math.sin(t)) * -b;
+  gearBob.rotation.z = Math.sin(t) * swayT * GEAR_BOB_ROLL;
+  gearBob.rotation.x = Math.abs(Math.sin(t)) * swayT * GEAR_BOB_ROLL * 0.4;
+
+  // ---- Lantern: hung from the other hand ----
   if (!handLamp.visible) return;
-  swayT = Math.max(0, Math.min(1, swayT + (moving ? dt * LAMP_SWAY_DAMP : -dt * LAMP_SWAY_DAMP)));
-  const t = (now / 1000) * LAMP_SWAY_SPEED;
   const a = swayT * LAMP_SWAY;
-  // Roll is the swing itself; the smaller vertical and lateral terms are the
-  // hand carrying it, and run at twice the rate the way a stride does.
   handLamp.rotation.z = LAMP_REST.rot.z + Math.sin(t - LAMP_SWAY_LAG) * a;
   handLamp.rotation.x = LAMP_REST.rot.x + Math.sin(t * 2 - LAMP_SWAY_LAG) * a * 0.35;
   handLamp.position.x = LAMP_REST.pos.x + Math.sin(t - LAMP_SWAY_LAG) * a * 0.09;
@@ -459,7 +472,7 @@ export function animate(): void {
     updateLantern(dt);
     const nearest = updateMonsters(dt, now);
     updateChests(dt, moving);
-    updateLamp(dt, now, moving);
+    updateHeldGear(dt, now, moving);
 
     // The closer a creature is, the faster the heart beats.
     if (audioReady() && nearest < 7.5) {
