@@ -66,15 +66,18 @@ dungeon/
 Three creatures, each built around one idea. Without a creature's files the game
 falls back to a box model for it.
 
-| | HP | Damage | Speed | Reward | Per run |
-|---|---|---|---|---|---|
-| **Zombie** | 3 | 14 | 2.2 | 10 G | 15 |
-| **Brute** | 6 | 26 | 1.5 | 45 G | 4 |
-| **Lunatic** | 2 | 10 | 4.4 | 25 G | 5 |
+| | HP | Damage | Speed | Notices you | Reward | Per run |
+|---|---|---|---|---|---|---|
+| **Zombie** | 4 | 17 | 2.9 | 13m | 12 G | 24 |
+| **Brute** | 9 | 32 | 2.0 | 13m | 55 G | 7 |
+| **Lunatic** | 3 | 14 | 4.5 | 18m | 30 G | 9 |
 
-The lunatic is the one to watch: at 4.4 m/s against your 5.2 it cannot quite be
-outrun, and it notices you from 14m — beyond the lantern. It dies to two sword
-swings, which is the only reason that is survivable.
+Forty of them, and standing still is how you die. **The sword cuts the two
+nearest creatures in its arc, not everything in front of it**, so a crowd is a
+crowd — the answer to being surrounded is the corridor behind you, or the musket
+before they arrive. Every creature is slower than you even at the top of its
+speed variance, so retreating always works; it just tends to back you into
+something else.
 
 Working on this with a coding agent? Start at [AGENTS.md](AGENTS.md) — the ground
 rules, with the detail in [docs/](docs/). `CLAUDE.md` is a symlink to it.

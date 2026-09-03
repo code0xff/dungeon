@@ -1,6 +1,9 @@
 import { clipDuration, setAnim } from './assets';
 import { sfxHit, sfxShot, sfxSwing } from './audio';
-import { ATTACK_CD, ATTACK_RANGE, CORPSE_LINGER, MUSKET_DMG, MUSKET_RANGE, SHOT_ALERT_RADIUS } from './config';
+import {
+  ATTACK_CD, ATTACK_RANGE, CORPSE_LINGER, MUSKET_DMG, MUSKET_RANGE, SHOT_ALERT_RADIUS,
+  SWORD_ARC, SWORD_CLEAVE,
+} from './config';
 import { flashLight, muzzleFlash, scene, smoke } from './scene';
 import { state } from './state';
 import type { Monster } from './types';
@@ -108,21 +111,27 @@ export function tryAttack(): void {
 export function resolveSwing(): void {
   if (state.gameOver) return;
 
-  // The sword cuts every creature inside the arc at once.
+  // The nearest SWORD_CLEAVE creatures inside the arc, and no more. Cutting
+  // everything in front made a crowd no harder than one creature, which is the
+  // whole reason a horde never felt like one.
   const [fx, fz] = facing();
+  const inArc: { m: Monster; d: number }[] = [];
   for (const m of state.monsters) {
     if (m.hp <= 0) continue;
     const dx = m.mesh.position.x - state.pos.x, dz = m.mesh.position.z - state.pos.z;
     const d = Math.hypot(dx, dz);
     if (d > ATTACK_RANGE + m.type.r) continue;
-    if ((dx * fx + dz * fz) / (d || 1) > 0.35) {
-      m.hp--;
-      m.hurtT = 0.18;
-      sfxHit(false);
-      if (m.hp <= 0) {
-        showMsg(`${m.type.name} killed +${m.type.reward} G`);
-        killMonster(m);
-      }
+    if ((dx * fx + dz * fz) / (d || 1) > SWORD_ARC) inArc.push({ m, d });
+  }
+  inArc.sort((a, b) => a.d - b.d);
+
+  for (const { m } of inArc.slice(0, SWORD_CLEAVE)) {
+    m.hp--;
+    m.hurtT = 0.18;
+    sfxHit(false);
+    if (m.hp <= 0) {
+      showMsg(`${m.type.name} killed +${m.type.reward} G`);
+      killMonster(m);
     }
   }
 }

@@ -229,6 +229,24 @@ is fully off screen on a portrait phone. Decide whether that is acceptable for t
 object in question — for the lantern it is, because the touch move stick occupies
 the same corner — but never tune it against a single window size.
 
+## Every creature in the level is drawn, even the ones behind you
+
+**Cause.** A skinned mesh's bounding volume is its **bind pose**, so three culls
+animated characters at the wrong moment — they vanish while still on screen. The
+usual fix is `frustumCulled = false`, which this loader applies to every creature.
+That trades one bug for a bill: nothing is ever culled, so all 40 creatures are
+submitted every frame from anywhere in the dungeon. Measured at 1.51M triangles a
+frame against 165K for the room itself.
+
+**Fix.** Cull by distance instead, in the frame loop, where the game already knows
+how far away each creature is: `mesh.visible = dist < CREATURE_DRAW_DISTANCE`.
+Correct by construction, because the number comes from the fog — `FogExp2` at the
+lit density of 0.08 is fully opaque by about 27m, so a 30m cut is past anything
+that could be seen. It took the same scene to 225K triangles and 359 draw calls
+from 441.
+
+They still path, animate and attack out there. Only the drawing stops.
+
 ## A camera-child object disappears at the screen edge
 
 **Cause.** Frustum culling misjudges objects parented to the camera.

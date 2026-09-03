@@ -65,6 +65,22 @@ export const CHEST_COUNT = 10;
 export const CHEST_LID_OPEN = -1.5;
 export const ATTACK_RANGE = 2.3;
 export const ATTACK_CD = 0.45;
+/**
+ * Half-width of the sword's arc, as the cosine of the angle from where the
+ * player is looking. 0.62 is about 103 degrees of total sweep.
+ *
+ * It was 0.35 — 139 degrees — which with no cap on targets made the sword a
+ * lawnmower: every creature in front died at the same rate whether there was one
+ * or fifteen, so a horde was never worse than a single zombie.
+ */
+export const SWORD_ARC = 0.62;
+/**
+ * How many creatures one swing can cut. This is what makes numbers matter: past
+ * two, the rest of the crowd is still coming while the blade is busy, and the
+ * answer to being surrounded becomes the corridor behind you rather than
+ * standing still and sweeping.
+ */
+export const SWORD_CLEAVE = 2;
 
 // ---- Sword swing ----
 // The blade is raised, then brought down. One cycle takes 1/SWING_SPEED seconds.
@@ -139,7 +155,8 @@ export const LIGHT_LIT = { distance: 19, intensity: 2.7, fog: FOG_TORCH } as con
 export const EYE_H = 1.55;
 
 // ---- Musket ----
-export const MUSKET_DMG = 3;
+/** Kept at or above the light creatures' hp, so a ball is always a kill on one. */
+export const MUSKET_DMG = 4;
 export const MUSKET_RELOAD = 3.0;
 
 // ---- Ammo ----
@@ -156,8 +173,8 @@ export const SHOT_ALERT_RADIUS = 20;
 export const TYPES: Record<CreatureKey, CreatureType> = {
   zombie: {
     name: 'Zombie',
-    hp: 3, dmg: 14, speed: 2.2, atkCd: 1.0, attackSpeed: 1.6,
-    reach: 1.6, r: 0.45, clearance: 1.15, reward: 10, aggro: 9,
+    hp: 4, dmg: 17, speed: 2.9, atkCd: 0.8, attackSpeed: 1.6,
+    reach: 1.7, r: 0.45, clearance: 1.15, reward: 12, aggro: 13,
     groan: [4, 8], voice: 1,
     animSpeed: 6.5, swing: 0.5,
   },
@@ -166,20 +183,26 @@ export const TYPES: Record<CreatureKey, CreatureType> = {
    * enough to back away from — the answer to a brute is the corridor behind you,
    * or the musket, and neither works if it can keep pace.
    *
-   * hp 6 is six sword swings at ATTACK_CD, or two musket balls at MUSKET_DMG 3.
+   * hp 9 is nine sword swings — four seconds of standing still while it hits
+   * back for 32 every two — or three musket balls. Trading with one is meant to
+   * be a bad idea; the answer is the corridor, or shooting it before it arrives.
    */
   brute: {
     name: 'Brute',
-    hp: 6, dmg: 26, speed: 1.5, atkCd: 1.6, attackSpeed: 2.3,
-    reach: 2.1, r: 0.62, clearance: 1.6, reward: 45, aggro: 11,
+    hp: 9, dmg: 32, speed: 2.0, atkCd: 1.6, attackSpeed: 2.3,
+    reach: 2.2, r: 0.62, clearance: 1.6, reward: 55, aggro: 13,
     groan: [6, 11], voice: 0.55,
     animSpeed: 4.2, swing: 0.42,
   },
   /**
-   * The sprinter. Everything about it is built around speed 4.4 against the
+   * The sprinter. Everything about it is built around its speed against the
    * player's SPEED of 5.2 — fast enough that walking away does not work and
    * running away barely does, slow enough that the corridor behind you is still
-   * an answer. Push it past 5.2 and there is no counterplay left at all.
+   * an answer.
+   *
+   * The ceiling is not 5.2 but 5.2 / the top of SPEED_VARIANCE, which is 4.52.
+   * Above that the fastest individuals outrun the player outright and there is no
+   * disengaging from them at all. 4.5 sits just under it on purpose.
    *
    * It pays for that in hp 2: two sword swings, or one musket ball. Meeting one
    * should be a scramble that is over quickly either way, not a fight.
@@ -190,8 +213,8 @@ export const TYPES: Record<CreatureKey, CreatureType> = {
    */
   lunatic: {
     name: 'Lunatic',
-    hp: 2, dmg: 10, speed: 4.4, atkCd: 0.7, attackSpeed: 3.6,
-    reach: 1.5, r: 0.4, clearance: 1.15, reward: 25, aggro: 14,
+    hp: 3, dmg: 14, speed: 4.5, atkCd: 0.7, attackSpeed: 3.6,
+    reach: 1.6, r: 0.4, clearance: 1.15, reward: 30, aggro: 18,
     groan: [3, 6], voice: 1.6,
     animSpeed: 11, swing: 0.7,
   },
@@ -202,20 +225,27 @@ export const TYPES: Record<CreatureKey, CreatureType> = {
  * The dungeon is 23x23 cells at 4m each, so this is what sets the odds of
  * turning a corner into something.
  *
- * The mix matters more than the total, and the total has stayed near 24 while
- * the mix changed. Zombies set the pace; brutes and lunatics punctuate it, and
- * both are rare because each is an interruption rather than a texture. Five
- * lunatics across a few hundred floor cells is roughly one chase per stage.
+ * The mix matters more than the total. Zombies set the pace; brutes and lunatics
+ * punctuate it. 40 across roughly 270 floor cells is one creature every seven
+ * cells, which is dense enough that backing away from one tends to back you into
+ * another — the thing that actually makes a dungeon feel dangerous, more than any
+ * single creature's stat line does.
  */
-export const SPAWN: Readonly<Record<CreatureKey, number>> = { zombie: 15, brute: 4, lunatic: 5 };
+export const SPAWN: Readonly<Record<CreatureKey, number>> = { zombie: 24, brute: 7, lunatic: 9 };
 
 // ---- Creature animation ----
 /** Attack duration in seconds when the external model carries no attack clip. */
 export const FALLBACK_ATTACK_TIME = 0.9;
 /** Where in the attack clip the hit resolves (0 = start, 1 = end) — as the arm comes down. */
 export const ATTACK_IMPACT = 0.45;
-/** At impact the player must be within reach times this. Kept slightly generous. */
-export const ATTACK_IMPACT_REACH = 1.3;
+/**
+ * At impact the player must be within reach times this.
+ *
+ * The whole attack is a windup the player can walk out of, and at 1.3 against a
+ * player who moves at SPEED that was nearly free. 1.5 still rewards backing off
+ * early; it just stops a late step from cancelling a hit that already landed.
+ */
+export const ATTACK_IMPACT_REACH = 1.5;
 /**
  * Fallback ground speed of the walk clip, in m/s.
  *
@@ -226,6 +256,21 @@ export const ATTACK_IMPACT_REACH = 1.3;
 export const WALK_CLIP_SPEED = 1.45;
 /** Allowed range for the walk clip's timeScale, clamped so it never crawls or blurs. */
 export const WALK_TIMESCALE_RANGE: readonly [number, number] = [0.6, 1.9];
+/**
+ * Beyond this many metres a creature is not drawn, in metres.
+ *
+ * Creature meshes run with frustumCulled off, because a skinned mesh's bounds
+ * are the bind pose and three culls them wrongly — so without this every
+ * creature in the dungeon is drawn every frame, facing or not. At 40 creatures
+ * that was 1.51M triangles a frame against 165K for the room itself.
+ *
+ * 30m is past what can be seen: FogExp2 at the lit density of 0.08 is fully
+ * opaque by about 27m, and the camera's far plane is 60. Raise the fog and this
+ * has to move with it.
+ *
+ * They still think and animate out there — only the drawing stops.
+ */
+export const CREATURE_DRAW_DISTANCE = 30;
 /** Top turn rate in rad/s, so creatures rotate rather than snap. */
 export const TURN_RATE = 6.0;
 /** Seconds the corpse lingers after the death animation ends. */
