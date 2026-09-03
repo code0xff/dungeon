@@ -1,4 +1,4 @@
-import { CELL, GRID, LANTERN_KEY, POTION_KEY } from './config';
+import { CELL, GRID, LANTERN_KEY, POTION_KEY, SPAWN_PEAK_STAGE } from './config';
 import { context2d, el, firstChild, queryChild } from './dom';
 import { bankRun, loseRun, progress } from './progress';
 import { state } from './state';
@@ -166,7 +166,11 @@ export function endRun(extracted: boolean): void {
     });
     title.textContent = 'Extracted';
     title.className = 'win';
-    desc.textContent = `Banked ${state.runGold} G. Your gear carries to stage ${progress.stage}.`;
+    // Told, because the stage number is otherwise just a label — the player has
+    // no way to know the dungeon fills up until something has already found them.
+    const deeper = progress.stage <= SPAWN_PEAK_STAGE ? ' It will be busier down there.' : '';
+    desc.textContent =
+      `Banked ${state.runGold} G. Your gear carries to stage ${progress.stage}.${deeper}`;
   } else {
     const lost = [state.lanternT > 0 && 'lantern', state.ammo > 0 && `${state.ammo} ammo`]
       .filter(Boolean).join(' and ');

@@ -1,4 +1,6 @@
-import type { CreatureAsset, CreatureKey, CreatureType, ItemKind, WeaponAsset, WeaponKind } from './types';
+import type {
+  CreatureAsset, CreatureKey, CreatureType, ItemKind, SpawnRate, WeaponAsset, WeaponKind,
+} from './types';
 
 // ================= Asset configuration =================
 // publicDir='assets' in vite.config.ts is why none of these paths carry an 'assets/' prefix.
@@ -293,17 +295,36 @@ export const TYPES: Record<CreatureKey, CreatureType> = {
 };
 
 /**
- * How many of each creature spawn in one run.
- * The dungeon is 23x23 cells at 4m each, so this is what sets the odds of
- * turning a corner into something.
+ * How many of each creature spawn, as stage 1's count plus a per-stage increase.
  *
- * The mix matters more than the total. Zombies set the pace; brutes and lunatics
- * punctuate it. What is tuned here is **density, not headcount**: one creature
- * per seven floor cells is dense enough that backing away from one tends to back
- * you into another, and that is what makes a dungeon feel dangerous — more than
- * any single creature's stat line does. Scale these with MAZE_CELLS to hold it.
+ * This is what makes the stage number mean something rather than being a label
+ * on an identical dungeon. Stage 1 is deliberately thin — 40 creatures across
+ * 510 floor cells, about one per 13, sparse enough to learn the game in — and it
+ * fills up from there to about one per 4.5 at the peak.
+ *
+ * **The mix shifts, not just the count.** Brutes and lunatics grow faster than
+ * zombies in proportion, so a late stage is not the early one with more of the
+ * same: stage 1 is 65% zombies, the peak is 56%. That matters more than the
+ * headcount, because the thing that kills you changes.
+ *
+ * Density, not headcount, is what is actually being tuned here — one creature
+ * per few floor cells is what makes backing away from one back you into another.
+ * Scale these with MAZE_CELLS or a bigger dungeon just means a longer walk.
  */
-export const SPAWN: Readonly<Record<CreatureKey, number>> = { zombie: 43, brute: 13, lunatic: 16 };
+export const SPAWN: Readonly<Record<CreatureKey, SpawnRate>> = {
+  zombie: { base: 26, perStage: 3.4 },
+  brute: { base: 6, perStage: 1.5 },
+  lunatic: { base: 8, perStage: 1.9 },
+};
+/**
+ * Stage at which the counts stop growing.
+ *
+ * Something has to cap it or stage 40 is a solid wall of bodies — unplayable
+ * long before it is slow. 12 lands at roughly one creature per 4.5 floor cells,
+ * which is about as thick as a 4m corridor can carry and still be a dungeon
+ * rather than a queue.
+ */
+export const SPAWN_PEAK_STAGE = 12;
 
 // ---- Creature animation ----
 /** Attack duration in seconds when the external model carries no attack clip. */

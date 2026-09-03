@@ -66,13 +66,24 @@ dungeon/
 Three creatures, each built around one idea. Without a creature's files the game
 falls back to a box model for it.
 
-| | HP | Damage | Speed | Notices you | Reward | Per run |
+| | HP | Damage | Speed | Notices you | Reward | Stage 1 → 12 |
 |---|---|---|---|---|---|---|
-| **Zombie** | 4 | 17 | 2.9 | 13m | 12 G | 43 |
-| **Brute** | 9 | 32 | 2.0 | 13m | 55 G | 13 |
-| **Lunatic** | 3 | 14 | 4.5 | 18m | 30 G | 16 |
+| **Zombie** | 4 | 17 | 2.9 | 13m | 12 G | 26 → 63 |
+| **Brute** | 9 | 32 | 2.0 | 13m | 55 G | 6 → 22 |
+| **Lunatic** | 3 | 14 | 4.5 | 18m | 30 G | 8 → 28 |
 
-Seventy-odd of them across a 124m dungeon, and standing still is how you die. **The sword cuts the two
+The dungeon fills up as you go deeper. Stage 1 is 40 creatures across 124m —
+sparse enough to learn in — and it climbs to 113 by stage 12, where it stops.
+The mix shifts too: 65% zombies at the start, 56% at the peak, so a late stage
+is not the early one with more of the same.
+
+| Stage | Creatures | Floor cells each | Aware of you at any moment |
+|---|---|---|---|
+| 1 | 40 | 12.8 | 2 |
+| 6 | 73 | 7.0 | 3 |
+| 12+ | 113 | 4.5 | 5 |
+
+Standing still is how you die. **The sword cuts the two
 nearest creatures in its arc, not everything in front of it**, so a crowd is a
 crowd — the answer to being surrounded is the corridor behind you, or the musket
 before they arrive. Every creature is slower than you even at the top of its

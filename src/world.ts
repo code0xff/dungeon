@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { floorPBR, spawnCreature, wallPBR } from './assets';
 import {
   CELL, CHEST_COUNT, CHEST_ITEMS, EYE_H, GRID, PLAYER_R, SCALE_VARIANCE, SPAWN,
-  SPEED_VARIANCE, TYPES, WALL_H,
+  SPAWN_PEAK_STAGE, SPEED_VARIANCE, TYPES, WALL_H,
 } from './config';
 import { generateDungeon } from './dungeon';
 import { createChest, makeSconce, rollProp } from './props';
@@ -150,8 +150,18 @@ function buildGeometry(): void {
   world.ceil = ceil;
 }
 
+/** How many of one creature this stage gets. See SPAWN in config.ts. */
+function spawnCount(key: CreatureKey, stage: number): number {
+  const { base, perStage } = SPAWN[key];
+  // Clamping the stage rather than the total keeps the mix intact at the peak —
+  // capping the sum would have quietly changed which creatures got dropped.
+  const s = Math.min(Math.max(stage, 1), SPAWN_PEAK_STAGE);
+  return Math.floor(base + perStage * (s - 1));
+}
+
 function spawnMonsters(): void {
-  for (const [key, count] of Object.entries(SPAWN) as [CreatureKey, number][]) {
+  for (const key of Object.keys(SPAWN) as CreatureKey[]) {
+    const count = spawnCount(key, progress.stage);
     for (let i = 0; i < count; i++) spawnOne(key);
   }
 }
