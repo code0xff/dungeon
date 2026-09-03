@@ -82,6 +82,23 @@ Health is carried precisely because it makes stopping at the portal a decision
 rather than a formality, and unspent potions and lanterns are carried because
 walking out with a full pack is part of what extraction is worth.
 
+## What a stage is worth
+
+The stage number is the difficulty. `SPAWN` gives each creature a stage-1 count
+and a per-stage increase, so stage 1 is 40 creatures across 510 floor cells and
+stage 12 is 113 — measured as creatures aware of the player at a random spot,
+that is a median of 2 rising to 5, and time spent with nobody hunting you
+falling from 18% to 2%.
+
+Growth stops at `SPAWN_PEAK_STAGE`, and the **stage** is clamped rather than the
+total. Capping the sum would have silently changed the mix at the top by
+dropping whichever creature was counted last; clamping the input keeps the ratio
+the formula intended.
+
+The ratio moves on purpose. Brutes and lunatics grow faster than zombies, from
+65% zombies down to 56%, because a deeper stage should change *what* kills you
+and not only how much of it there is.
+
 ## The shape of a run
 
 `CHEST_ITEMS` puts exactly one key in the dungeon and the portal refuses to open

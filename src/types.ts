@@ -86,6 +86,17 @@ export interface CreatureRig {
 // ---- Creatures from external models (FBX/GLB) ----
 export type Clips = Partial<Record<ClipName, THREE.AnimationClip>>;
 
+/**
+ * How many of a creature spawn, as a starting count and a per-stage increase.
+ * See SPAWN in config.ts for the reasoning.
+ */
+export interface SpawnRate {
+  /** Stage 1's count. */
+  base: number;
+  /** Added per stage after the first. Fractional; the total is floored. */
+  perStage: number;
+}
+
 /** Where a creature's model and clips come from. See CREATURE_ASSETS in config.ts. */
 export interface CreatureAsset {
   /** Folder under assets/, holding idle/walk/attack/death in fbx, glb or gltf. */
