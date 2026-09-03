@@ -19,6 +19,22 @@ function materialsOf(o: THREE.Mesh): THREE.Material[] {
   return Array.isArray(o.material) ? o.material : [o.material];
 }
 
+/**
+ * Stamps the asset version onto a URL.
+ *
+ * Model and texture filenames are fixed — `creatures/brute/idle.glb` is the same
+ * URL before and after the model behind it is replaced — so a returning player's
+ * service worker answered from its cache and the swap never reached them. It did
+ * not fail loudly either: an idle.glb without a mesh reports `no mesh` and drops
+ * to the box model, which reads as a regression rather than a stale cache.
+ *
+ * The version is a hash of assets/ computed at build time, so it only moves when
+ * an asset actually does. See hashAssets() in vite.config.ts.
+ */
+function versioned(url: string): string {
+  return `${url}?v=${__ASSET_VERSION__}`;
+}
+
 const fbxLoader = new FBXLoader();
 const gltfLoader = new GLTFLoader();
 const texLoader = new THREE.TextureLoader();
@@ -52,10 +68,10 @@ async function tryLoadModel(base: string): Promise<LoadedModel | null> {
     const url = `${base}.${ext}`;
     try {
       if (ext === 'fbx') {
-        const r = await fbxLoader.loadAsync(url);
+        const r = await fbxLoader.loadAsync(versioned(url));
         return { root: r, animations: r.animations };
       }
-      const r = await gltfLoader.loadAsync(url);
+      const r = await gltfLoader.loadAsync(versioned(url));
       return { root: r.scene, animations: r.animations };
     } catch {
       // Try the next extension
@@ -66,7 +82,7 @@ async function tryLoadModel(base: string): Promise<LoadedModel | null> {
 
 async function tryLoadTexture(url: string, srgb = false): Promise<THREE.Texture | null> {
   try {
-    const t = await texLoader.loadAsync(url);
+    const t = await texLoader.loadAsync(versioned(url));
     t.wrapS = t.wrapT = THREE.RepeatWrapping;
     if (srgb) t.colorSpace = THREE.SRGBColorSpace;
     return t;
@@ -274,7 +290,7 @@ async function loadWeapon(kind: WeaponKind): Promise<string> {
   const cfg = WEAPON_ASSETS[kind];
   let gltf;
   try {
-    gltf = await gltfLoader.loadAsync(cfg.url);
+    gltf = await gltfLoader.loadAsync(versioned(cfg.url));
   } catch {
     return `${kind}: file missing → primitive model`;
   }
@@ -293,7 +309,7 @@ async function loadChest(): Promise<string> {
   const cfg = PROP_ASSETS.chest;
   let gltf;
   try {
-    gltf = await gltfLoader.loadAsync(cfg.url);
+    gltf = await gltfLoader.loadAsync(versioned(cfg.url));
   } catch {
     return 'chest: file missing → primitive model';
   }
@@ -322,7 +338,7 @@ async function loadLantern(): Promise<string> {
   const cfg = PROP_ASSETS.lantern;
   let gltf;
   try {
-    gltf = await gltfLoader.loadAsync(cfg.url);
+    gltf = await gltfLoader.loadAsync(versioned(cfg.url));
   } catch {
     return 'lantern: file missing → nothing drawn in hand (the light still works)';
   }
