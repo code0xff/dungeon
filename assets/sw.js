@@ -18,7 +18,12 @@
 // simply stops being requested. The GLB and webp files are not hashed, which is
 // exactly why they need the revalidate half rather than plain cache-first.
 
-const CACHE = 'dungeon-v1';
+// github.io is one origin for every project page on the account, so the Cache
+// Storage here is shared with any other PWA published under it. Names are
+// prefixed and the activate sweep only ever touches this prefix — deleting by
+// "not the current cache" would wipe a neighbouring app's offline copy.
+const PREFIX = 'dungeon-';
+const CACHE = `${PREFIX}v1`;
 
 /** Enough to open the game offline after one visit. The rest arrives by use. */
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icons/icon-192.png'];
@@ -35,7 +40,9 @@ self.addEventListener('install', (e) => {
 self.addEventListener('activate', (e) => {
   e.waitUntil(
     caches.keys()
-      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+      .then((keys) => Promise.all(
+        keys.filter((k) => k.startsWith(PREFIX) && k !== CACHE).map((k) => caches.delete(k)),
+      ))
       .then(() => self.clients.claim()),
   );
 });
