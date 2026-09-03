@@ -1,4 +1,4 @@
-import { LANTERN_FUEL, MAX_HP, START_AMMO } from './config';
+import { LANTERN_FUEL, MAX_HP, START_AMMO, SWORD_DUR_MAX } from './config';
 
 /**
  * What survives a run, saved to localStorage.
@@ -27,12 +27,17 @@ export interface Progress {
   /** Unspent slot items. Walking out with a full pack is part of the reward. */
   potions: number;
   lanterns: number;
+  /** Sword durability carried out. A new run after death gets a fresh blade. */
+  swordDur: number;
 }
 
 const KEY = 'dungeon.progress.v1';
 
 function fresh(): Progress {
-  return { stage: 1, bankGold: 0, hp: MAX_HP, lanternT: 0, ammo: START_AMMO, potions: 0, lanterns: 0 };
+  return {
+    stage: 1, bankGold: 0, hp: MAX_HP, lanternT: 0, ammo: START_AMMO,
+    potions: 0, lanterns: 0, swordDur: SWORD_DUR_MAX,
+  };
 }
 
 export const progress: Progress = fresh();
@@ -54,6 +59,9 @@ function merge(raw: unknown): void {
   if (typeof o.ammo === 'number' && Number.isFinite(o.ammo)) progress.ammo = Math.max(0, o.ammo | 0);
   if (typeof o.potions === 'number' && Number.isFinite(o.potions)) progress.potions = Math.max(0, o.potions | 0);
   if (typeof o.lanterns === 'number' && Number.isFinite(o.lanterns)) progress.lanterns = Math.max(0, o.lanterns | 0);
+  if (typeof o.swordDur === 'number' && Number.isFinite(o.swordDur)) {
+    progress.swordDur = Math.min(SWORD_DUR_MAX, Math.max(0, o.swordDur));
+  }
 }
 
 /**
@@ -81,7 +89,10 @@ export function saveProgress(): void {
 /** Extraction: bank the run, keep the gear, move to the next stage. */
 export function bankRun(
   runGold: number,
-  gear: { hp: number; lanternT: number; ammo: number; potions: number; lanterns: number },
+  gear: {
+    hp: number; lanternT: number; ammo: number;
+    potions: number; lanterns: number; swordDur: number;
+  },
 ): void {
   progress.bankGold += runGold;
   progress.stage += 1;
@@ -92,6 +103,7 @@ export function bankRun(
   progress.ammo = gear.ammo;
   progress.potions = gear.potions;
   progress.lanterns = gear.lanterns;
+  progress.swordDur = gear.swordDur;
   saveProgress();
 }
 

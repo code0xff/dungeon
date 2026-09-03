@@ -103,6 +103,17 @@ rules, with the detail in [docs/](docs/). `CLAUDE.md` is a symlink to it.
 | Swap weapon | `Q` |
 | Drink potion / light lantern | `3` / `4` |
 
+**The sword blunts as it cuts.** Every creature it touches takes a little off the
+edge, and damage falls with it — a fresh blade kills a zombie in five swings, a
+ruined one in nine. It never stops working entirely, because a weapon that does
+would strand you with no way back to the exit.
+
+**Between stages you outfit.** Extraction — or death — opens a shop that spends
+banked gold on repairs, potions, lantern oil and musket balls. That is what the
+bank is *for*; before it existed, gold was a score with no sink and no reason to
+walk out rather than push on until something killed you. The shop opens after
+death too, because the bank is the one thing death does not take.
+
 The dodge has no invulnerability frames. It gets you out of a creature's reach
 before the blow lands, which is why 3.8m — the brute swings from 2.2m. On a 1.1s
 cooldown, so spamming it averages 3.5m/s against a walk of 5.2: it is a way out

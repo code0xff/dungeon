@@ -28,6 +28,10 @@ export const state = {
   gameOver: false,
 
   // ---- Sword ----
+  /** Durability, 0..SWORD_DUR_MAX. Damage falls with it. */
+  swordDur: 0,
+  /** Whether the blunt-sword warning has already fired this run. */
+  swordWarned: false,
   /** Attack cooldown left, in seconds. */
   atkTimer: 0,
   /** Swing progress 0..1; -1 means not swinging. */

@@ -137,6 +137,33 @@ export const POTION_HEAL = 35;
 export const CHEST_LID_OPEN = -1.5;
 export const ATTACK_RANGE = 2.3;
 export const ATTACK_CD = 0.45;
+
+// ---- Sword durability ----
+/** Full durability, in points. 100 so the HUD can read it as a percentage. */
+export const SWORD_DUR_MAX = 100;
+/**
+ * Durability lost per creature actually cut — swinging at air costs nothing.
+ *
+ * At 0.45 a sword lasts about 220 hits, and killing everything on a mid stage
+ * takes roughly 250, so one thorough run wears one out. That is the intent: the
+ * repair bill is what banked gold is *for*, and it has to recur or the bank goes
+ * back to being a scoreboard.
+ *
+ * It is charged per creature hit, not per swing, so a cleave that catches two
+ * costs two. Wide swings should not be free.
+ */
+export const SWORD_WEAR = 0.45;
+/**
+ * Damage at zero durability, as a fraction of a fresh sword's.
+ *
+ * Not zero on purpose. A weapon that stops working strands a player with no way
+ * to fight back to the exit, which is a dead end rather than a difficulty. At
+ * 0.45 a blunt sword takes 9 swings to kill a zombie instead of 4 — punishing,
+ * still a weapon.
+ */
+export const SWORD_DMG_WORN = 0.45;
+/** Durability at which the player is warned once per run. */
+export const SWORD_WARN_AT = 25;
 /**
  * Half-width of the sword's arc, as the cosine of the angle from where the
  * player is looking. 0.62 is about 103 degrees of total sweep.
@@ -243,7 +270,38 @@ export const MUSKET_AMMO = 5;
 export const MUSKET_RANGE = 26;
 export const SHOT_ALERT_RADIUS = 20;
 
+// ================= Shop =================
+/**
+ * Prices, in gold, for the outfitting screen between stages.
+ *
+ * These are what finally give `bankGold` a use — before the shop it was a score
+ * with no sink, so there was no reason to extract rather than push on until
+ * something killed you.
+ *
+ * Set against income: a stage killed clean is worth roughly 900G in creatures
+ * plus 700G in chests, and most runs bank a fraction of that. A full repair plus
+ * a potion and a lantern is about 350G, so a careful run funds the next one and
+ * a greedy one funds two.
+ */
+export const SHOP = {
+  /** Per point of durability restored, so a barely-nicked sword is cheap. */
+  repairPerPoint: 2,
+  potion: 60,
+  /** One lantern's worth of oil — LANTERN_FUEL seconds. */
+  lantern: 90,
+  /** Price of one batch, which is AMMO_PICKUP rounds. */
+  ammo: 45,
+} as const;
+
 // ================= Creatures =================
+/**
+ * Creature stats.
+ *
+ * `hp` is in damage points, where a **pristine** sword does exactly 1 and a
+ * musket ball does MUSKET_DMG. In play a sword is never pristine for long: it
+ * dulls as it cuts, so a 4hp zombie takes 5 swings from a fresh blade and 9 from
+ * a blunt one. Read hp as "roughly this many swings, more as the edge goes".
+ */
 export const TYPES: Record<CreatureKey, CreatureType> = {
   zombie: {
     name: 'Zombie',
@@ -257,9 +315,10 @@ export const TYPES: Record<CreatureKey, CreatureType> = {
    * enough to back away from — the answer to a brute is the corridor behind you,
    * or the musket, and neither works if it can keep pace.
    *
-   * hp 9 is nine sword swings — four seconds of standing still while it hits
-   * back for 32 every two — or three musket balls. Trading with one is meant to
-   * be a bad idea; the answer is the corridor, or shooting it before it arrives.
+   * hp 9 is ten swings from a fresh blade — over four seconds of standing still
+   * while it hits back for 32 every two — or three musket balls. Trading with
+   * one is meant to be a bad idea; the answer is the corridor, or shooting it
+   * before it arrives.
    */
   brute: {
     name: 'Brute',
@@ -278,8 +337,9 @@ export const TYPES: Record<CreatureKey, CreatureType> = {
    * Above that the fastest individuals outrun the player outright and there is no
    * disengaging from them at all. 4.5 sits just under it on purpose.
    *
-   * It pays for that in hp 2: two sword swings, or one musket ball. Meeting one
-   * should be a scramble that is over quickly either way, not a fight.
+   * It pays for that in hp 3: four swings from a fresh blade, or one musket
+   * ball. Meeting one should be a scramble that is over quickly either way,
+   * not a fight.
    *
    * aggro 14 is the highest of the three and is the real weapon — it notices the
    * player from beyond the reach of the lantern, so the first warning is the

@@ -3,6 +3,7 @@ import { loadProgress } from './progress';
 import { el } from './dom';
 import { animate } from './loop';
 import { buildWorld } from './world';
+import { closeShop } from './shop';
 // Imported for side effects: keyboard/mouse/touch listeners and the audio unlock.
 import './input';
 
@@ -24,7 +25,12 @@ if (import.meta.env.PROD && 'serviceWorker' in navigator) {
 
 const loadingEl = el('loading');
 
-el('restart').addEventListener('click', buildWorld);
+el('restart').addEventListener('click', () => {
+  // The shop wrote straight into progress, so buildWorld() picks up whatever
+  // was bought without anything having to be handed across.
+  closeShop();
+  buildWorld();
+});
 
 loadAssets((msg) => {
   loadingEl.textContent = msg + '...';
