@@ -1,14 +1,16 @@
 import { initAudio, isMuted, setMuted, sfxDash } from './audio';
-import { DASH_CD, GUIDE_KEY, LANTERN_KEY, POTION_KEY, SOUND_KEY } from './config';
+import {
+  DASH_CD, GUIDE_KEY, LANTERN_KEY, LUNGE_AIM, LUNGE_WINDOW, POTION_KEY, SOUND_KEY, WHETSTONE_KEY,
+} from './config';
 import { el, queryChild } from './dom';
 import { canvasEl } from './scene';
 import { state } from './state';
 import { tryAttack } from './combat';
 import { closeGuide, isGuideOpen, toggleGuide } from './guide';
-import { startLoot, useLantern, usePotion } from './loot';
+import { startLoot, useLantern, usePotion, useWhetstone } from './loot';
 import {
   atkBtn, dashBtn, guideBtn, guideCloseBtn, lampBtn, lockHintEl, lootBtn, potBtn, showMsg,
-  soundBtn, wpnBtn,
+  soundBtn, whetBtn, wpnBtn,
 } from './ui';
 import { setWeapon, toggleWeapon } from './weapons';
 
@@ -56,6 +58,9 @@ export function tryDash(): void {
   state.dashX = Math.sin(state.yaw) * nf - Math.cos(state.yaw) * ns;
   state.dashZ = Math.cos(state.yaw) * nf + Math.sin(state.yaw) * ns;
   state.dashSide = Math.abs(ns) > 0.2 ? Math.sign(ns) : 0;
+  // Arm a lunge only when the dodge closes distance. `nf` is already the forward
+  // component of a unit vector, so it is the cosine LUNGE_AIM is written as.
+  state.lungeT = nf >= LUNGE_AIM ? LUNGE_WINDOW : 0;
   state.dashT = 0;
   state.dashCd = DASH_CD;
   sfxDash();
@@ -88,6 +93,7 @@ addEventListener('keydown', (e) => {
   // Matched on e.key as well as e.code so the digits still work on a numpad.
   if (e.code === `Digit${POTION_KEY}` || e.key === POTION_KEY) usePotion();
   if (e.code === `Digit${LANTERN_KEY}` || e.key === LANTERN_KEY) useLantern();
+  if (e.code === `Digit${WHETSTONE_KEY}` || e.key === WHETSTONE_KEY) useWhetstone();
 });
 addEventListener('keyup', (e) => {
   keys[e.code] = false;
@@ -229,7 +235,7 @@ function resetStick(): void {
 
 const touchButtons = [
   [atkBtn, tryAttack], [lootBtn, startLoot], [wpnBtn, toggleWeapon],
-  [potBtn, usePotion], [lampBtn, useLantern], [dashBtn, tryDash],
+  [potBtn, usePotion], [lampBtn, useLantern], [whetBtn, useWhetstone], [dashBtn, tryDash],
 ] as const;
 
 for (const [btn, action] of touchButtons) {

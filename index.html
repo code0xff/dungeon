@@ -81,10 +81,14 @@
   #objective b { font-family:var(--display); font-size:12px; letter-spacing:1px; font-style:normal; }
   #minimap { position:fixed; top:12px; right:12px; z-index:10; display:none; border-radius:2px; border:1px solid rgba(201,192,174,.2); background:rgba(6,7,9,.75); }
 
+  /* No coloured rule down the left edge. It was there to mark the card as a
+     pickup, but the first line is already gold and in the display face, so the
+     bar restated it — and being the only asymmetric panel on screen, it read as
+     a notification chrome bolted onto the game rather than part of it. */
   #msg { position:fixed; top:31%; left:50%; z-index:12; pointer-events:none;
-         padding:11px 18px 11px 15px; border-radius:8px;
+         padding:11px 18px; border-radius:8px;
          background:linear-gradient(180deg, rgba(15,16,19,.93), rgba(8,9,11,.93));
-         border:1px solid rgba(212,178,90,.26); border-left:3px solid #d4b25a;
+         border:1px solid rgba(212,178,90,.26);
          box-shadow:0 10px 30px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.045);
          color:var(--ink-bright); font-size:16.5px; line-height:1.55; letter-spacing:.1px;
          text-align:left; max-width:min(86vw,440px); white-space:pre-line;
@@ -252,21 +256,26 @@
      stacks upward where nothing is needed in a hurry. It stacks rather than
      reaching further left because on a portrait phone that row runs into the
      move stick, which is at left:24px and 114px wide. */
-  #potBtn, #lampBtn, #wpnBtn { right:calc(134px + env(safe-area-inset-right)); width:52px; height:52px;
+  #potBtn, #lampBtn, #whetBtn, #wpnBtn { right:calc(134px + env(safe-area-inset-right)); width:52px; height:52px;
                       border:1px solid rgba(201,192,174,.4); color:#c9c0ae;
                       background:radial-gradient(circle at 50% 32%, rgba(70,66,58,.62), rgba(28,26,22,.5) 72%);
                       box-shadow:0 5px 18px rgba(0,0,0,.45); }
   #wpnBtn { bottom:calc(120px + env(safe-area-inset-bottom)); }
   #potBtn { bottom:calc(182px + env(safe-area-inset-bottom)); }
   #lampBtn { bottom:calc(244px + env(safe-area-inset-bottom)); }
+  /* Fourth and topmost, at 306px + 52px tall. That is 358px above the bottom
+     edge, which still clears the middle of the shortest phone this runs on
+     (iPhone SE, 667px) — and it is only ever on screen while a whetstone is
+     actually carried and the sword is in hand. */
+  #whetBtn { bottom:calc(306px + env(safe-area-inset-bottom)); }
   #dashBtn { right:calc(128px + env(safe-area-inset-right)); bottom:calc(40px + env(safe-area-inset-bottom));
              width:68px; height:68px; border:1px solid rgba(140,170,210,.5); color:#c3d6ee;
              background:radial-gradient(circle at 50% 32%, rgba(46,74,116,.6), rgba(18,28,44,.5) 72%);
              box-shadow:0 5px 18px rgba(0,0,0,.45); }
   #dashBtn .ico { width:22px; height:22px; }
   #lootBtn .ico { width:21px; height:21px; }
-  #potBtn .ico, #lampBtn .ico, #wpnBtn .ico { width:20px; height:20px; }
-  #potBtn .count, #lampBtn .count { opacity:.9; font-size:11px; }
+  #potBtn .ico, #lampBtn .ico, #whetBtn .ico, #wpnBtn .ico { width:20px; height:20px; }
+  #potBtn .count, #lampBtn .count, #whetBtn .count { opacity:.9; font-size:11px; }
   #wpnBtn { font-size:9.5px; }
   #crosshair { position:fixed; left:50%; top:50%; width:6px; height:6px; margin:-3px 0 0 -3px; border-radius:50%; background:rgba(201,192,174,.7); z-index:10; display:none; pointer-events:none; }
   #reloadBar { position:fixed; top:calc(50% + 18px); left:50%; transform:translateX(-50%); width:90px; height:4px; z-index:10; display:none; background:rgba(201,192,174,.15); border-radius:2px; overflow:hidden; }
@@ -288,7 +297,8 @@
   @media (pointer:coarse) {
     .stick { display:block }
     #atkBtn { display:flex } #lootBtn.show { display:flex } #wpnBtn.show { display:flex }
-    #potBtn.show { display:flex } #lampBtn.show { display:flex } #dashBtn.show { display:flex }
+    #potBtn.show { display:flex } #lampBtn.show { display:flex } #whetBtn.show { display:flex }
+    #dashBtn.show { display:flex }
     #prompt, #lockHint { display:none!important }
     .guideKeyboard { display:none }
     .guideTouch { display:block }
@@ -339,6 +349,12 @@
   <symbol id="i-dash" viewBox="0 0 24 24">
     <path d="M2.5 8.5h9M2.5 12h13M2.5 15.5h9"/>
     <path d="m17 6.5 4.5 5.5-4.5 5.5"/>
+  </symbol>
+  <symbol id="i-whet" viewBox="0 0 24 24">
+    <!-- A blade drawn across a stone. The spark this started with only muddled
+         the two shapes together at the 20px it is actually drawn at. -->
+    <path d="M2.8 17h16.4a1.5 1.5 0 0 1 0 3H2.8a1.5 1.5 0 0 1 0-3z"/>
+    <path d="M5.6 13.8 17.4 2h3.8v3.8L9.4 17.6"/>
   </symbol>
   <symbol id="i-lamp" viewBox="0 0 24 24">
     <path d="M9 2.6h6M12 2.6v2M7.4 6.4h9.2l-1 2.2v8.2H8.4V8.6z"/>
@@ -399,6 +415,7 @@
 <div id="wpnBtn" class="tbtn"><svg class="ico"><use href="#i-swap"/></svg><span>Swap</span></div>
 <div id="potBtn" class="tbtn"><svg class="ico"><use href="#i-potion"/></svg><span class="count">0</span></div>
 <div id="lampBtn" class="tbtn"><svg class="ico"><use href="#i-lamp"/></svg><span class="count">0</span></div>
+<div id="whetBtn" class="tbtn"><svg class="ico"><use href="#i-whet"/></svg><span class="count">0</span></div>
 <div id="dashBtn" class="tbtn"><svg class="ico"><use href="#i-dash"/></svg><span>Dodge</span></div>
 
 <div id="overlay">

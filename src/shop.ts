@@ -1,5 +1,6 @@
 import {
   AMMO_PICKUP, LANTERN_FUEL, POTION_HEAL, SHOP, SHOP_INFLATION, SPAWN_PEAK_STAGE, SWORD_DUR_MAX,
+  WHETSTONE_REPAIR,
 } from './config';
 import { el } from './dom';
 import { progress, saveProgress } from './progress';
@@ -67,6 +68,21 @@ const STOCK: Stock[] = [
     price: () => (progress.swordDur >= SWORD_DUR_MAX ? null : repairCost()),
     buy: () => {
       progress.swordDur = SWORD_DUR_MAX;
+    },
+  },
+  /**
+   * Sold as well as found, and it sits next to the counter repair on purpose:
+   * the two are the same gold buying the same durability, and the only
+   * difference is that one of them travels. Seeing them together is what makes
+   * the premium legible.
+   */
+  {
+    id: 'Whetstone',
+    name: 'Whetstone',
+    held: () => `${progress.whetstones} held  ·  +${WHETSTONE_REPAIR}%`,
+    price: () => atStage(SHOP.whetstone),
+    buy: () => {
+      progress.whetstones++;
     },
   },
   {

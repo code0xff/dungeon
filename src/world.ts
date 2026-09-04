@@ -299,6 +299,9 @@ export function buildWorld(): void {
   state.dashT = -1;
   state.dashCd = 0;
   state.dashSide = 0;
+  state.lungeT = 0;
+  state.swingLunge = false;
+  state.lungeShown = false;
   state.swordDur = progress.swordDur;
   state.swordWarned = false;
   // Gear carried out of the previous stage. A fresh run has none of it.
@@ -312,6 +315,7 @@ export function buildWorld(): void {
   setPortalOpen(false);
   state.potions = progress.potions;
   state.lanterns = progress.lanterns;
+  state.whetstones = progress.whetstones;
 
   // The sword is the default. Q swaps to the musket: one chambered round plus START_AMMO spare.
   state.hasMusket = true;

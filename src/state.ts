@@ -40,6 +40,15 @@ export const state = {
   swingT: -1,
   /** Whether this swing already resolved, so one swing cuts once. */
   swingHit: false,
+  /**
+   * Whether the swing in flight was launched out of a forward dodge.
+   *
+   * Latched when the player presses, not read when the blade lands: the two are
+   * SWING_IMPACT / SWING_SPEED apart, and the window belongs to the input.
+   */
+  swingLunge: false,
+  /** Whether the lunge has been explained once this run. */
+  lungeShown: false,
 
   // ---- Dodge ----
   /** Seconds of dodge left; -1 when not dodging. */
@@ -51,6 +60,8 @@ export const state = {
   dashZ: 0,
   /** -1 left, +1 right, 0 straight. Only used for the camera roll. */
   dashSide: 0,
+  /** Seconds left in which an attack still counts as a lunge. 0 means none. */
+  lungeT: 0,
 
   // ---- Looting ----
   looting: null as Looting | null,
@@ -70,6 +81,7 @@ export const state = {
   // Carried, not consumed on pickup: pressing the slot key spends one.
   potions: 0,
   lanterns: 0,
+  whetstones: 0,
   /** Base intensity of the player's light. A lit lantern raises it. */
   // Widened: LIGHT_DIM is `as const`, so without this the field types as 1.75.
   lightBase: LIGHT_DIM.intensity as number,

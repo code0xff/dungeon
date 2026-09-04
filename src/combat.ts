@@ -1,7 +1,7 @@
 import { clipDuration, setAnim } from './assets';
-import { sfxHit, sfxShot, sfxSwing } from './audio';
+import { sfxHit, sfxLunge, sfxShot, sfxSwing } from './audio';
 import {
-  ATTACK_CD, ATTACK_RANGE, CORPSE_LINGER, MUSKET_DMG, MUSKET_RANGE,
+  ATTACK_CD, ATTACK_RANGE, CORPSE_LINGER, LUNGE_DMG, MUSKET_DMG, MUSKET_RANGE,
   SHOT_ALERT_RADIUS, SHOT_ALERT_TIME,
   SWORD_ARC, SWORD_CLEAVE, SWORD_DMG_WORN, SWORD_DUR_MAX, SWORD_WARN_AT, SWORD_WEAR,
 } from './config';
@@ -127,6 +127,10 @@ export function tryAttack(): void {
   state.atkTimer = ATTACK_CD;
   state.swingT = 0;
   state.swingHit = false;
+  // Spent here rather than at impact. The window is about how quickly the player
+  // pressed after the dodge, and the blade does not land for another 0.2s.
+  state.swingLunge = state.lungeT > 0;
+  state.lungeT = 0;
   sfxSwing();
 }
 
@@ -151,17 +155,30 @@ export function resolveSwing(): void {
   }
   inArc.sort((a, b) => a.d - b.d);
 
-  const dmg = swordDamage();
+  // A swing out of a forward dodge lands with the player's own momentum behind
+  // it. The multiplier is charged to durability as well as paid out in damage,
+  // so the aggressive opening wears the blade at the rate it kills.
+  const lunge = state.swingLunge;
+  const dmg = swordDamage() * (lunge ? LUNGE_DMG : 1);
+  const wear = SWORD_WEAR * (lunge ? LUNGE_DMG : 1);
+  if (lunge && inArc.length > 0) sfxLunge();
   for (const { m } of inArc.slice(0, SWORD_CLEAVE)) {
     m.hp -= dmg;
     m.hurtT = 0.18;
     // Charged per creature cut, so a cleave that catches two costs two.
-    state.swordDur = Math.max(0, state.swordDur - SWORD_WEAR);
+    state.swordDur = Math.max(0, state.swordDur - wear);
     sfxHit(false);
     if (m.hp <= 0) {
       showMsg(`${m.type.name} killed +${m.type.reward} G`);
       killMonster(m);
     }
+  }
+
+  // Named once, the first time it happens. A bonus the player cannot see is a
+  // bonus they will never repeat on purpose.
+  if (lunge && inArc.length > 0 && !state.lungeShown) {
+    state.lungeShown = true;
+    showMsg(`Lunge — ${LUNGE_DMG}x damage, and ${LUNGE_DMG}x the wear`);
   }
 
   if (!state.swordWarned && state.swordDur <= SWORD_WARN_AT) {

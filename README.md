@@ -98,11 +98,12 @@ rules, with the detail in [docs/](docs/). `CLAUDE.md` is a symlink to it.
 |---|---|
 | Move | `WASD` |
 | Dodge | `Shift` — a 3.8m burst the way you are already moving |
+| Lunge | dodge *forward*, then attack at once — double damage, double wear |
 | Look | move the mouse (click to lock the cursor, `Esc` to release) |
 | Attack / fire | click or `Space` |
 | Open chest | `E` |
 | Swap weapon | `Q` |
-| Drink potion / light lantern | `3` / `4` |
+| Drink potion / light lantern / sharpen sword | `3` / `4` / `5` |
 | Controls | `H` — opens a guide, and pauses while it is open |
 | Sound on / off | `M` — remembered between runs |
 
@@ -115,14 +116,21 @@ rebinding cannot leave it saying something untrue.
 **The sword blunts as it cuts.** Every creature it touches takes a little off the
 edge, and damage falls with it — a fresh blade kills a zombie in five swings, a
 ruined one in nine. It never stops working entirely, because a weapon that does
-would strand you with no way back to the exit.
+would strand you with no way back to the exit. A **whetstone** from a chest or
+the shop grinds 45 points back, spent with `5` — the only repair available while
+you are still down there.
+
+**A forward dodge into an attack is a lunge**, worth double damage on that one
+swing. It costs double durability to match and puts you inside reach with a
+cooldown before you can back out again, which is the trade: the most dangerous
+place in the game is also the only place the sword hits hard.
 
 **Noise draws them.** A musket shot is heard 20m away and hunted for 10 seconds.
 A chest lid carries 9m for 6 — quieter, but not free, so looting in the open is
 a decision rather than a gift.
 
 **Between stages you outfit.** Extraction — or death — opens a shop that spends
-banked gold on repairs, potions, lantern oil and musket balls. Prices climb 15%
+banked gold on repairs, whetstones, potions, lantern oil and musket balls. Prices climb 15%
 a stage and flatten where the spawns do, so deeper is dearer but never outruns
 what a run can earn. That is what the
 bank is *for*; before it existed, gold was a score with no sink and no reason to

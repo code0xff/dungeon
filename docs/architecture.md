@@ -73,6 +73,7 @@ resets all of it. Anything that has to outlive a run lives in
 | `stage` | +1 | back to 1 |
 | `hp` | carried as-is | back to 100 |
 | lantern fuel, ammo | carried into the next stage | lost |
+| potions, lanterns, whetstones | carried into the next stage | lost |
 
 The map is deliberately absent: it charts *this* dungeon, and the next stage
 generates a new one, so carrying it would hand the player a plan of a maze they
@@ -148,11 +149,27 @@ the pressure has to come from being *surrounded*, and the dodge is what turns a
 blocked corridor from a death into a decision. It takes its direction from the
 movement keys rather than having its own, which is what keeps it to one finger.
 
-Consumables are **carried, not applied**. Opening a chest puts a potion or a
-lantern in the pack; `POTION_KEY` and `LANTERN_KEY` spend one. Both refuse
-rather than waste — at full health the potion stays in the pack. The point is
-that light and healing become decisions about *when*, which is the only way a
-resource is really a resource.
+Consumables are **carried, not applied**. Opening a chest puts a potion, a
+lantern or a whetstone in the pack; `POTION_KEY`, `LANTERN_KEY` and
+`WHETSTONE_KEY` spend one. All three refuse rather than waste — at full health
+the potion stays in the pack, and a keen blade will not take a stone. The point
+is that light, healing and a working edge become decisions about *when*, which
+is the only way a resource is really a resource.
+
+The whetstone exists because the shop is only open between stages. Before it, a
+sword that went blunt halfway down stayed blunt for the rest of the run and the
+only answer was to leave early — a resource problem with one legal move is not a
+decision. It is deliberately *worse* gold-for-durability than the counter
+repair: the premium buys the ability to spend it at the bottom.
+
+**The lunge** is the one place attack timing matters. An attack pressed within
+`LUNGE_WINDOW` of a *forward* dodge does `LUNGE_DMG`x damage — and costs
+`LUNGE_DMG`x durability, so aggression has a bill rather than being free. It is
+armed off the dodge direction, not the camera, so swinging the view around
+mid-dodge earns nothing; and it is latched when the player presses rather than
+read when the blade lands, because those are `SWING_IMPACT / SWING_SPEED` apart
+and the window belongs to the input. Exactly one swing is bought: the flag is
+cleared at the press, so the follow-up is an ordinary hit.
 
 The split is the whole point of an extraction game — keep the two apart. A field
 that should reset but lives in `progress` becomes a permanent buff; one that
