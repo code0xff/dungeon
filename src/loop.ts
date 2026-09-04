@@ -507,7 +507,9 @@ export function animate(): void {
   const dt = Math.min(clock.getDelta(), 0.05);
   const now = performance.now();
 
-  if (!state.gameOver) {
+  // Paused still renders — the guide sits over a live-looking dungeon — but
+  // nothing advances, so reading the controls cannot get the player killed.
+  if (!state.gameOver && !state.paused) {
     const moving = updatePlayer(dt, now);
     updateWeapons(dt);
     updateLantern(dt);

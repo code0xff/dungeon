@@ -26,6 +26,8 @@ export const state = {
 
   // ---- Progress ----
   gameOver: false,
+  /** The guide is open. The frame loop still renders, it just stops advancing. */
+  paused: false,
 
   // ---- Sword ----
   /** Durability, 0..SWORD_DUR_MAX. Damage falls with it. */

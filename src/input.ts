@@ -1,11 +1,15 @@
-import { initAudio, sfxDash } from './audio';
-import { DASH_CD, LANTERN_KEY, POTION_KEY } from './config';
+import { initAudio, isMuted, setMuted, sfxDash } from './audio';
+import { DASH_CD, GUIDE_KEY, LANTERN_KEY, POTION_KEY, SOUND_KEY } from './config';
 import { el, queryChild } from './dom';
 import { canvasEl } from './scene';
 import { state } from './state';
 import { tryAttack } from './combat';
+import { closeGuide, isGuideOpen, toggleGuide } from './guide';
 import { startLoot, useLantern, usePotion } from './loot';
-import { atkBtn, dashBtn, lampBtn, lockHintEl, lootBtn, potBtn, showMsg, wpnBtn } from './ui';
+import {
+  atkBtn, dashBtn, guideBtn, guideCloseBtn, lampBtn, lockHintEl, lootBtn, potBtn, showMsg,
+  soundBtn, wpnBtn,
+} from './ui';
 import { setWeapon, toggleWeapon } from './weapons';
 
 const SENS = 0.0022;
@@ -58,12 +62,22 @@ export function tryDash(): void {
 }
 
 addEventListener('keydown', (e) => {
+  // With the guide open only the keys that can close it or change the sound do
+  // anything — otherwise Space would swing the sword at a paused dungeon.
+  if (isGuideOpen()) {
+    if (e.code === `Key${GUIDE_KEY}` || e.code === 'Escape') closeGuide();
+    if (e.code === `Key${SOUND_KEY}`) toggleSound();
+    return;
+  }
+
   keys[e.code] = true;
   if (e.code === 'Space') {
     e.preventDefault();
     tryAttack();
   }
   if (e.code === 'KeyE') startLoot();
+  if (e.code === `Key${GUIDE_KEY}`) toggleGuide();
+  if (e.code === `Key${SOUND_KEY}`) toggleSound();
   // Shift, not a direction key of its own: the dodge goes where you are already
   // going, so it adds a finger rather than a decision.
   if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') tryDash();
@@ -239,7 +253,28 @@ for (const [btn, action] of touchButtons) {
  * on a phone at all, however it is styled.
  */
 function touchIsForGame(): boolean {
-  return !state.gameOver;
+  return !state.gameOver && !state.paused;
+}
+
+/** Flips the sound and keeps the button showing which way it is. */
+export function toggleSound(): void {
+  setMuted(!isMuted());
+  soundBtn.classList.toggle('muted', isMuted());
+  showMsg(isMuted() ? 'Sound off' : 'Sound on');
+}
+
+soundBtn.classList.toggle('muted', isMuted());
+for (const [btn, action] of [
+  [guideBtn, toggleGuide], [soundBtn, toggleSound], [guideCloseBtn, closeGuide],
+] as const) {
+  // pointerdown rather than click so a phone does not wait for the tap delay,
+  // and stopPropagation so it never reaches the canvas as an attack.
+  btn.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    initAudio();
+    action();
+  });
 }
 
 addEventListener(

@@ -28,6 +28,9 @@ export const potBtn = el('potBtn');
 export const lampBtn = el('lampBtn');
 export const dashBtn = el('dashBtn');
 export const atkBtn = el('atkBtn');
+export const guideBtn = el('guideBtn');
+export const soundBtn = el('soundBtn');
+export const guideCloseBtn = el('guideClose');
 const atkLabel = queryChild(atkBtn, 'span');
 export const minimapEl = el<HTMLCanvasElement>('minimap');
 
