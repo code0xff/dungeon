@@ -1,6 +1,6 @@
 import {
-  AMMO_PICKUP, LANTERN_FUEL, POTION_HEAL, SHOP, SHOP_INFLATION, SPAWN_PEAK_STAGE, SWORD_DUR_MAX,
-  WHETSTONE_REPAIR,
+  AMMO_PICKUP, LANTERN_FUEL, MAX_HP, POTION_HEAL, SHOP, SHOP_INFLATION, SPAWN_PEAK_STAGE,
+  SWORD_DUR_MAX, WHETSTONE_REPAIR,
 } from './config';
 import { el } from './dom';
 import { progress, saveProgress } from './progress';
@@ -60,29 +60,24 @@ function atStage(base: number): number {
 const repairCost = (): number =>
   atStage((SWORD_DUR_MAX - progress.swordDur) * SHOP.repairPerPoint);
 
+const healCost = (): number => atStage((MAX_HP - progress.hp) * SHOP.healPerPoint);
+
+/**
+ * Ordered in pairs: the thing that fixes you here, then the thing that carries
+ * the same fix into the dungeon. Health, then blade, then the rest.
+ *
+ * The pairing is the point. Both counter rows are priced per point and both
+ * carried ones cost a premium over the same restoration, and putting them on
+ * adjacent lines is the only way a player can see that rather than be told it.
+ */
 const STOCK: Stock[] = [
   {
-    id: 'Repair',
-    name: 'Repair sword',
-    held: () => `${Math.round((progress.swordDur / SWORD_DUR_MAX) * 100)}%`,
-    price: () => (progress.swordDur >= SWORD_DUR_MAX ? null : repairCost()),
+    id: 'Heal',
+    name: 'Bind wounds',
+    held: () => `${Math.round(progress.hp)}/${MAX_HP} HP`,
+    price: () => (progress.hp >= MAX_HP ? null : healCost()),
     buy: () => {
-      progress.swordDur = SWORD_DUR_MAX;
-    },
-  },
-  /**
-   * Sold as well as found, and it sits next to the counter repair on purpose:
-   * the two are the same gold buying the same durability, and the only
-   * difference is that one of them travels. Seeing them together is what makes
-   * the premium legible.
-   */
-  {
-    id: 'Whetstone',
-    name: 'Whetstone',
-    held: () => `${progress.whetstones} held  ·  +${WHETSTONE_REPAIR}%`,
-    price: () => atStage(SHOP.whetstone),
-    buy: () => {
-      progress.whetstones++;
+      progress.hp = MAX_HP;
     },
   },
   {
@@ -92,6 +87,24 @@ const STOCK: Stock[] = [
     price: () => atStage(SHOP.potion),
     buy: () => {
       progress.potions++;
+    },
+  },
+  {
+    id: 'Repair',
+    name: 'Repair sword',
+    held: () => `${Math.round((progress.swordDur / SWORD_DUR_MAX) * 100)}%`,
+    price: () => (progress.swordDur >= SWORD_DUR_MAX ? null : repairCost()),
+    buy: () => {
+      progress.swordDur = SWORD_DUR_MAX;
+    },
+  },
+  {
+    id: 'Whetstone',
+    name: 'Whetstone',
+    held: () => `${progress.whetstones} held  ·  +${WHETSTONE_REPAIR}%`,
+    price: () => atStage(SHOP.whetstone),
+    buy: () => {
+      progress.whetstones++;
     },
   },
   {

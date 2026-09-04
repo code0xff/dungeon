@@ -177,16 +177,26 @@ export const LUNGE_WINDOW = 0.5;
 /**
  * Damage multiplier on that hit.
  *
- * Doubling is deliberately large: the dodge puts the player inside reach with
- * DASH_CD seconds before they can back out again, which against a brute is the
- * most dangerous place in the game. A 10-20% bonus would not pay for that, so
- * nobody would ever take the risk and the mechanic would be decoration.
+ * 4x is set by one number: a zombie has 4hp and a pristine sword does exactly 1,
+ * so this is the multiplier at which a lunge kills one outright.
  *
- * It is charged wear to match — see resolveSwing(). A hit that lands double
- * damage costs double durability, so the aggressive style has a bill and not
- * just an advantage.
+ * That only holds at **full durability**. Damage is 0.45 + 0.55 * durability, so
+ * a single ordinary swing — 0.45 off the edge — drops it to 3.98 and the zombie
+ * lives. The one-shot is therefore a property of a *sharp* blade rather than of
+ * the lunge, which is the intended reading: it is what a whetstone buys back.
+ * Holding it for half a run instead would take 5.5x.
+ *
+ * Large on purpose either way. The dodge puts the player inside reach with
+ * DASH_CD seconds before they can back out again, which against a brute is the
+ * most dangerous place in the game; a 10-20% bonus would not pay for that and
+ * nobody would ever take the risk.
+ *
+ * The wear is **not** scaled with it. It was, on the reasoning that damage
+ * should cost durability — but at 4x that is 1.8 an enemy, which burns a blade
+ * in 55 hits and means using the mechanic destroys the sharpness the mechanic
+ * depends on. A lunge costs the same SWORD_WEAR as any other cut.
  */
-export const LUNGE_DMG = 2;
+export const LUNGE_DMG = 4;
 
 /**
  * Chests at the reference size, scaled by area like everything else — but never
@@ -477,6 +487,20 @@ export const SHOP_INFLATION = 0.15;
 export const SHOP = {
   /** Per point of durability restored, so a barely-nicked sword is cheap. */
   repairPerPoint: 2,
+  /**
+   * Per point of health restored.
+   *
+   * Under the potion's rate, which works out at SHOP.potion / POTION_HEAL =
+   * 1.71 a point. Same relationship as the whetstone against the counter repair
+   * and for the same reason: the counter is only open between stages, so the
+   * thing that travels is the one you pay a premium for.
+   *
+   * It does not undo the decision at the portal. Walking out on 12 HP still
+   * means walking in on 12 unless you spend for it — the choice just stops being
+   * "start the next stage hurt" and becomes "start it hurt or poorer", which is
+   * what every other row here already offers.
+   */
+  healPerPoint: 1.5,
   potion: 60,
   /** One lantern's worth of oil — LANTERN_FUEL seconds. */
   lantern: 90,
