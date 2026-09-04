@@ -578,8 +578,14 @@ function updateChests(dt: number, playerMoving: boolean): void {
       state.looting.t += dt;
       lootFillEl.style.width = Math.min(100, (state.looting.t / LOOT_TIME) * 100) + '%';
       if (state.looting.t >= LOOT_TIME) {
-        openChest(state.looting.chest);
+        // Cleared *before* the chest opens, not after. A trapped chest damages
+        // the player from inside openChest(), and playerHurt() cancels a loot in
+        // progress and says "Looting interrupted!" — which is both untrue here
+        // (the loot finished) and immediately overwritten by the contents in the
+        // same frame. Invisible, but only by accident.
+        const chest = state.looting.chest;
         cancelLoot();
+        openChest(chest);
       }
     }
   }
