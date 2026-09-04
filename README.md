@@ -107,7 +107,7 @@ rules, with the detail in [docs/](docs/). `CLAUDE.md` is a symlink to it.
 |---|---|
 | Move | `WASD` |
 | Dodge | `Shift` — a 2.9m burst the way you are already moving |
-| Lunge | dodge *forward*, then attack while the blade glows — 4x damage |
+| Lunge | dodge *forward*, then attack while the blade glows — 5.52x damage |
 | Look | move the mouse (click to lock the cursor, `Esc` to release) |
 | Attack / fire | click or `Space` |
 | Open chest | `E` |
@@ -129,10 +129,10 @@ would strand you with no way back to the exit. A **whetstone** from a chest or
 the shop grinds 45 points back, spent with `5` — the only repair available while
 you are still down there.
 
-**A forward dodge into an attack is a lunge**, worth 4x damage on that one
-swing — exactly enough to kill a zombie outright, but only while the blade is
-untouched. Damage falls with durability, so a single ordinary swing already costs
-you the one-shot; it is one of the things a whetstone buys back.
+**A forward dodge into an attack is a lunge**, worth 5.52x damage on that one
+swing — enough to kill a zombie outright for the top half of the blade's life,
+and to drop a brute from three lunges to two above 66% durability. Damage falls
+with durability, so the one-shot is one of the things a whetstone buys back.
 
 The blade lights up red when the window opens and fades out as it closes, so the
 timing is something you can see rather than something you have to be told; on a
