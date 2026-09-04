@@ -269,6 +269,18 @@ export const AMMO_PICKUP = 3;
 export const MUSKET_AMMO = 5;
 export const MUSKET_RANGE = 26;
 export const SHOT_ALERT_RADIUS = 20;
+/** Seconds a creature hunts the player after hearing a shot. */
+export const SHOT_ALERT_TIME = 10;
+/**
+ * How far a chest lid carries, in metres, and for how long.
+ *
+ * Much shorter than a musket — a creak is not a bang — but not silent, because
+ * looting should cost something. Standing still for LOOT_TIME in the open is now
+ * a decision rather than free gold, and it is the reason to clear a room before
+ * opening what is in it.
+ */
+export const CHEST_ALERT_RADIUS = 9;
+export const CHEST_ALERT_TIME = 6;
 
 // ================= Shop =================
 /**
@@ -283,6 +295,19 @@ export const SHOT_ALERT_RADIUS = 20;
  * a potion and a lantern is about 350G, so a careful run funds the next one and
  * a greedy one funds two.
  */
+/**
+ * How much dearer everything gets per stage, as a fraction of the base price.
+ *
+ * Deeper stages pay more for the same repair. It is set below the rate income
+ * grows at — creature gold roughly triples by the peak while prices rise 2.6x —
+ * so progress still feels like progress; it just stops being free.
+ *
+ * It flattens at SPAWN_PEAK_STAGE for the same reason the spawns do: income
+ * stops growing there, so prices that kept climbing would eventually outrun any
+ * possible run.
+ */
+export const SHOP_INFLATION = 0.15;
+
 export const SHOP = {
   /** Per point of durability restored, so a barely-nicked sword is cheap. */
   repairPerPoint: 2,
@@ -408,7 +433,22 @@ export const ATTACK_IMPACT_REACH = 1.5;
  */
 export const WALK_CLIP_SPEED = 1.45;
 /** Allowed range for the walk clip's timeScale, clamped so it never crawls or blurs. */
-export const WALK_TIMESCALE_RANGE: readonly [number, number] = [0.6, 1.9];
+export const WALK_TIMESCALE_RANGE: readonly [number, number] = [0.5, 1.9];
+/**
+ * How fast a creature's measured ground speed follows the truth, in units per
+ * second — about a 0.12s lag.
+ *
+ * The walk clip is retimed from what the creature *achieved*, not what it
+ * intended, because collision is per axis: with one axis blocked it slides along
+ * the wall at a fraction of its speed while the legs still run at full. The
+ * brute shows this most — 14.8% of its walking frames have an axis blocked
+ * against the zombie's 1.5%, because its 1.6m clearance puts it against walls far
+ * more often — and it reads as marching on the spot.
+ *
+ * Smoothed rather than used raw so a single blocked frame does not stutter the
+ * legs.
+ */
+export const GROUND_SPEED_SMOOTH = 8;
 /**
  * Beyond this many metres a creature is not drawn, in metres.
  *

@@ -111,12 +111,16 @@
   .tbtn span { opacity:.72; }
   .tbtn:active { transform:scale(.94); filter:brightness(1.25); }
 
-  #atkBtn, #lootBtn { right:calc(24px + env(safe-area-inset-right)); width:88px; height:88px; }
-  #atkBtn { bottom:calc(30px + env(safe-area-inset-bottom));
+  #atkBtn { right:calc(24px + env(safe-area-inset-right)); width:88px; height:88px;
+            bottom:calc(30px + env(safe-area-inset-bottom));
             border:1px solid rgba(184,74,66,.55); color:#e8cfc6;
             background:radial-gradient(circle at 50% 32%, rgba(150,48,44,.62), rgba(74,22,20,.5) 72%);
             box-shadow:0 6px 22px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,190,175,.16); }
-  #lootBtn { bottom:calc(134px + env(safe-area-inset-bottom));
+  /* Smaller than attack and centred over it: opening a chest is a deliberate
+     act you have already stopped moving for, not something the thumb has to
+     find in a hurry. */
+  #lootBtn { right:calc(36px + env(safe-area-inset-right)); width:64px; height:64px;
+             bottom:calc(132px + env(safe-area-inset-bottom)); font-size:9.5px;
              border:1px solid rgba(212,178,90,.55); color:#efdca6;
              background:radial-gradient(circle at 50% 32%, rgba(150,118,44,.55), rgba(64,50,18,.5) 72%);
              box-shadow:0 6px 22px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,230,160,.16); }
@@ -137,6 +141,7 @@
              background:radial-gradient(circle at 50% 32%, rgba(46,74,116,.6), rgba(18,28,44,.5) 72%);
              box-shadow:0 5px 18px rgba(0,0,0,.45); }
   #dashBtn .ico { width:22px; height:22px; }
+  #lootBtn .ico { width:21px; height:21px; }
   #potBtn .ico, #lampBtn .ico, #wpnBtn .ico { width:20px; height:20px; }
   #potBtn .count, #lampBtn .count { opacity:.9; font-size:11px; }
   #wpnBtn { font-size:9.5px; }
@@ -239,7 +244,7 @@
   <p id="ovDesc"></p>
   <p class="bankline" id="ovBank"></p>
   <div id="shop">
-    <div class="shopHead">Outfitting <span id="shopBank"></span></div>
+    <div class="shopHead"><span id="shopHead">Outfitting</span> <span id="shopBank"></span></div>
   </div>
   <button id="restart">Descend</button>
 </div>

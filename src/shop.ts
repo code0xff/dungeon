@@ -1,4 +1,6 @@
-import { AMMO_PICKUP, LANTERN_FUEL, POTION_HEAL, SHOP, SWORD_DUR_MAX } from './config';
+import {
+  AMMO_PICKUP, LANTERN_FUEL, POTION_HEAL, SHOP, SHOP_INFLATION, SPAWN_PEAK_STAGE, SWORD_DUR_MAX,
+} from './config';
 import { el } from './dom';
 import { progress, saveProgress } from './progress';
 
@@ -15,6 +17,7 @@ import { progress, saveProgress } from './progress';
  * banking gold a decision rather than a score.
  */
 const shopEl = el('shop');
+const headEl = el('shopHead');
 const bankEl = el('shopBank');
 
 interface Stock {
@@ -28,12 +31,25 @@ interface Stock {
 }
 
 /**
+ * What a base price costs at the stage about to be entered.
+ *
+ * `progress.stage` has already been advanced by bankRun() by the time the shop
+ * is on screen, so this is the price of the dungeon ahead rather than the one
+ * just left — which is what "deeper is dearer" has to mean to be fair. After a
+ * death the stage is back to 1, so re-equipping is at starting prices.
+ */
+function atStage(base: number): number {
+  const stage = Math.min(Math.max(progress.stage, 1), SPAWN_PEAK_STAGE);
+  return Math.ceil(base * (1 + SHOP_INFLATION * (stage - 1)));
+}
+
+/**
  * Repair is priced per point restored rather than as a flat fee, so a lightly
  * used sword is cheap to top up and a ruined one is a real bill. It is all or
  * nothing: a partial repair would be another slider for no decision.
  */
 const repairCost = (): number =>
-  Math.ceil((SWORD_DUR_MAX - progress.swordDur) * SHOP.repairPerPoint);
+  atStage((SWORD_DUR_MAX - progress.swordDur) * SHOP.repairPerPoint);
 
 const STOCK: Stock[] = [
   {
@@ -49,7 +65,7 @@ const STOCK: Stock[] = [
     id: 'Potion',
     name: 'Potion',
     held: () => `${progress.potions} held  ·  +${POTION_HEAL} HP`,
-    price: () => SHOP.potion,
+    price: () => atStage(SHOP.potion),
     buy: () => {
       progress.potions++;
     },
@@ -58,7 +74,7 @@ const STOCK: Stock[] = [
     id: 'Lantern',
     name: 'Lantern oil',
     held: () => `${progress.lanterns} held  ·  ${Math.round(LANTERN_FUEL / 60)} min`,
-    price: () => SHOP.lantern,
+    price: () => atStage(SHOP.lantern),
     buy: () => {
       progress.lanterns++;
     },
@@ -67,7 +83,7 @@ const STOCK: Stock[] = [
     id: 'Ammo',
     name: 'Musket balls',
     held: () => `${progress.ammo} held`,
-    price: () => SHOP.ammo,
+    price: () => atStage(SHOP.ammo),
     buy: () => {
       progress.ammo += AMMO_PICKUP;
     },
@@ -106,6 +122,9 @@ function label(item: Stock, price: number | null): string {
 }
 
 export function render(): void {
+  // The stage is on the header because the prices move with it, and a number
+  // that changes with no visible cause reads as a bug.
+  headEl.textContent = `Outfitting · Stage ${progress.stage}`;
   bankEl.textContent = `${progress.bankGold} G`;
   for (const { item, held, btn } of rows) {
     const price = item.price();
