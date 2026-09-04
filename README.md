@@ -107,7 +107,7 @@ rules, with the detail in [docs/](docs/). `CLAUDE.md` is a symlink to it.
 |---|---|
 | Move | `WASD` |
 | Dodge | `Shift` — a 2.9m burst the way you are already moving |
-| Lunge | dodge *forward*, then attack while the blade glows — double damage, double wear |
+| Lunge | dodge *forward*, then attack while the blade glows — 4x damage |
 | Look | move the mouse (click to lock the cursor, `Esc` to release) |
 | Attack / fire | click or `Space` |
 | Open chest | `E` |
@@ -129,10 +129,14 @@ would strand you with no way back to the exit. A **whetstone** from a chest or
 the shop grinds 45 points back, spent with `5` — the only repair available while
 you are still down there.
 
-**A forward dodge into an attack is a lunge**, worth double damage on that one
-swing. The blade lights up when the window opens and fades out as it closes, so
-the timing is something you can see rather than something you have to be told;
-on a phone the attack button lights with it. It costs double durability to match and puts you inside reach with a
+**A forward dodge into an attack is a lunge**, worth 4x damage on that one
+swing — exactly enough to kill a zombie outright, but only while the blade is
+untouched. Damage falls with durability, so a single ordinary swing already costs
+you the one-shot; it is one of the things a whetstone buys back.
+
+The blade lights up red when the window opens and fades out as it closes, so the
+timing is something you can see rather than something you have to be told; on a
+phone the attack button lights with it. A lunge puts you inside reach with a
 cooldown before you can back out again, which is the trade: the most dangerous
 place in the game is also the only place the sword hits hard.
 
@@ -164,7 +168,7 @@ average chest on stage 1 and two by stage 12, and roughly half of stage-1 chests
 open in silence against one in eight at the peak.
 
 **Between stages you outfit.** Extraction — or death — opens a shop that spends
-banked gold on repairs, whetstones, potions, lantern oil and musket balls. Prices climb 15%
+banked gold on binding wounds, repairs, whetstones, potions, lantern oil and musket balls. Prices climb 15%
 a stage and flatten where the spawns do, so deeper is dearer but never outruns
 what a run can earn. That is what the
 bank is *for*; before it existed, gold was a score with no sink and no reason to

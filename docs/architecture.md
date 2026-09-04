@@ -274,8 +274,14 @@ decision. It is deliberately *worse* gold-for-durability than the counter
 repair: the premium buys the ability to spend it at the bottom.
 
 **The lunge** is the one place attack timing matters. An attack pressed within
-`LUNGE_WINDOW` of a *forward* dodge does `LUNGE_DMG`x damage — and costs
-`LUNGE_DMG`x durability, so aggression has a bill rather than being free. It is
+`LUNGE_WINDOW` of a *forward* dodge does `LUNGE_DMG`x damage. 4x is set by one
+number: a zombie has 4hp and a pristine sword does exactly 1. That one-shot only
+holds at full durability — damage is `0.45 + 0.55 * durability`, so a single
+ordinary swing drops it to 3.98 and the zombie lives — which makes it a property
+of a sharp blade rather than of the lunge, and gives the whetstone something to
+buy back. The wear is deliberately not scaled with the multiplier: it was, and at
+4x that is 1.8 durability an enemy, so using the mechanic destroyed the sharpness
+the mechanic depends on. It is
 armed off the dodge direction, not the camera, so swinging the view around
 mid-dodge earns nothing; and it is latched when the player presses rather than
 read when the blade lands, because those are `SWING_IMPACT / SWING_SPEED` apart

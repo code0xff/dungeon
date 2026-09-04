@@ -164,17 +164,15 @@ export function resolveSwing(): void {
   inArc.sort((a, b) => a.d - b.d);
 
   // A swing out of a forward dodge lands with the player's own momentum behind
-  // it. The multiplier is charged to durability as well as paid out in damage,
-  // so the aggressive opening wears the blade at the rate it kills.
+  // it. Wear is deliberately *not* scaled with the multiplier: see LUNGE_DMG.
   const lunge = state.swingLunge;
   const dmg = swordDamage() * (lunge ? LUNGE_DMG : 1);
-  const wear = SWORD_WEAR * (lunge ? LUNGE_DMG : 1);
   if (lunge && inArc.length > 0) sfxLunge();
   for (const { m } of inArc.slice(0, SWORD_CLEAVE)) {
     m.hp -= dmg;
     m.hurtT = 0.18;
     // Charged per creature cut, so a cleave that catches two costs two.
-    state.swordDur = Math.max(0, state.swordDur - wear);
+    state.swordDur = Math.max(0, state.swordDur - SWORD_WEAR);
     sfxHit(false);
     if (m.hp <= 0) showMsg(`${m.type.name} killed +${killMonster(m)} G`);
   }
@@ -183,7 +181,7 @@ export function resolveSwing(): void {
   // bonus they will never repeat on purpose.
   if (lunge && inArc.length > 0 && !state.lungeShown) {
     state.lungeShown = true;
-    showMsg(`Lunge — ${LUNGE_DMG}x damage, and ${LUNGE_DMG}x the wear`);
+    showMsg(`Lunge — ${LUNGE_DMG}x damage. A sharp blade kills a zombie outright`);
   }
 
   if (!state.swordWarned && state.swordDur <= SWORD_WARN_AT) {

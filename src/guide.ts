@@ -20,7 +20,7 @@ const listEl = el('guideList');
 const KEYS: readonly (readonly [string, string])[] = [
   ['Move', 'W A S D'],
   ['Dodge', 'Shift'],
-  ['Lunge', `Dodge forward and the blade lights up. Attack while it is lit for ${LUNGE_DMG}x damage — and ${LUNGE_DMG}x the wear`],
+  ['Lunge', `Dodge forward and the blade lights up. Attack while it is lit for ${LUNGE_DMG}x damage — a sharp sword kills a zombie outright`],
   ['Look', 'Move the mouse — click to lock it, Esc to release'],
   ['Attack / fire', 'Click or Space'],
   ['Open chest', 'E'],
