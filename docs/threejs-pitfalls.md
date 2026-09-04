@@ -272,6 +272,18 @@ panel's right edge below 320px, which reads as the text punching through it.
 **Fix.** `min-width: 0` on whatever should give way, and let it wrap. Equal row
 heights are worth less than never overlapping.
 
+## A full-screen cover lets everything show through it
+
+**Cause.** `opacity` applies to the whole element, its background included. The
+loading screen was an opaque `#020304` panel dimmed to `opacity: .6` to soften
+its text — which made the *backdrop* 60% transparent, so the HUD, the objective
+panel and the click-to-lock card all bled through and collided with the message.
+It reads as two things overlapping rather than as a transparency bug, which is
+what makes it hard to spot from a screenshot.
+
+**Fix.** Dim the colour, not the element: `color: rgba(...)`. Reach for
+`opacity` only when you mean the whole box, backdrop and all.
+
 ## An overlay taller than the screen cannot be scrolled to
 
 **Cause.** Two of them, and both have to be fixed or nothing scrolls.

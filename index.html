@@ -298,9 +298,13 @@
   }
   /* Wide tracking plus uppercase wraps onto two or three lines on a phone, and
      the default line-height packed them together. */
+  /* The dimming is on the colour, not on the element. `opacity` applies to the
+     whole box including its background, so an opacity here made the black
+     backdrop 60% transparent and the HUD, the objective panel and the
+     click-to-lock card all bled through and collided with the message. */
   #loading { position:fixed; inset:0; z-index:30; display:flex; align-items:center; justify-content:center;
-             background:#020304; color:var(--ink); font-family:var(--display); font-size:12px;
-             letter-spacing:3.5px; text-transform:uppercase; opacity:.6;
+             background:#020304; color:rgba(201,192,174,.6); font-family:var(--display); font-size:12px;
+             letter-spacing:3.5px; text-transform:uppercase;
              line-height:2.4; text-align:center; padding:0 28px; max-width:100%; }
 </style>
 </head>
