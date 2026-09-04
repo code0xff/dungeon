@@ -3,7 +3,7 @@ import { floorPBR, spawnCreature, wallPBR } from './assets';
 import {
   CEIL_TILES_PER_CELL, CELL, CHEST_COUNT, CHEST_ITEMS, CHEST_TRAP_FRAC, EYE_H,
   FLOOR_TILES_PER_CELL, PLAYER_R, REF_FLOOR_CELLS, SCALE_VARIANCE, SPAWN, SPAWN_PEAK_STAGE,
-  SPEED_VARIANCE, TRAP_COUNT, TYPES, WALL_H,
+  SPEED_VARIANCE, TRAP_COUNT, TRAP_JITTER, TYPES, WALL_H,
 } from './config';
 import { dungeonSize, generateDungeon } from './dungeon';
 import { createChest, makeSconce, makeTrap, rollProp } from './props';
@@ -271,8 +271,10 @@ function placeTraps(scale: number): void {
   for (let i = 0; i < count; i++) {
     const [gx, gz] = randomFloorCell(5);
     const { group: mesh, jaws } = makeTrap();
-    // Off-centre, so a corridor of them does not read as a dotted line.
-    mesh.position.set(gx * CELL + (Math.random() - 0.5) * 1.4, 0, gz * CELL + (Math.random() - 0.5) * 1.4);
+    // Anywhere in the cell, walls included — see TRAP_JITTER. A trap always near
+    // the middle made hugging a wall a blanket answer.
+    const jx = (Math.random() * 2 - 1) * TRAP_JITTER, jz = (Math.random() * 2 - 1) * TRAP_JITTER;
+    mesh.position.set(gx * CELL + jx, 0, gz * CELL + jz);
     mesh.rotation.y = Math.random() * Math.PI * 2;
     scene.add(mesh);
     state.traps.push({ mesh, jaws, sprung: false, springT: 0 });

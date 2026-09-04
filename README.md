@@ -166,7 +166,11 @@ it.
 
 They are bear traps on the floor and wires across a lid, lit by nothing but your
 own lamp — so an unlit lantern sees one at 11m and a lit one at 19m. A set trap
-lies open; a sprung one has its jaws shut, so you can tell which is which. That is the
+lies open; a sprung one has its jaws shut, so you can tell which is which.
+
+They can lie against a wall as easily as in the middle of a corridor, so hugging
+the wall is not an answer — two thirds of corridor traps will catch you if you
+pick the wrong side. There is always a clear side; you just have to see which. That is the
 lantern's second job; it used to be a timer and nothing else. The map draws
 trapped chests red.
 

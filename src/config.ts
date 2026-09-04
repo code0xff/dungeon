@@ -501,6 +501,24 @@ export const TRAP_COUNT = 12;
 /** How close the player has to get to set one off, in metres. */
 export const TRAP_RADIUS = 1.1;
 /**
+ * How far off its cell's centre a trap may sit, in metres each way.
+ *
+ * This is what stops "walk with your shoulder on the wall" from being a blanket
+ * answer to traps. At the old 0.7 every trap sat in the middle half of a 4m
+ * cell, so hugging *either* wall cleared the 1.1m trigger with room to spare and
+ * the mechanic could be turned off by a habit rather than by looking.
+ *
+ * At 1.35 a trap can sit right against a wall, and a player pressed to that same
+ * wall walks into it. The far wall is still clear — no trap is ever unavoidable,
+ * because the widest possible offset still leaves 1.55 + 1.35 = 2.9m of
+ * separation on the other side. What changes is that the safe side is now a
+ * property of the individual trap, so it has to be seen rather than assumed.
+ *
+ * 1.35 is the ceiling: the trap model is about 0.55m across, so anything more
+ * and it starts clipping into the wall it is leaning on.
+ */
+export const TRAP_JITTER = 1.35;
+/**
  * Health a spring costs.
  *
  * Small on purpose, and well under one POTION_HEAL. If the damage mattered the
