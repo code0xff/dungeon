@@ -123,11 +123,30 @@ type, so the message and the HUD cannot show different numbers.
 
 ## What a stage is worth
 
-The stage number is the difficulty. `SPAWN` gives each creature a stage-1 count
-and a per-stage increase, so stage 1 is 40 creatures across 510 floor cells and
-stage 12 is 113 — measured as creatures aware of the player at a random spot,
-that is a median of 2 rising to 5, and time spent with nobody hunting you
-falling from 18% to 2%.
+The stage number is the difficulty, and it moves **two** dials.
+
+**The dungeon grows.** `dungeonSize()` ramps from `MAZE_CELLS_START` to
+`MAZE_CELLS_PEAK` on the same schedule as the spawns: stage 1 is 76m a side and
+about 173 floor cells, stage 12 is 124m and 505. The peak is exactly what every
+stage used to be, so only the early game changed. Dungeons are no longer square
+either — the aspect is rolled per run and the stretch is area-preserving, so a
+long thin dungeon holds the same content and sits at the same point on the curve.
+
+**And it fills up.** `SPAWN` gives each creature a count and a per-stage
+increase, both written against `REF_FLOOR_CELLS` and multiplied by the area
+actually carved. That scaling is the whole reason a smaller stage 1 is easier
+rather than harder: the same 40 creatures in a third of the space would have been
+three times the density. Measured across 14 runs a stage, the density curve is
+unchanged at 12.5 floor cells per creature falling to 4.5, while the headcount
+drops from 40 to 14 and the key sits 51m from the start instead of 92m. What a
+short stage buys is less ground to search and less time exposed — the half of
+stage-1 difficulty the spawn curve was never going to fix, because it was
+already sparse.
+
+Nothing may assume a compile-time grid size: `state.gw` and `state.gh` are the
+dungeon's dimensions and change every stage. Floor and ceiling texture repeats
+are set per build for the same reason — a fixed repeat stretches the cobbles by
+whatever the stage changed the map to.
 
 Growth stops at `SPAWN_PEAK_STAGE`, and the **stage** is clamped rather than the
 total. Capping the sum would have silently changed the mix at the top by
@@ -178,8 +197,15 @@ one thorough run roughly blunts a blade.
 
 `CHEST_ITEMS` puts exactly one key in the dungeon and the portal refuses to open
 without it, so a run is a search rather than a crossing. The key sits a median
-92m from the start across a 124m dungeon. That is what makes the map worth
-finding: it marks which chests are still shut.
+51m from the start on stage 1 and 72m by stage 12, as the dungeon grows. That is
+what makes the map worth finding: it marks which chests are still shut.
+
+The minimap draws the whole dungeon fitted to its canvas, one scale on both axes
+so a lopsided map is drawn lopsided. A player-centred window would have been the
+obvious answer to a map that grows, and is the wrong one: the map is the single
+item whose entire value is *seeing the layout*, and the sizes never make it
+unreadable — 19 to 31 cells a side is 7.9 to 4.8 pixels a cell on a 150px canvas,
+against the 4.8 the old fixed size always gave.
 
 The dodge is the other half of that: with every creature slower than the player,
 the pressure has to come from being *surrounded*, and the dodge is what turns a
