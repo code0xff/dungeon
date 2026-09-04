@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { chestTemplate } from './assets';
-import { PROP_ASSETS, WALL_H } from './config';
+import { envMap } from './scene';
+import { ENV_INTENSITY, PROP_ASSETS, WALL_H } from './config';
 import { ironMat } from './creatures';
 import { chestTex } from './textures';
 import type { Chest, Prop, Sconce } from './types';
@@ -217,38 +218,130 @@ export function rollProp(): Prop | null {
 
 // ---- Trap ----
 /**
- * A ring of bone and a taut cord across it, low to the floor.
+ * A bear trap: a toothed jaw on each side of a pressure plate, leaf springs
+ * either side, and a short chain to a ring pin.
  *
- * Pale rather than dark, and that is the whole design of the thing. Nothing here
- * hides or reveals it in code: it is lit by the player's own lamp like any other
- * object, so how far ahead you can spot one is exactly LIGHT_DIM.distance
- * unlit against LIGHT_LIT.distance lit — 11m against 19m. That is the second job
- * the lantern never had. It was a timer you lit and waited out; now it buys
- * reaction distance in a specific corridor, which is a decision rather than a
- * drain.
+ * The first version was a bone ring with a skull in it and looked like exactly
+ * what it was — a torus. The shape matters more than the polygon count here,
+ * because this is an object the player has to *recognise* at the edge of a
+ * lantern's reach and decide about in about a second.
  *
- * Kept under knee height so it never blocks the view of what is behind it. A
- * trap you cannot see past would be a wall, and the dungeon has those.
+ * **Metal, not bone, and that was the design problem.** Traps are only ever
+ * revealed by the player's own lamp — that is the lantern's whole second job —
+ * so the value of the material matters more than what it is made of. Realistic
+ * dark iron was tried and was flatly invisible at 12m with a lit lantern, where
+ * the pale bone ring it replaced had been easy to pick out. It is now a light
+ * weathered rust with an environment map, and there are bones caught in it: the
+ * bones are what carry at range, and they are also the reason a player looking
+ * at one understands what it does.
+ *
+ * Kept under knee height. A trap you cannot see past would be a wall, and the
+ * dungeon has those.
  */
-export function makeTrap(): THREE.Group {
-  const g = new THREE.Group();
-  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.52, 0.045, 6, 16), trapBoneMat);
-  ring.rotation.x = Math.PI / 2;
-  ring.position.y = 0.05;
-  g.add(ring);
-  // Three ribs across the ring, so it reads as rigged rather than dropped.
-  for (let i = 0; i < 3; i++) {
-    const cord = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 1.04, 5), trapCordMat);
-    cord.rotation.z = Math.PI / 2;
-    cord.rotation.y = (i / 3) * Math.PI;
-    cord.position.y = 0.14;
-    g.add(cord);
+const trapIronMat = new THREE.MeshStandardMaterial({
+  color: 0xb9a184, metalness: 0.55, roughness: 0.5, envMap, envMapIntensity: ENV_INTENSITY * 2.6,
+});
+const trapPlateMat = new THREE.MeshStandardMaterial({
+  color: 0x8a7862, metalness: 0.5, roughness: 0.62, envMap, envMapIntensity: ENV_INTENSITY * 1.8,
+});
+
+const JAW_R = 0.34;
+/**
+ * Jaw angle when the trap is set, in radians from upright.
+ *
+ * A set bear trap lies almost flat — the jaws are forced open past horizontal
+ * and it is that tension the pressure plate releases. Getting this backwards is
+ * the easiest mistake here, and the first attempt made it: the jaws stood up
+ * when set and fell open when sprung, which read as a hoop collapsing rather
+ * than a mouth shutting.
+ */
+const JAW_SET = 1.45;
+/** Jaw angle when shut. Slightly past upright, so the two sides interlock. */
+const JAW_SHUT = 0.14;
+
+/** One jaw: a half hoop of iron with teeth along it, hinged at its own diameter. */
+function makeJaw(): THREE.Group {
+  const pivot = new THREE.Group();
+  // A half torus in the XY plane: an arch rising in +Y from the hinge line.
+  const arc = new THREE.Mesh(new THREE.TorusGeometry(JAW_R, 0.028, 5, 16, Math.PI), trapIronMat);
+  pivot.add(arc);
+  for (let i = 1; i < 6; i++) {
+    const a = (i / 6) * Math.PI;
+    const tooth = new THREE.Mesh(new THREE.ConeGeometry(0.028, 0.11, 4), trapIronMat);
+    tooth.position.set(Math.cos(a) * JAW_R, Math.sin(a) * JAW_R, 0);
+    // Radially outward, so the teeth splay off the hoop like a jaw.
+    tooth.rotation.z = a - Math.PI / 2;
+    pivot.add(tooth);
   }
+  return pivot;
+}
+
+/** `open` is 1 for fully set and 0 for shut. Both jaws mirror about the hinge. */
+export function setTrapJaws(jaws: readonly THREE.Object3D[], open: number): void {
+  const angle = JAW_SHUT + (JAW_SET - JAW_SHUT) * open;
+  jaws.forEach((jaw, i) => {
+    jaw.rotation.x = (i === 0 ? -1 : 1) * angle;
+  });
+}
+
+export function makeTrap(): { group: THREE.Group; jaws: THREE.Object3D[] } {
+  const g = new THREE.Group();
+
+  // Pressure plate, and the frame the jaws hinge on.
+  const plate = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.17, 0.03, 12), trapPlateMat);
+  plate.position.y = 0.03;
+  const frame = new THREE.Mesh(new THREE.TorusGeometry(0.23, 0.026, 5, 18), trapIronMat);
+  frame.rotation.x = Math.PI / 2;
+  frame.position.y = 0.028;
+  g.add(plate, frame);
+
+  // Leaf springs, flat bars lying out to each side under the jaws.
+  for (const side of [-1, 1]) {
+    const spring = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.026, 0.09), trapIronMat);
+    spring.position.set(side * 0.32, 0.038, 0);
+    const eye = new THREE.Mesh(new THREE.TorusGeometry(0.058, 0.018, 5, 10), trapIronMat);
+    eye.position.set(side * 0.47, 0.04, 0);
+    eye.rotation.y = Math.PI / 2;
+    g.add(spring, eye);
+  }
+
+  // The jaws share one hinge line, mirrored, so shutting brings them together.
+  const jaws: THREE.Object3D[] = [];
+  for (let i = 0; i < 2; i++) {
+    const jaw = makeJaw();
+    jaw.position.y = 0.045;
+    g.add(jaw);
+    jaws.push(jaw);
+  }
+  setTrapJaws(jaws, 1);
+
+  // A stake chain, so it reads as anchored rather than dropped on the floor.
+  for (let i = 0; i < 3; i++) {
+    const link = new THREE.Mesh(new THREE.TorusGeometry(0.045, 0.013, 4, 8), trapIronMat);
+    link.position.set(0.3 + i * 0.085, 0.018, 0.16 + i * 0.05);
+    link.rotation.set(Math.PI / 2, 0, i % 2 ? 0.7 : -0.2);
+    g.add(link);
+  }
+  const stake = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.01, 0.1, 5), trapIronMat);
+  stake.position.set(0.57, 0.03, 0.28);
+  g.add(stake);
+
+  // What the last one caught. Pale, so this is the part that carries at the
+  // range where the iron has gone to shadow — and it says what the thing is
+  // faster than the shape does.
   const skull = makeSkull();
-  skull.position.set(0, 0.04, 0);
-  skull.scale.setScalar(0.85);
+  skull.position.set(-0.34, 0.02, -0.26);
+  skull.rotation.y = 0.9;
+  skull.scale.setScalar(0.8);
   g.add(skull);
-  return g;
+  for (let i = 0; i < 3; i++) {
+    const bone = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.045, 0.3), boneMat);
+    bone.position.set(-0.15 - i * 0.16, 0.025, -0.34 + i * 0.13);
+    bone.rotation.y = 0.5 + i * 1.1;
+    g.add(bone);
+  }
+
+  return { group: g, jaws };
 }
 
 /** Wall sconce with a green flame. */

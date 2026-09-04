@@ -193,6 +193,11 @@ export interface Chest {
 
 export interface Trap {
   mesh: THREE.Group;
+  /**
+   * The two jaw pivots. Springing rotates these shut rather than scaling the
+   * whole thing flat, which is what the bone ring it replaced had to do.
+   */
+  jaws: THREE.Object3D[];
   /** Sprung traps stay in the world as visibly triggered scenery. */
   sprung: boolean;
   /** Seconds of spring animation left, or 0. */

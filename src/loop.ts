@@ -16,6 +16,7 @@ import { playerHurt, releaseQueuedAttack, resolveSwing, springTrap } from './com
 import { findPath } from './dungeon';
 import { edgeTurn, keys, moveInput } from './input';
 import { openChest } from './loot';
+import { setTrapJaws } from './props';
 import {
   DUST, camera, dustGeo, flashLight, gearBob, handLamp, LAMP_REST, MUSKET_REST, musket,
   muzzleFlash, portal, portalCore, renderFrame, scene, setBladeGlow, setLampLit, SMOKE_REST_Y,
@@ -542,9 +543,11 @@ function updateTraps(dt: number): void {
   for (const t of state.traps) {
     if (t.springT > 0) {
       t.springT = Math.max(0, t.springT - dt);
-      // Collapses flat as it releases, so a sprung one reads as spent at a glance.
+      // The jaws snap shut. Eased on the square so it leaves fast and arrives
+      // hard, which is the whole character of a spring — a linear close reads
+      // like a door. The bone ring this replaced could only be scaled flat.
       const k = t.springT / TRAP_SPRING_TIME;
-      t.mesh.scale.set(1 + (1 - k) * 0.25, 0.15 + k * 0.85, 1 + (1 - k) * 0.25);
+      setTrapJaws(t.jaws, k * k);
       continue;
     }
     if (t.sprung) continue;
