@@ -1,11 +1,12 @@
 import * as THREE from 'three';
 import { floorPBR, spawnCreature, wallPBR } from './assets';
 import {
-  CEIL_TILES_PER_CELL, CELL, CHEST_COUNT, CHEST_ITEMS, EYE_H, FLOOR_TILES_PER_CELL, PLAYER_R,
-  REF_FLOOR_CELLS, SCALE_VARIANCE, SPAWN, SPAWN_PEAK_STAGE, SPEED_VARIANCE, TYPES, WALL_H,
+  CEIL_TILES_PER_CELL, CELL, CHEST_COUNT, CHEST_ITEMS, CHEST_TRAP_FRAC, EYE_H,
+  FLOOR_TILES_PER_CELL, PLAYER_R, REF_FLOOR_CELLS, SCALE_VARIANCE, SPAWN, SPAWN_PEAK_STAGE,
+  SPEED_VARIANCE, TRAP_COUNT, TYPES, WALL_H,
 } from './config';
 import { dungeonSize, generateDungeon } from './dungeon';
-import { createChest, makeSconce, rollProp } from './props';
+import { createChest, makeSconce, makeTrap, rollProp } from './props';
 import { clipDuration, setAnim } from './assets';
 import { progress } from './progress';
 import { portal, portalCore, portalLight, scene, setLampLit, setPortalOpen, world } from './scene';
@@ -95,10 +96,12 @@ function clearWorld(): void {
   state.chests.forEach((c) => scene.remove(c.mesh));
   state.props.forEach((p) => scene.remove(p.object));
   state.sconces.forEach((s) => scene.remove(s.group));
+  state.traps.forEach((t) => scene.remove(t.mesh));
   state.monsters = [];
   state.chests = [];
   state.props = [];
   state.sconces = [];
+  state.traps = [];
 }
 
 function buildGeometry(): void {
@@ -244,7 +247,7 @@ function spawnChests(scale: number): void {
   const count = Math.max(CHEST_ITEMS.length, Math.round(CHEST_COUNT * scale));
   for (let i = 0; i < count; i++) {
     const [gx, gz] = randomFloorCell(4);
-    const c = createChest(20 + ((Math.random() * 60) | 0));
+    const c = createChest(20 + ((Math.random() * 60) | 0), Math.random() < CHEST_TRAP_FRAC);
     c.mesh.position.set(gx * CELL + (Math.random() - 0.5) * 1.2, 0, gz * CELL + (Math.random() - 0.5) * 1.2);
     c.mesh.rotation.y = Math.random() * Math.PI * 2;
     scene.add(c.mesh);
@@ -254,6 +257,26 @@ function spawnChests(scale: number): void {
   CHEST_ITEMS.forEach((it, i) => {
     state.chests[order[i]].item = it;
   });
+}
+
+/**
+ * Traps, on their own claimed cells so nothing else sits on top of one.
+ *
+ * minDist 5 keeps them off the doorstep: a trap inside the first couple of cells
+ * would fire before the player has any idea what one looks like, and the whole
+ * mechanic depends on learning the tell.
+ */
+function placeTraps(scale: number): void {
+  const count = Math.round(TRAP_COUNT * scale);
+  for (let i = 0; i < count; i++) {
+    const [gx, gz] = randomFloorCell(5);
+    const mesh = makeTrap();
+    // Off-centre, so a corridor of them does not read as a dotted line.
+    mesh.position.set(gx * CELL + (Math.random() - 0.5) * 1.4, 0, gz * CELL + (Math.random() - 0.5) * 1.4);
+    mesh.rotation.y = Math.random() * Math.PI * 2;
+    scene.add(mesh);
+    state.traps.push({ mesh, sprung: false, springT: 0 });
+  }
 }
 
 function scatterProps(): void {
@@ -321,6 +344,7 @@ export function buildWorld(): void {
   const scale = areaScale();
   spawnMonsters(scale);
   spawnChests(scale);
+  placeTraps(scale);
   scatterProps();
   placeSconces();
 

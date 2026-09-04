@@ -187,6 +187,16 @@ export interface Chest {
   /** Lid opening progress, 0..1. */
   openT: number;
   item: ItemKind | null;
+  /** A trap on the lid: springs when it comes open, and the map marks it. */
+  trapped: boolean;
+}
+
+export interface Trap {
+  mesh: THREE.Group;
+  /** Sprung traps stay in the world as visibly triggered scenery. */
+  sprung: boolean;
+  /** Seconds of spring animation left, or 0. */
+  springT: number;
 }
 
 export interface Prop {

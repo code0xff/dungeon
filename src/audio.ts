@@ -303,6 +303,49 @@ export function sfxHit(low: boolean): void {
 }
 
 /** The creak of a chest lid. */
+/**
+ * A trap springing: a bright metallic clatter that rings on.
+ *
+ * Deliberately the longest and brightest sound in the game. Every other noise
+ * here is a thing the player chose to do; this is the one that happens *to*
+ * them, and it has to land as "everything just heard that" rather than as a hit
+ * marker. Two detuned partials give it the beating a struck bell has — a single
+ * oscillator read as a UI beep.
+ */
+export function sfxTrap(): void {
+  if (!audio) return;
+  const { ctx, master, noiseBuf } = audio;
+  const t = ctx.currentTime;
+  for (const [f, amp] of [[880, 0.32], [1319, 0.2], [1970, 0.12]] as const) {
+    const o = ctx.createOscillator();
+    o.type = 'triangle';
+    // Detuned a few cents so the partials beat against each other as they decay.
+    o.frequency.setValueAtTime(f * (1 + (Math.random() - 0.5) * 0.008), t);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(amp, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 1.6);
+    o.connect(g);
+    g.connect(master);
+    o.start(t);
+    o.stop(t + 1.7);
+  }
+  // The snap of the mechanism itself, under the ring.
+  const s = ctx.createBufferSource();
+  s.buffer = noiseBuf;
+  const bp = ctx.createBiquadFilter();
+  bp.type = 'bandpass';
+  bp.Q.value = 1.4;
+  bp.frequency.setValueAtTime(2600, t);
+  bp.frequency.exponentialRampToValueAtTime(700, t + 0.12);
+  const sg = ctx.createGain();
+  env(sg, t, 0.005, 0.5, 0.16);
+  s.connect(bp);
+  bp.connect(sg);
+  sg.connect(master);
+  s.start(t);
+  s.stop(t + 0.2);
+}
+
 export function sfxCreak(): void {
   if (!audio) return;
   const { ctx, master } = audio;

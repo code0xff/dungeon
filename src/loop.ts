@@ -6,12 +6,13 @@ import {
   DASH_ROLL, DASH_SPEED, DASH_TIME, EYE_H, GROUND_SPEED_SMOOTH,
   FALLBACK_ATTACK_TIME, GEAR_BOB, GEAR_BOB_ROLL, LAMP_SWAY, LAMP_SWAY_LAG,
   CREATURE_PUSH, LANTERN_WARN, LOOT_TIME, MUSKET_RELOAD, PLAYER_R, PORTAL_RADIUS, SPEED,
+  TRAP_RADIUS,
   STRIDE_RATE,
   SWAY_DAMP, TYPES,
   LUNGE_WINDOW, SWING_IMPACT,
   SWING_SPEED, SWING_WINDUP, TURN_RATE, WALK_CLIP_SPEED, WALK_TIMESCALE_RANGE, WALL_H,
 } from './config';
-import { playerHurt, resolveSwing } from './combat';
+import { playerHurt, resolveSwing, springTrap } from './combat';
 import { findPath } from './dungeon';
 import { edgeTurn, keys, moveInput } from './input';
 import { openChest } from './loot';
@@ -519,6 +520,41 @@ function separateMonsters(dt: number): void {
   }
 }
 
+// ================= Traps =================
+/**
+ * Springs any trap the player has walked onto, and settles the ones already
+ * sprung.
+ *
+ * Checked against the player's position after movement rather than along the
+ * path they took. A dodge covers 2.9m in 0.26s — about 0.05m a frame at 60fps —
+ * so nothing can step over one, and testing the swept path would cost a lot to
+ * catch a case that cannot happen.
+ *
+ * A sprung trap stays in the world. Leaving it as visibly triggered scenery is
+ * the only way a player learns what an *un*sprung one looks like, and on a map
+ * you are crossing twice it also marks where you have already been.
+ */
+function updateTraps(dt: number): void {
+  for (const t of state.traps) {
+    if (t.springT > 0) {
+      t.springT = Math.max(0, t.springT - dt);
+      // Collapses flat as it releases, so a sprung one reads as spent at a glance.
+      const k = t.springT / TRAP_SPRING_TIME;
+      t.mesh.scale.set(1 + (1 - k) * 0.25, 0.15 + k * 0.85, 1 + (1 - k) * 0.25);
+      continue;
+    }
+    if (t.sprung) continue;
+    const dx = t.mesh.position.x - state.pos.x, dz = t.mesh.position.z - state.pos.z;
+    if (dx * dx + dz * dz > TRAP_RADIUS * TRAP_RADIUS) continue;
+    t.sprung = true;
+    t.springT = TRAP_SPRING_TIME;
+    showMsg(springTrap());
+  }
+}
+
+/** Seconds the collapse takes. Long enough to see, short enough not to be an event. */
+const TRAP_SPRING_TIME = 0.35;
+
 // ================= Chests =================
 function updateChests(dt: number, playerMoving: boolean): void {
   state.nearChest = null;
@@ -673,6 +709,7 @@ export function animate(): void {
     updateLantern(dt);
     const nearest = updateMonsters(dt, now);
     updateChests(dt, moving);
+    updateTraps(dt);
     updateHeldGear(dt, now, moving);
 
     // The closer a creature is, the faster the heart beats.

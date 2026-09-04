@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { LIGHT_DIM, MAX_HP } from './config';
-import type { Chest, Looting, Maze, Monster, Prop, Sconce, WeaponKind } from './types';
+import type { Chest, Looting, Maze, Monster, Prop, Sconce, Trap, WeaponKind } from './types';
 
 /**
  * Mutable state for one run. buildWorld() resets all of it.
@@ -34,6 +34,7 @@ export const state = {
   chests: [] as Chest[],
   props: [] as Prop[],
   sconces: [] as Sconce[],
+  traps: [] as Trap[],
 
   // ---- Progress ----
   gameOver: false,

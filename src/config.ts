@@ -406,6 +406,48 @@ export const SHOT_ALERT_TIME = 10;
 export const CHEST_ALERT_RADIUS = 9;
 export const CHEST_ALERT_TIME = 6;
 
+// ================= Traps =================
+/**
+ * Traps at REF_FLOOR_CELLS, scaled by carved area like everything else.
+ *
+ * A trap is not a damage tax. HP is already the thing creatures spend and
+ * potions restore, so a hazard that only subtracts from it adds a cost without
+ * adding a decision. What these spend is the dungeon's *attention* — the noise
+ * is the point and TRAP_DMG is only there so the spring has a physical bite.
+ */
+export const TRAP_COUNT = 12;
+/** How close the player has to get to set one off, in metres. */
+export const TRAP_RADIUS = 1.1;
+/**
+ * Health a spring costs.
+ *
+ * Small on purpose, and well under one POTION_HEAL. If the damage mattered the
+ * noise would not, and a player would start reading traps as "lose 30 HP"
+ * instead of "the room now knows where you are".
+ */
+export const TRAP_DMG = 10;
+/**
+ * How far a sprung trap carries and how long it is hunted for.
+ *
+ * Louder than a musket, which is the intended relationship: a shot at least
+ * kills something, while this buys nothing at all. It is the worst noise in the
+ * game because it is the only one you make by accident.
+ */
+export const TRAP_ALERT_RADIUS = 24;
+export const TRAP_ALERT_TIME = 12;
+/**
+ * Fraction of chests that are trapped.
+ *
+ * This is what finally makes looting a decision. Opening a chest was always
+ * correct — the only cost was LOOT_TIME and a 9m creak — so there was never
+ * anything to weigh. Now the tell is visible on the lid and the map marks them,
+ * and you decide whether the contents are worth waking the floor.
+ *
+ * The good case is the key being in one. Then there is no decision at all, only
+ * a price, which is exactly when a trap is at its best.
+ */
+export const CHEST_TRAP_FRAC = 0.3;
+
 // ================= Shop =================
 /**
  * Prices, in gold, for the outfitting screen between stages.

@@ -162,8 +162,15 @@ export function drawMinimap(): void {
   for (let z = 0; z < state.gh; z++) {
     for (let x = 0; x < state.gw; x++) if (state.maze[z][x] === 1) mctx.fillRect(ox + x * s, oz + z * s, s, s);
   }
+  // Trapped chests are drawn red rather than gold. That is the map's second job:
+  // it used to only say which chests were still shut, and now it says which ones
+  // will cost you the room — which is worth knowing before you walk across the
+  // dungeon to one.
   for (const c of state.chests) {
-    mctx.fillStyle = c.state === 'closed' ? '#d4b25a' : 'rgba(212,178,90,.3)';
+    const open = c.state !== 'closed';
+    mctx.fillStyle = c.trapped
+      ? (open ? 'rgba(196,86,64,.3)' : '#c45640')
+      : (open ? 'rgba(212,178,90,.3)' : '#d4b25a');
     mctx.fillRect(ox + (c.mesh.position.x / CELL) * s - 2, oz + (c.mesh.position.z / CELL) * s - 2, 4, 4);
   }
   mctx.fillStyle = '#6a9fd8';
