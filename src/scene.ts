@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { FOG_BASE, LIGHT_DIM, LIGHT_LIT, WALL_H } from './config';
+import { ENV_INTENSITY, FOG_BASE, LIGHT_DIM, LIGHT_LIT, WALL_H } from './config';
 import { el } from './dom';
 import type { WeaponKind } from './types';
 
@@ -29,6 +29,51 @@ renderer.autoClear = false;
 el('game').appendChild(renderer.domElement);
 
 export const canvasEl = renderer.domElement;
+
+/**
+ * A tiny environment map, built in code, purely so metal has something to reflect.
+ *
+ * Poly Haven's models are correct glTF: metalness and roughness sit at 1 and a
+ * metalRoughness texture carries the real per-texel values. But a metal surface
+ * has **no diffuse response at all** — everything it shows is reflection — so
+ * with `scene.environment` unset a steel blade is lit only by whatever direct
+ * specular the point light throws, and reads as a flat dark strip. That is what
+ * made the sword look cheap; the same trap is why the chest's gold needed a
+ * emissive fudge.
+ *
+ * It is not applied to `scene.environment`, because that would also add diffuse
+ * IBL to every wall and creature and lift the whole dungeon out of the dark.
+ * assets.ts puts it on the weapon and prop materials only — see applyEnvMap().
+ *
+ * The environment itself is a dark box with a warm panel overhead and a dimmer
+ * bounce below: torchlight from above, stone underfoot. A neutral studio
+ * environment (three's RoomEnvironment) would have put cold white highlights on
+ * everything.
+ */
+function buildEnvironment(): THREE.Texture {
+  const env = new THREE.Scene();
+  const lit = (color: number, w: number, h: number, d: number): THREE.Mesh =>
+    new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshBasicMaterial({ color }));
+
+  const room = lit(0x0a0908, 12, 8, 12);
+  room.geometry.scale(-1, 1, 1); // inside-out, so the box is the surroundings
+  env.add(room);
+
+  const above = lit(0xff7a2e, 7, 0.1, 7);
+  above.position.y = 3.4;
+  env.add(above);
+
+  const below = lit(0x2a1a10, 9, 0.1, 9);
+  below.position.y = -3.4;
+  env.add(below);
+
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  const target = pmrem.fromScene(env, 0.08);
+  pmrem.dispose();
+  return target.texture;
+}
+
+export const envMap = buildEnvironment();
 
 // ================= Lighting =================
 const ambient = new THREE.AmbientLight(0x141820, 0.55);
@@ -101,9 +146,25 @@ const swordFallback = new THREE.Group();
   grip.position.z = 0.02;
   swordFallback.add(blade, edge, guard, grip);
 }
+// The primitives are metal too, so they need the same thing the loaded models
+// get in assets.ts — otherwise removing the GLB swaps one dark shape for another.
+swordFallback.traverse((o) => {
+  const m = (o as THREE.Mesh).material as THREE.MeshStandardMaterial | undefined;
+  if (!m || !('envMapIntensity' in m)) return;
+  m.envMap = envMap;
+  m.envMapIntensity = ENV_INTENSITY;
+});
 sword.add(swordFallback);
-/** Resting pose of the sword. Every swing returns here. */
-export const SWORD_REST = { pos: new THREE.Vector3(0.29, -0.2, -0.42), rot: new THREE.Euler(0.18, -0.26, 0.22) };
+/**
+ * Resting pose of the sword. Every swing returns here.
+ *
+ * The yaw is the important number. After normalisation the blade's length runs
+ * down -Z and its thickness along X, so a sword pointed straight ahead is seen
+ * exactly edge-on — a brown line in the corner, whatever the model. Swinging it
+ * across the view turns some of the flat toward the camera; -0.55 is as far as
+ * it goes before the tip leaves the frame on a wide window.
+ */
+export const SWORD_REST = { pos: new THREE.Vector3(0.26, -0.26, -0.30), rot: new THREE.Euler(0.20, -0.55, 0.30) };
 sword.position.copy(SWORD_REST.pos);
 sword.rotation.copy(SWORD_REST.rot);
 gearBob.add(sword);

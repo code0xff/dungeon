@@ -34,6 +34,8 @@ const PICKS = {
   // dir is where the GLB lands under assets/; texture is the longest edge to
   // re-bake at; simplify keeps that fraction of the triangles (omit to keep all).
   models: {
+    // Poly Haven's only broad blade. antique_estoc has a far better hilt but its
+    // blade is a thrusting needle, which reads as thinner still in the hand.
     sword: { id: 'wooden_handle_saber', dir: 'weapons', texture: 512 },
     // Poly Haven has no musket or flintlock, so a bolt-action rifle stands in.
     // The name stays `musket` throughout the code (see src/scene.ts).
