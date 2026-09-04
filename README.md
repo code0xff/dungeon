@@ -136,6 +136,17 @@ on a phone the attack button lights with it. It costs double durability to match
 cooldown before you can back out again, which is the trade: the most dangerous
 place in the game is also the only place the sword hits hard.
 
+**Traps cost you the room, not your health.** A sprung trap takes 10 HP — a third
+of a potion — and is heard 24m away for 12 seconds, which is further than a
+musket shot. That is the point: a shot at least kills something. Some chests are
+trapped too, and those fire when the lid comes open, so backing out still avoids
+it.
+
+They are pale things on the floor and wires across a lid, lit by nothing but your
+own lamp — so an unlit lantern sees one at 11m and a lit one at 19m. That is the
+lantern's second job; it used to be a timer and nothing else. The map draws
+trapped chests red.
+
 **Bodies are solid.** Creatures crowd each other instead of standing in the same
 space, and you cannot walk through one — but a dodge shoulders past, which is
 what keeps a corridor full of them a decision rather than a wall.

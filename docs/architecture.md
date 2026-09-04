@@ -221,6 +221,40 @@ chests a stage: a mean of 0.72 creatures hear one on stage 1 against 2.07 at
 stage 12, and 46% of stage-1 chests are opened in silence against 13% at the
 peak. That curve is the spawn curve, which is the intended shape.
 
+## Traps
+
+Traps here are **not a damage tax**, and that is the design rather than a
+softening. HP is already what creatures spend and potions restore, so a hazard
+that only subtracts from it adds a cost without adding a decision. `TRAP_DMG` is
+10 — a third of a potion — and exists so the spring has a physical bite. What a
+trap actually spends is the dungeon's attention: `TRAP_ALERT_RADIUS` is 24m
+against the musket's 20m, deliberately the loudest thing in the game, because a
+shot at least kills something and this buys nothing. It is the only noise you
+make by accident.
+
+`springTrap()` is shared by the floor traps and the trapped chests because they
+are the same event. It returns its line rather than showing it — a trapped chest
+is already about to announce what was inside, and the first version had that
+overwrite the trap message a few milliseconds later, swallowing the only part
+that mattered.
+
+**Two systems get a second job out of this.**
+
+The **lantern** was a timer: you lit it and waited for it to burn out. Traps are
+pale, knee-high geometry lit by nothing but the player's own lamp, so spotting
+distance is exactly `LIGHT_DIM.distance` against `LIGHT_LIT.distance` — 11m
+against 19m. Lighting one is now a decision about a corridor. Nothing in code
+hides or reveals a trap; it is only ever the light.
+
+The **map** only ever said which chests were still shut. It now draws trapped
+ones red, which is worth knowing before crossing a dungeon to reach one.
+
+A chest trap fires when the lid comes open, not on the creak, so backing out of a
+loot you have started still avoids it. That is what makes the tell on the lid
+worth reading — seeing it only helps if there is still a choice left. The best
+case is the key being in a trapped chest: then there is no decision at all, only
+a price.
+
 The dodge is the other half of that: with every creature slower than the player,
 the pressure has to come from being *surrounded*, and the dodge is what turns a
 blocked corridor from a death into a decision. It takes its direction from the

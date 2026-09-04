@@ -9,6 +9,9 @@ import type { Chest, Prop, Sconce } from './types';
 const boneMat = new THREE.MeshStandardMaterial({ color: 0x9a917c, roughness: 1 });
 const stoneMat = new THREE.MeshStandardMaterial({ color: 0x2a2c31, roughness: 1 });
 const puddleMat = new THREE.MeshStandardMaterial({ color: 0x04060a, metalness: 0.95, roughness: 0.12 });
+// Pale, so the player's lamp is the only thing that reveals a trap. See makeTrap().
+const trapBoneMat = new THREE.MeshStandardMaterial({ color: 0xbdb49a, roughness: 0.85 });
+const trapCordMat = new THREE.MeshStandardMaterial({ color: 0x6b5a3a, roughness: 1 });
 
 // ---- Chest ----
 /**
@@ -79,7 +82,28 @@ function primitiveChest(): { mesh: THREE.Group; lid: THREE.Object3D } {
  * Every chest clones the same loaded model, and three.js clones share geometry and
  * materials, so ten chests cost draw calls rather than ten copies of the mesh.
  */
-export function createChest(value: number): Omit<Chest, 'item'> {
+/**
+ * A trapped chest has to be readable *before* it is opened or the trap is not a
+ * decision, only a punishment. The tell is a pale wire strung across the lid
+ * seam with a couple of iron teeth behind it — the same material logic as the
+ * floor traps, so it is the lamp that shows it to you and not a HUD marker.
+ */
+function trapTell(): THREE.Group {
+  const g = new THREE.Group();
+  const wire = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.014, 0.78, 5), trapCordMat);
+  wire.rotation.z = Math.PI / 2;
+  wire.position.set(0, 0.36, 0.3);
+  g.add(wire);
+  for (let i = -1; i <= 1; i++) {
+    const tooth = new THREE.Mesh(new THREE.ConeGeometry(0.035, 0.13, 4), trapBoneMat);
+    tooth.position.set(i * 0.2, 0.42, 0.26);
+    tooth.rotation.x = -0.5;
+    g.add(tooth);
+  }
+  return g;
+}
+
+export function createChest(value: number, trapped: boolean): Omit<Chest, 'item'> {
   const template = chestTemplate();
   let mesh: THREE.Group;
   let lid: THREE.Object3D;
@@ -94,7 +118,8 @@ export function createChest(value: number): Omit<Chest, 'item'> {
   } else {
     ({ mesh, lid } = primitiveChest());
   }
-  return { mesh, lid, value, state: 'closed', openT: 0 };
+  if (trapped) mesh.add(trapTell());
+  return { mesh, lid, value, state: 'closed', openT: 0, trapped };
 }
 
 // ---- Props ----
@@ -188,6 +213,42 @@ export function rollProp(): Prop | null {
   if (r < 0.41) return makeChain();
   if (r < 0.52) return { object: makePuddle(), swing: null };
   return null;
+}
+
+// ---- Trap ----
+/**
+ * A ring of bone and a taut cord across it, low to the floor.
+ *
+ * Pale rather than dark, and that is the whole design of the thing. Nothing here
+ * hides or reveals it in code: it is lit by the player's own lamp like any other
+ * object, so how far ahead you can spot one is exactly LIGHT_DIM.distance
+ * unlit against LIGHT_LIT.distance lit — 11m against 19m. That is the second job
+ * the lantern never had. It was a timer you lit and waited out; now it buys
+ * reaction distance in a specific corridor, which is a decision rather than a
+ * drain.
+ *
+ * Kept under knee height so it never blocks the view of what is behind it. A
+ * trap you cannot see past would be a wall, and the dungeon has those.
+ */
+export function makeTrap(): THREE.Group {
+  const g = new THREE.Group();
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.52, 0.045, 6, 16), trapBoneMat);
+  ring.rotation.x = Math.PI / 2;
+  ring.position.y = 0.05;
+  g.add(ring);
+  // Three ribs across the ring, so it reads as rigged rather than dropped.
+  for (let i = 0; i < 3; i++) {
+    const cord = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 1.04, 5), trapCordMat);
+    cord.rotation.z = Math.PI / 2;
+    cord.rotation.y = (i / 3) * Math.PI;
+    cord.position.y = 0.14;
+    g.add(cord);
+  }
+  const skull = makeSkull();
+  skull.position.set(0, 0.04, 0);
+  skull.scale.setScalar(0.85);
+  g.add(skull);
+  return g;
 }
 
 /** Wall sconce with a green flame. */

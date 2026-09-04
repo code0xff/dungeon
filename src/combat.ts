@@ -1,7 +1,8 @@
 import { clipDuration, setAnim } from './assets';
-import { sfxHit, sfxLunge, sfxShot, sfxSwing } from './audio';
+import { sfxHit, sfxLunge, sfxShot, sfxSwing, sfxTrap } from './audio';
 import {
   ATTACK_CD, ATTACK_RANGE, CORPSE_LINGER, LUNGE_DMG, MUSKET_DMG, MUSKET_RANGE, REWARD_SPREAD,
+  TRAP_ALERT_RADIUS, TRAP_ALERT_TIME, TRAP_DMG,
   SHOT_ALERT_RADIUS, SHOT_ALERT_TIME,
   SWORD_ARC, SWORD_CLEAVE, SWORD_DMG_WORN, SWORD_DUR_MAX, SWORD_WARN_AT, SWORD_WEAR,
 } from './config';
@@ -190,6 +191,27 @@ export function resolveSwing(): void {
     showMsg('The blade is going blunt');
   }
   updateHUD();
+}
+
+/**
+ * One spring, shared by the floor traps and the trapped chests, because they are
+ * the same event: a noise the player did not choose to make.
+ *
+ * The damage is charged through playerHurt() like any other, so a trap can be
+ * what kills you and the death screen says so honestly.
+ *
+ * Returns the line rather than showing it. A trapped chest is already about to
+ * show what was inside, and the first version had that overwrite the trap line
+ * a few milliseconds later — swallowing the only message that mattered. A caller
+ * with something to say folds this into it; one with nothing shows it as is.
+ */
+export function springTrap(): string {
+  sfxTrap();
+  const heard = alertCreatures(TRAP_ALERT_RADIUS, TRAP_ALERT_TIME);
+  playerHurt(TRAP_DMG);
+  // Said in terms of who heard it, because the damage is not the news. A player
+  // reading this as "-10 HP" has misunderstood what it cost them.
+  return heard > 0 ? `The trap springs — ${heard} heard it` : 'The trap springs';
 }
 
 export function playerHurt(dmg: number): void {

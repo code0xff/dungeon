@@ -1,5 +1,5 @@
 import { sfxCreak, sfxPickup } from './audio';
-import { alertCreatures } from './combat';
+import { alertCreatures, springTrap } from './combat';
 import {
   AMMO_PICKUP, CHEST_ALERT_RADIUS, CHEST_ALERT_TIME, LANTERN_FUEL, LANTERN_KEY, MAX_HP,
   MUSKET_AMMO, POTION_HEAL, POTION_KEY, SWORD_DUR_MAX, WHETSTONE_KEY, WHETSTONE_REPAIR,
@@ -33,6 +33,13 @@ export function startLoot(): void {
 export function openChest(c: Chest): void {
   c.state = 'opened';
   c.openT = 0;
+  // Fired on the lid coming open rather than on the creak, so backing out of a
+  // loot you started still avoids it. That is what makes the tell on the lid
+  // worth reading: seeing it is only useful if there is still a choice left.
+  const trapLine = c.trapped ? springTrap() : null;
+  // A trap can be what kills you. Banking the gold and announcing the contents
+  // over the death screen would be answering a question nobody is asking.
+  if (state.gameOver) return;
   state.runGold += c.value;
   let msg = `+${c.value} G`;
 
@@ -79,6 +86,7 @@ export function openChest(c: Chest): void {
   }
 
   if (c.item) sfxPickup();
+  if (trapLine) msg += `\n${trapLine}`;
 
   updateHUD();
   showMsg(msg);
