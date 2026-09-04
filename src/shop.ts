@@ -19,6 +19,14 @@ import { progress, saveProgress } from './progress';
 const shopEl = el('shop');
 const headEl = el('shopHead');
 const bankEl = el('shopBank');
+/**
+ * The end-of-run summary shows the bank too, a few lines above. It used to be
+ * written once by endRun() and never again, so every purchase moved the shop's
+ * figure and left that one behind — a screen reading "Bank balance: 1677 G" over
+ * a shop saying "27 G", which makes the whole panel look wrong rather than stale.
+ * One number shown twice has to be updated in both places.
+ */
+const summaryBankEl = el('ovBank');
 
 interface Stock {
   id: string;
@@ -137,6 +145,7 @@ export function render(): void {
   // that changes with no visible cause reads as a bug.
   headEl.textContent = `Outfitting · Stage ${progress.stage}`;
   bankEl.textContent = `${progress.bankGold} G`;
+  summaryBankEl.textContent = `Bank balance: ${progress.bankGold} G`;
   for (const { item, held, btn } of rows) {
     const price = item.price();
     held.textContent = item.held();
