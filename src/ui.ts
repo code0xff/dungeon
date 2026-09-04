@@ -193,14 +193,26 @@ export function endRun(extracted: boolean): void {
     desc.textContent =
       `Banked ${state.runGold} G. Your gear carries to stage ${progress.stage}.${deeper}`;
   } else {
-    const lost = [state.lanternT > 0 && 'lantern', state.ammo > 0 && `${state.ammo} ammo`]
-      .filter(Boolean).join(' and ');
+    // Everything the run was carrying, named before loseRun() wipes it. The list
+    // used to stop at the lantern and the ammo, so a player who died with a
+    // packful of potions was never told they were gone — and then the shop
+    // showing zero of them looked like the shop had lost them.
+    const lost = [
+      `${state.runGold} G`,
+      state.potions > 0 && `${state.potions} potion${state.potions > 1 ? 's' : ''}`,
+      state.lanterns > 0 && `${state.lanterns} lantern${state.lanterns > 1 ? 's' : ''}`,
+      state.ammo > 0 && `${state.ammo} ammo`,
+    ].filter(Boolean) as string[];
+    // "a, b and c" — the last item joins with "and", the rest with commas.
+    const tail = lost.length > 1 ? `${lost.slice(0, -1).join(', ')} and ${lost[lost.length - 1]}` : lost[0];
+    // Worn kit is lost with the rest, so the next run opens on a new blade. Said
+    // outright because the shop offering "Full" straight after a death otherwise
+    // reads as a bug.
+    const blade = state.swordDur < SWORD_DUR_MAX ? ' You start again with a fresh blade.' : '';
     loseRun();
     title.textContent = 'Killed';
     title.className = 'dead';
-    desc.textContent = lost
-      ? `Your ${state.runGold} G and your ${lost} stayed down there...`
-      : `Your ${state.runGold} G stayed down there...`;
+    desc.textContent = `Your ${tail} stayed down there...${blade}`;
   }
   el('ovBank').textContent = `Bank balance: ${progress.bankGold} G`;
   // Shown after death as well as after extraction: the bank is the one thing
