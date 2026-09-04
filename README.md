@@ -1,7 +1,8 @@
-# Dungeon
+# In the Bone Dark
 
-A first-person dungeon crawler in **TypeScript + Three.js**. Grab the loot, get out
-through the blue portal — die and everything you picked up this run stays down there.
+A first-person extraction dungeon crawler in **TypeScript + Three.js**. Find the
+key, carry the gold out through the blue portal — die and everything you picked
+up this run stays down there.
 
 **▶ [Play it](https://code0xff.github.io/dungeon/)**
 

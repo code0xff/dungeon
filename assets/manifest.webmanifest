@@ -1,7 +1,7 @@
 {
-  "name": "Dungeon",
-  "short_name": "Dungeon",
-  "description": "A first-person dungeon crawler. Loot the chests, escape through the portal, or lose it all.",
+  "name": "In the Bone Dark",
+  "short_name": "Bone Dark",
+  "description": "A first-person extraction dungeon crawler. Find the key, carry the gold out, or leave it in the dark.",
   "start_url": "./",
   "scope": "./",
   "display": "fullscreen",
