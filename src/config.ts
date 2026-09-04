@@ -57,17 +57,52 @@ export const WEAPON_ASSETS: Record<WeaponKind, WeaponAsset> = {
 
 // ================= Tuning =================
 /**
- * Maze cells per side. GRID is the actual grid, walls included, so the dungeon is
- * GRID * CELL metres square — at 15 that is a 31x31 grid and 124m a side, about
- * 490 floor cells.
+ * Maze cells per side at stage 1 and from SPAWN_PEAK_STAGE on. The actual grid
+ * is `cells * 2 + 1` including walls, so 9 cells is a 19x19 grid, 76m a side and
+ * about 175 floor cells; 15 is 31x31, 124m and about 510.
  *
- * Everything placed per run scales off this: SPAWN and CHEST_COUNT are set to
- * hold the density steady, and ROOM_COUNT to keep the same ratio of open rooms
- * to corridor. Change this and check all three, or a bigger dungeon just means a
- * longer walk between the same amount of content.
+ * The dungeon growing is what makes an early stage short. Density is handled
+ * separately and deliberately — SPAWN, CHEST_COUNT and ROOM_COUNT are all scaled
+ * by the floor area actually carved, so a smaller stage 1 is not a denser one.
+ * What shrinks is the *run*: less ground to search for the key, less time
+ * exposed. That is the half of stage-1 difficulty the spawn curve was never
+ * going to fix, because it was already sparse.
+ *
+ * The peak is deliberately exactly what every stage used to be. Growing past it
+ * was tried and reverted: it pushed stage 12 to 125 creatures and the 95th
+ * percentile frame from 7.2ms to 10.2ms, which is late-game difficulty and phone
+ * headroom being spent to fix an early-game problem. Only the bottom needed to
+ * move — stage 1 was a 124m maze to search before anything else could happen.
  */
-export const MAZE_CELLS = 15;
-export const GRID = MAZE_CELLS * 2 + 1;
+export const MAZE_CELLS_START = 9;
+export const MAZE_CELLS_PEAK = 15;
+/**
+ * Narrowest a dungeon may be, as the short side over the long one. 1 is square.
+ *
+ * The stretch is area-preserving — one axis is divided by sqrt(aspect) and the
+ * other multiplied — so a lopsided dungeon holds the same amount of content and
+ * sits at the same point on the difficulty curve as a square one. It exists
+ * because every dungeon being square made the shape of the map the one thing
+ * that never varied between runs.
+ */
+export const MAZE_ASPECT = 0.62;
+/**
+ * Floor cells the SPAWN, CHEST_COUNT and ROOM_COUNT numbers below are written
+ * against, so they can be read as "at the old 15-cell dungeon" and scaled from
+ * there. Measured, not derived: rooms are stamped at random, so the carved area
+ * is not a closed form.
+ */
+export const REF_FLOOR_CELLS = 510;
+/**
+ * Texture tiles per maze cell on the floor and ceiling.
+ *
+ * Per cell rather than per plane, because the plane is a different size every
+ * stage: a fixed repeat would stretch the cobbles wider on a big dungeon and
+ * squash them on a small one, which is the kind of thing that reads as "the art
+ * is wrong" rather than "the map is bigger".
+ */
+export const FLOOR_TILES_PER_CELL = 1.2;
+export const CEIL_TILES_PER_CELL = 1.5;
 /** Open rooms stamped over the corridors, so it is not corridors end to end. */
 export const ROOM_COUNT = 11;
 export const CELL = 4;
@@ -145,6 +180,12 @@ export const LUNGE_WINDOW = 0.5;
  */
 export const LUNGE_DMG = 2;
 
+/**
+ * Chests at the reference size, scaled by area like everything else — but never
+ * below CHEST_ITEMS.length, because the guaranteed contents have to have
+ * somewhere to go. A small dungeon is therefore comparatively well stocked,
+ * which is the right way round for an opening stage.
+ */
 export const CHEST_COUNT = 14;
 /**
  * What the chests hold, one entry per chest that is not empty, shuffled across
@@ -481,9 +522,14 @@ export const TYPES: Record<CreatureKey, CreatureType> = {
  * How many of each creature spawn, as stage 1's count plus a per-stage increase.
  *
  * This is what makes the stage number mean something rather than being a label
- * on an identical dungeon. Stage 1 is deliberately thin — 40 creatures across
- * 510 floor cells, about one per 13, sparse enough to learn the game in — and it
- * fills up from there to about one per 4.5 at the peak.
+ * on an identical dungeon. Stage 1 is deliberately thin — about one creature per
+ * 12.5 floor cells, sparse enough to learn the game in — and it fills up from
+ * there to one per 4.5 at the peak.
+ *
+ * These are counts **at REF_FLOOR_CELLS**, scaled by the area actually carved.
+ * The dungeon grows with the stage, so the raw numbers here are not what gets
+ * spawned: stage 1 is 9 zombies, 2 brutes and 3 lunatics in a 76m dungeon, and
+ * stage 12 is 61, 21 and 27 in a 124m one.
  *
  * **The mix shifts, not just the count.** Brutes and lunatics grow faster than
  * zombies in proportion, so a late stage is not the early one with more of the
@@ -492,7 +538,9 @@ export const TYPES: Record<CreatureKey, CreatureType> = {
  *
  * Density, not headcount, is what is actually being tuned here — one creature
  * per few floor cells is what makes backing away from one back you into another.
- * Scale these with MAZE_CELLS or a bigger dungeon just means a longer walk.
+ * That is exactly why areaScale() exists: these numbers are a density in
+ * disguise, and a dungeon that changed size without them would change difficulty
+ * by accident.
  */
 export const SPAWN: Readonly<Record<CreatureKey, SpawnRate>> = {
   zombie: { base: 26, perStage: 3.4 },

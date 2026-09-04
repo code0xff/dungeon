@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-import { GRID } from './config';
 import { context2d } from './dom';
 
 function canvas2d(size: number): [HTMLCanvasElement, CanvasRenderingContext2D] {
@@ -117,6 +116,6 @@ export const floorTex = cobbleTexture();
 export const ceilTex = woodTexture(9);
 export const chestTex = woodTexture(16);
 
-// Floor and ceiling are single large planes, so they tile across the whole grid.
-floorTex.repeat.set(GRID, GRID);
-ceilTex.repeat.set(GRID * 1.5, GRID * 1.5);
+// Floor and ceiling are single large planes sized to the dungeon, and the
+// dungeon changes size every stage — so buildGeometry() sets the repeat from the
+// grid it just built. Setting it here would bake in one stage's dimensions.

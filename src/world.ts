@@ -1,10 +1,10 @@
 import * as THREE from 'three';
 import { floorPBR, spawnCreature, wallPBR } from './assets';
 import {
-  CELL, CHEST_COUNT, CHEST_ITEMS, EYE_H, GRID, PLAYER_R, SCALE_VARIANCE, SPAWN,
-  SPAWN_PEAK_STAGE, SPEED_VARIANCE, TYPES, WALL_H,
+  CEIL_TILES_PER_CELL, CELL, CHEST_COUNT, CHEST_ITEMS, EYE_H, FLOOR_TILES_PER_CELL, PLAYER_R,
+  REF_FLOOR_CELLS, SCALE_VARIANCE, SPAWN, SPAWN_PEAK_STAGE, SPEED_VARIANCE, TYPES, WALL_H,
 } from './config';
-import { generateDungeon } from './dungeon';
+import { dungeonSize, generateDungeon } from './dungeon';
 import { createChest, makeSconce, rollProp } from './props';
 import { clipDuration, setAnim } from './assets';
 import { progress } from './progress';
@@ -25,7 +25,7 @@ export function collides(wx: number, wz: number, r = PLAYER_R): boolean {
   for (let dz = -1; dz <= 1; dz++) {
     for (let dx = -1; dx <= 1; dx++) {
       const gx = Math.round(wx / CELL) + dx, gz = Math.round(wz / CELL) + dz;
-      if (gx < 0 || gz < 0 || gx >= GRID || gz >= GRID || state.maze[gz][gx] !== 1) continue;
+      if (gx < 0 || gz < 0 || gx >= state.gw || gz >= state.gh || state.maze[gz][gx] !== 1) continue;
       const cx = gx * CELL, cz = gz * CELL, half = CELL / 2;
       const nx = Math.max(cx - half, Math.min(wx, cx + half));
       const nz = Math.max(cz - half, Math.min(wz, cz + half));
@@ -51,7 +51,7 @@ function rand([min, max]: readonly [number, number]): number {
  */
 const claimed = new Set<number>();
 
-const cellKey = (x: number, z: number): number => z * GRID + x;
+const cellKey = (x: number, z: number): number => z * state.gw + x;
 
 function usable(x: number, z: number, minDist: number): boolean {
   return state.maze[z][x] === 0
@@ -61,19 +61,19 @@ function usable(x: number, z: number, minDist: number): boolean {
 
 /**
  * A free floor cell at least minDist from the start (1,1), claimed on the way out.
- * Falls back to a scan rather than a fixed corner: the old fallback returned
- * (GRID-2, GRID-2), which is exactly where the exit portal stands.
+ * Falls back to a scan rather than a fixed corner: the old fallback returned the
+ * far corner, which is exactly where the exit portal stands.
  */
 function randomFloorCell(minDist: number): GridCell {
   for (let t = 0; t < 400; t++) {
-    const x = 1 + ((Math.random() * (GRID - 2)) | 0);
-    const z = 1 + ((Math.random() * (GRID - 2)) | 0);
+    const x = 1 + ((Math.random() * (state.gw - 2)) | 0);
+    const z = 1 + ((Math.random() * (state.gh - 2)) | 0);
     if (!usable(x, z, minDist)) continue;
     claimed.add(cellKey(x, z));
     return [x, z];
   }
-  for (let z = 1; z < GRID - 1; z++) {
-    for (let x = 1; x < GRID - 1; x++) {
+  for (let z = 1; z < state.gh - 1; z++) {
+    for (let x = 1; x < state.gw - 1; x++) {
       if (!usable(x, z, minDist)) continue;
       claimed.add(cellKey(x, z));
       return [x, z];
@@ -104,8 +104,8 @@ function clearWorld(): void {
 function buildGeometry(): void {
   // ---- Walls: one instanced mesh for the lot ----
   const wallCells: GridCell[] = [];
-  for (let z = 0; z < GRID; z++) {
-    for (let x = 0; x < GRID; x++) if (state.maze[z][x] === 1) wallCells.push([x, z]);
+  for (let z = 0; z < state.gh; z++) {
+    for (let x = 0; x < state.gw; x++) if (state.maze[z][x] === 1) wallCells.push([x, z]);
   }
   const wallMaps = wallPBR();
   const wall = new THREE.InstancedMesh(
@@ -130,24 +130,52 @@ function buildGeometry(): void {
   world.wall = wall;
 
   // ---- Floor and ceiling ----
-  const size = GRID * CELL, cx = ((GRID - 1) * CELL) / 2;
+  // The plane is sized to the dungeon, so the texture repeat has to be set here
+  // rather than once at load: a fixed repeat would stretch the cobbles by
+  // whatever the stage happened to change the map to.
+  const w = state.gw * CELL, h = state.gh * CELL;
+  const cx = ((state.gw - 1) * CELL) / 2, cz = ((state.gh - 1) * CELL) / 2;
   const floorMaps = floorPBR();
+  for (const t of floorMaps ? Object.values(floorMaps) : [floorTex]) {
+    t.repeat.set(state.gw * FLOOR_TILES_PER_CELL, state.gh * FLOOR_TILES_PER_CELL);
+  }
+  ceilTex.repeat.set(state.gw * CEIL_TILES_PER_CELL, state.gh * CEIL_TILES_PER_CELL);
   const floor = new THREE.Mesh(
-    new THREE.PlaneGeometry(size, size),
+    new THREE.PlaneGeometry(w, h),
     new THREE.MeshStandardMaterial(
       floorMaps ? { ...floorMaps, roughness: 0.9, metalness: 0.05 } : { map: floorTex, roughness: 0.85, metalness: 0.1 },
     ),
   );
   floor.rotation.x = -Math.PI / 2;
-  floor.position.set(cx, 0, cx);
+  floor.position.set(cx, 0, cz);
   scene.add(floor);
   world.floor = floor;
 
-  const ceil = new THREE.Mesh(new THREE.PlaneGeometry(size, size), new THREE.MeshStandardMaterial({ map: ceilTex, roughness: 1 }));
+  const ceil = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshStandardMaterial({ map: ceilTex, roughness: 1 }));
   ceil.rotation.x = Math.PI / 2;
-  ceil.position.set(cx, WALL_H, cx);
+  ceil.position.set(cx, WALL_H, cz);
   scene.add(ceil);
   world.ceil = ceil;
+}
+
+/**
+ * Open floor cells in the dungeon just carved, over the count the SPAWN and
+ * CHEST_COUNT numbers were written against.
+ *
+ * Everything placed per run is multiplied by this. The dungeon changes size with
+ * the stage now, and rooms are stamped at random on top, so the carved area is
+ * not something that can be worked out ahead of time — it has to be counted.
+ *
+ * Without it, shrinking stage 1 would have made it *harder*: the same 40
+ * creatures in a third of the space is three times the density, which is the
+ * opposite of the point.
+ */
+function areaScale(): number {
+  let floor = 0;
+  for (let z = 0; z < state.gh; z++) {
+    for (let x = 0; x < state.gw; x++) if (state.maze[z][x] === 0) floor++;
+  }
+  return floor / REF_FLOOR_CELLS;
 }
 
 /** How many of one creature this stage gets. See SPAWN in config.ts. */
@@ -159,9 +187,12 @@ function spawnCount(key: CreatureKey, stage: number): number {
   return Math.floor(base + perStage * (s - 1));
 }
 
-function spawnMonsters(): void {
+function spawnMonsters(scale: number): void {
   for (const key of Object.keys(SPAWN) as CreatureKey[]) {
-    const count = spawnCount(key, progress.stage);
+    // At least one of each, so the mix does not lose its rarer half to rounding
+    // in a small dungeon — meeting no brutes at all on stage 1 would teach the
+    // wrong lesson about what is down there.
+    const count = Math.max(1, Math.round(spawnCount(key, progress.stage) * scale));
     for (let i = 0; i < count; i++) spawnOne(key);
   }
 }
@@ -206,11 +237,12 @@ function spawnOne(key: CreatureKey): void {
   state.monsters.push(m);
 }
 
-function spawnChests(): void {
-  // CHEST_ITEMS is the guaranteed contents — one key above all, since the run
-  // cannot end without it. Any chest beyond that count is gold only.
-  const items = CHEST_ITEMS;
-  for (let i = 0; i < CHEST_COUNT; i++) {
+function spawnChests(scale: number): void {
+  // Never fewer chests than there are guaranteed items: CHEST_ITEMS is ordered
+  // with the key first because the run cannot end without it, and a dungeon too
+  // small to hold the list would have indexed off the end of the chest array.
+  const count = Math.max(CHEST_ITEMS.length, Math.round(CHEST_COUNT * scale));
+  for (let i = 0; i < count; i++) {
     const [gx, gz] = randomFloorCell(4);
     const c = createChest(20 + ((Math.random() * 60) | 0));
     c.mesh.position.set(gx * CELL + (Math.random() - 0.5) * 1.2, 0, gz * CELL + (Math.random() - 0.5) * 1.2);
@@ -219,14 +251,14 @@ function spawnChests(): void {
     state.chests.push({ ...c, item: null });
   }
   const order = state.chests.map((_, i) => i).sort(() => Math.random() - 0.5);
-  items.forEach((it, i) => {
+  CHEST_ITEMS.forEach((it, i) => {
     state.chests[order[i]].item = it;
   });
 }
 
 function scatterProps(): void {
-  for (let z = 1; z < GRID - 1; z++) {
-    for (let x = 1; x < GRID - 1; x++) {
+  for (let z = 1; z < state.gh - 1; z++) {
+    for (let x = 1; x < state.gw - 1; x++) {
       // Leave the start and exit cells clear.
       if (state.maze[z][x] !== 0 || (x === 1 && z === 1) || (x === state.exitCell.x && z === state.exitCell.z)) continue;
       const p = rollProp();
@@ -245,8 +277,8 @@ function scatterProps(): void {
 function placeSconces(): void {
   let placed = 0, tries = 0;
   while (placed < 5 && tries++ < 300) {
-    const x = 1 + ((Math.random() * (GRID - 2)) | 0);
-    const z = 1 + ((Math.random() * (GRID - 2)) | 0);
+    const x = 1 + ((Math.random() * (state.gw - 2)) | 0);
+    const z = 1 + ((Math.random() * (state.gh - 2)) | 0);
     if (state.maze[z][x] !== 0 || Math.hypot(x - 1, z - 1) < 3) continue;
     // Only cells with a wall to mount on.
     const dirs = ([[1, 0], [-1, 0], [0, 1], [0, -1]] as const).filter(([dx, dz]) => state.maze[z + dz][x + dx] === 1);
@@ -264,8 +296,13 @@ function placeSconces(): void {
 export function buildWorld(): void {
   clearWorld();
 
-  state.maze = generateDungeon();
-  state.exitCell = { x: GRID - 2, z: GRID - 2 };
+  // The dungeon grows with the stage and is not always square, so its size has
+  // to be settled before anything that indexes the grid runs.
+  const { gw, gh } = dungeonSize(progress.stage);
+  state.gw = gw;
+  state.gh = gh;
+  state.maze = generateDungeon(gw, gh);
+  state.exitCell = { x: gw - 2, z: gh - 2 };
   state.maze[state.exitCell.z][state.exitCell.x] = 0;
 
   // Nothing spawns on the spot the player stands on or the one they escape through.
@@ -279,8 +316,11 @@ export function buildWorld(): void {
   portalCore.position.copy(portal.position);
   portalLight.position.set(state.exitCell.x * CELL, 1.8, state.exitCell.z * CELL);
 
-  spawnMonsters();
-  spawnChests();
+  // Counted once and shared: both populations are scaled by the same area, and
+  // recounting the floor twice would be the only way for them to disagree.
+  const scale = areaScale();
+  spawnMonsters(scale);
+  spawnChests(scale);
   scatterProps();
   placeSconces();
 

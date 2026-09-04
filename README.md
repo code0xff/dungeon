@@ -69,13 +69,22 @@ falls back to a box model for it.
 
 | | HP | Damage | Speed | Notices you | Reward | Stage 1 → 12 |
 |---|---|---|---|---|---|---|
-| **Zombie** | 4 | 17 | 2.9 | 13m | 12 G | 26 → 63 |
-| **Brute** | 9 | 32 | 2.0 | 13m | 55 G | 6 → 22 |
-| **Lunatic** | 3 | 14 | 4.5 | 18m | 30 G | 8 → 28 |
+| **Zombie** | 4 | 17 | 2.9 | 13m | 8-16 G | 9 → 61 |
+| **Brute** | 9 | 32 | 2.0 | 13m | 36-74 G | 2 → 21 |
+| **Lunatic** | 3 | 14 | 4.5 | 18m | 20-40 G | 3 → 27 |
 
-The dungeon fills up as you go deeper. Stage 1 is 40 creatures across 124m —
-sparse enough to learn in — and it climbs to 113 by stage 12, where it stops.
-The mix shifts too: 65% zombies at the start, 56% at the peak, so a late stage
+**The dungeon grows as well as filling up.** Stage 1 is a 76m maze with 14
+creatures in it; by stage 12 it is 124m and 109, where both stop. Dungeons are
+not square either — the shape is rolled per run, and the stretch keeps the area,
+so a long thin one is not an easy one.
+
+Density is what is actually tuned, so the counts scale with the floor area
+carved: 12.5 floor cells per creature at the start, 4.5 at the peak. That is why
+a smaller stage 1 is a gentler one — the same creatures in a third of the space
+would have been three times as dense. What a short stage really buys is less
+ground to search: the key sits 51m from the start instead of 92m.
+
+The mix shifts too: 64% zombies at the start, 56% at the peak, so a late stage
 is not the early one with more of the same.
 
 | Stage | Creatures | Floor cells each | Aware of you at any moment |

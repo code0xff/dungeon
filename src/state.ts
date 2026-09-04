@@ -9,6 +9,17 @@ import type { Chest, Looting, Maze, Monster, Prop, Sconce, WeaponKind } from './
 export const state = {
   // ---- Dungeon ----
   maze: [] as Maze,
+  /**
+   * Grid dimensions of the current dungeon, walls included. They mirror
+   * `maze[0].length` and `maze.length`, and are kept as fields because almost
+   * every use is a bounds check in a hot loop where `state.gw` reads better than
+   * digging the length back out of the array.
+   *
+   * They change every stage — the dungeon grows with the stage number and is not
+   * necessarily square. Nothing may assume a compile-time size.
+   */
+  gw: 0,
+  gh: 0,
   exitCell: { x: 0, z: 0 },
 
   // ---- Player ----

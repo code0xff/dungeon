@@ -3,7 +3,7 @@ import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import {
-  CLIP_NAMES, CREATURE_ASSETS, ENV_INTENSITY, FLOOR_TEX_DIR, GRID, PROP_ASSETS, WALL_TEX_DIR,
+  CLIP_NAMES, CREATURE_ASSETS, ENV_INTENSITY, FLOOR_TEX_DIR, PROP_ASSETS, WALL_TEX_DIR,
   WEAPON_ASSETS,
 } from './config';
 import { MAKERS } from './creatures';
@@ -479,7 +479,9 @@ export async function loadAssets(onProgress: (msg: string) => void): Promise<voi
 
   onProgress('Loading textures');
   pbr.wall = await loadPBR(WALL_TEX_DIR, 1.5);
-  pbr.floor = await loadPBR(FLOOR_TEX_DIR, GRID * 1.2);
+  // The repeat is overwritten per dungeon in buildGeometry(); this is only a
+  // sane starting value for maps that are never drawn before the first build.
+  pbr.floor = await loadPBR(FLOOR_TEX_DIR, 1);
   log.push(`wall texture: ${pbr.wall ? 'PBR' : 'procedural'} · floor texture: ${pbr.floor ? 'PBR' : 'procedural'}`);
   console.log('[assets]\n' + log.join('\n'));
 }

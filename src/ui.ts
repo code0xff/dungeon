@@ -1,5 +1,5 @@
 import {
-  CELL, GRID, LANTERN_KEY, POTION_KEY, SPAWN_PEAK_STAGE, SWORD_DUR_MAX, WHETSTONE_KEY,
+  CELL, LANTERN_KEY, POTION_KEY, SPAWN_PEAK_STAGE, SWORD_DUR_MAX, WHETSTONE_KEY,
 } from './config';
 import { context2d, el, firstChild, queryChild } from './dom';
 import { bankRun, loseRun, progress } from './progress';
@@ -140,22 +140,36 @@ export function flashHurt(): void {
 }
 
 // ================= Minimap =================
+/**
+ * The whole dungeon, fitted to the canvas.
+ *
+ * Scaled to fit rather than windowed on the player, and the same scale on both
+ * axes so a long thin dungeon is drawn long and thin instead of squeezed square.
+ * A player-centred view would have been the obvious answer to a map that grows,
+ * but the map is the one item whose entire value is *seeing the layout* — cutting
+ * it to a radius would take that away to solve a problem the sizes do not
+ * actually cause. The dungeon spans 19 to 33 cells a side, so a 150px canvas
+ * gives between 7.9 and 4.5 pixels a cell; the old fixed 31 gave 4.8.
+ */
 export function drawMinimap(): void {
-  const s = minimapEl.width / GRID;
+  const s = Math.min(minimapEl.width / state.gw, minimapEl.height / state.gh);
+  // Centred, so a dungeon that does not fill the square sits in the middle of it
+  // rather than hugging the top left with the slack all on one side.
+  const ox = (minimapEl.width - state.gw * s) / 2, oz = (minimapEl.height - state.gh * s) / 2;
   mctx.clearRect(0, 0, minimapEl.width, minimapEl.height);
 
   mctx.fillStyle = 'rgba(201,192,174,.22)';
-  for (let z = 0; z < GRID; z++) {
-    for (let x = 0; x < GRID; x++) if (state.maze[z][x] === 1) mctx.fillRect(x * s, z * s, s, s);
+  for (let z = 0; z < state.gh; z++) {
+    for (let x = 0; x < state.gw; x++) if (state.maze[z][x] === 1) mctx.fillRect(ox + x * s, oz + z * s, s, s);
   }
   for (const c of state.chests) {
     mctx.fillStyle = c.state === 'closed' ? '#d4b25a' : 'rgba(212,178,90,.3)';
-    mctx.fillRect((c.mesh.position.x / CELL) * s - 2, (c.mesh.position.z / CELL) * s - 2, 4, 4);
+    mctx.fillRect(ox + (c.mesh.position.x / CELL) * s - 2, oz + (c.mesh.position.z / CELL) * s - 2, 4, 4);
   }
   mctx.fillStyle = '#6a9fd8';
-  mctx.fillRect(state.exitCell.x * s - 1, state.exitCell.z * s - 1, s + 2, s + 2);
+  mctx.fillRect(ox + state.exitCell.x * s - 1, oz + state.exitCell.z * s - 1, s + 2, s + 2);
 
-  const px = (state.pos.x / CELL) * s, pz = (state.pos.z / CELL) * s;
+  const px = ox + (state.pos.x / CELL) * s, pz = oz + (state.pos.z / CELL) * s;
   mctx.fillStyle = '#ff9a45';
   mctx.beginPath();
   mctx.arc(px, pz, 3, 0, Math.PI * 2);
