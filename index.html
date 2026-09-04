@@ -344,8 +344,17 @@
      click-to-lock card all bled through and collided with the message. */
   /* The title sits above the progress line rather than beside it, so the first
      thing on screen is the name and not a status message. */
-  .loadTitle { display:block; font-size:19px; letter-spacing:5px; color:rgba(212,178,90,.62);
-               margin-bottom:22px; }
+  /* --blood, the same red the KILLED heading uses, so the first thing on screen
+     and the last thing are the same colour.
+     Sized with clamp: at 16 characters and 6px of tracking a fixed size wide
+     enough to have presence on a desktop wraps on a phone, and the inherited
+     line-height of 2.4 would have thrown the two lines far apart. The 20px floor
+     is measured, not guessed — the line is 295px there, which is the widest it
+     can be and still fit a 360px phone once #loading's 28px of side padding is
+     taken off. */
+  .loadTitle { display:block; font-size:clamp(20px, 5.4vw, 40px); letter-spacing:6px;
+               line-height:1.25; color:var(--blood);
+               text-shadow:0 0 38px rgba(142,43,43,.5); margin-bottom:26px; }
   #loading { position:fixed; inset:0; z-index:30; display:flex; align-items:center; justify-content:center;
              flex-direction:column;
              background:#020304; color:rgba(201,192,174,.6); font-family:var(--display); font-size:12px;
