@@ -114,11 +114,18 @@ const rows = STOCK.map((item) => {
   return { item, held, btn };
 });
 
-/** Ammo is the only one bought in a batch, so it is the only one that says so. */
+/**
+ * Just the price. The row already names the item and the button already looks
+ * like a button, so the word "Buy" was only making the widest label wider —
+ * and a flex item is min-width:auto, so an over-long nowrap label pushes past
+ * its basis and knocks the column out of alignment.
+ *
+ * Ammo is the only one bought in a batch, so it is the only one that says so.
+ */
 function label(item: Stock, price: number | null): string {
   if (price === null) return 'Full';
-  const many = item.id === 'Ammo' ? ` ×${AMMO_PICKUP}` : '';
-  return `Buy${many}  ·  ${price} G`;
+  const many = item.id === 'Ammo' ? `×${AMMO_PICKUP} · ` : '';
+  return `${many}${price} G`;
 }
 
 export function render(): void {
