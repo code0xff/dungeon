@@ -244,6 +244,23 @@ emissive flash bleeds across every creature.
 per-instance state. Chests deliberately do not, because nothing writes to a
 chest material.
 
+## A NaN timeScale freezes an animation without any error
+
+**Cause.** `AnimationAction.timeScale = NaN` makes `action.time` NaN on the next
+mixer update, and a clip sampled at NaN simply stops advancing. Nothing throws
+and nothing warns; the creature keeps moving in whatever pose it was last in.
+
+The NaN came from `THREE.Clock.getDelta()`, which returns **exactly 0** on its
+first call — it auto-starts and reports no elapsed time — so a per-frame
+`distance / dt` was `0 / 0` on frame one and poisoned every creature at once,
+permanently, because `NaN + anything` stays NaN.
+
+**Fix.** Guard the division: `if (dt > 0)`. Nothing can have moved in a
+zero-length frame, so skipping it is exact rather than approximate.
+
+**Clamps do not save you.** `Math.max(lo, Math.min(hi, NaN))` is NaN — `Math.min`
+and `Math.max` propagate it. A range clamp reads like a safety net and is not one.
+
 ## A flex row overflows instead of shrinking
 
 **Cause.** A flex item is `min-width: auto`, which means its minimum is its

@@ -49,6 +49,13 @@ Object.assign(window, { __dbg: { state: __state, scene: __scene } });
 Then drive it from the console — teleport to `state.chests[0]`, force a weapon,
 set a pose. **Remove the hook before committing.**
 
+**Do not reset the field you are testing.** A probe that sets state up "cleanly"
+before measuring can clear the very corruption it was meant to find. The walk
+retiming was verified this way — the check set `m.groundSpeed = 0` first, read
+back a perfect `timeScale === groundSpeed / clipSpeed`, and shipped a game where
+every creature slid along frozen, because the real value was NaN from the first
+frame. Read the untouched state first, then set up.
+
 **`monster.type` is shared, not per creature.** It is the entry in `TYPES`, so
 `m.type.aggro = 0` to quiet one zombie silently rewrites the config for every
 zombie, for the rest of the page's life. A measurement taken after that reads the

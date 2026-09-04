@@ -353,8 +353,17 @@ function updateMonsters(dt: number, now: number): number {
     }
 
     // Smoothed so one blocked frame does not stutter the legs.
-    const k = Math.min(1, dt * GROUND_SPEED_SMOOTH);
-    m.groundSpeed += (moved / dt - m.groundSpeed) * k;
+    //
+    // Guarded because THREE.Clock.getDelta() returns exactly 0 on its first call
+    // — it auto-starts and reports no elapsed time — so frame 1 computed 0/0 and
+    // gave every creature a NaN ground speed. That poisons the walk clip's
+    // timeScale, and a NaN timeScale does not throw: the clip's time becomes NaN
+    // and the pose simply stops advancing, so creatures slide along frozen.
+    // Nothing can have moved in a zero-length frame, so skipping is exact.
+    if (dt > 0) {
+      const k = Math.min(1, dt * GROUND_SPEED_SMOOTH);
+      m.groundSpeed += (moved / dt - m.groundSpeed) * k;
+    }
 
     if (m.playback) animLoaded(m, m.playback, dt);
     else if (m.rig) animProcedural(m, m.rig, dt, now);
