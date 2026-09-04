@@ -15,6 +15,19 @@ export function startLoot(): void {
   state.looting = { chest: state.nearChest, t: 0 };
   lootBarEl.style.display = 'block';
   sfxCreak();
+
+  // Charged when the lid creaks, not when it finishes opening.
+  //
+  // The sound plays here and the alert used to fire LOOT_TIME later, so what the
+  // player heard and what the dungeon heard were a second apart — and since
+  // moving cancels looting, the whole cost landed after the risk was already
+  // taken. Alerting on the creak is what makes the LOOT_TIME bar mean something:
+  // they are already coming, and you have to stand still anyway.
+  //
+  // Starting and cancelling still wakes them. That is the point — the noise was
+  // made.
+  const heard = alertCreatures(CHEST_ALERT_RADIUS, CHEST_ALERT_TIME);
+  if (heard > 0) showMsg(`The lid creaks... ${heard} heard it`);
 }
 
 export function openChest(c: Chest): void {
@@ -66,11 +79,6 @@ export function openChest(c: Chest): void {
   }
 
   if (c.item) sfxPickup();
-
-  // The lid carries, just not as far as a shot. Looting in the open is meant to
-  // cost something rather than be free gold.
-  const heard = alertCreatures(CHEST_ALERT_RADIUS, CHEST_ALERT_TIME);
-  if (heard > 0) msg += `\nThe lid creaks... ${heard} heard it`;
 
   updateHUD();
   showMsg(msg);

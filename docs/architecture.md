@@ -207,6 +207,20 @@ item whose entire value is *seeing the layout*, and the sizes never make it
 unreadable — 19 to 31 cells a side is 7.9 to 4.8 pixels a cell on a 150px canvas,
 against the 4.8 the old fixed size always gave.
 
+Looting is the other cost. `startLoot()` alerts everything within
+`CHEST_ALERT_RADIUS` the moment the lid creaks — not when it finishes opening,
+which is where it used to be. Those are `LOOT_TIME` apart, and since moving
+cancels a loot, charging at the end meant the whole cost landed after the risk
+had already been taken. Alerting on the sound is what makes the progress bar mean
+something: they are already coming and you have to stand still anyway, and
+backing out cancels the loot but not the noise.
+
+The radius is absolute while creature counts scale with floor area, so map size
+does not enter into how loud a chest is — only density does. Measured over 200+
+chests a stage: a mean of 0.72 creatures hear one on stage 1 against 2.07 at
+stage 12, and 46% of stage-1 chests are opened in silence against 13% at the
+peak. That curve is the spawn curve, which is the intended shape.
+
 The dodge is the other half of that: with every creature slower than the player,
 the pressure has to come from being *surrounded*, and the dodge is what turns a
 blocked corridor from a death into a decision. It takes its direction from the
