@@ -319,7 +319,7 @@ export function equipWeaponModel(kind: WeaponKind, model: THREE.Object3D, muzzle
  * emissive the model already had rather than overwriting it, so a model with its
  * own glow keeps it at k=0.
  */
-const LUNGE_GLOW = new THREE.Color(0xff9a2e);
+const LUNGE_GLOW = new THREE.Color(0xff2216);
 /**
  * How much of that colour the blade takes at full.
  *
@@ -327,12 +327,13 @@ const LUNGE_GLOW = new THREE.Color(0xff9a2e);
  * no shading, no highlight and no silhouette, which reads as a rendering bug
  * rather than a hot edge.
  *
- * 0.4 keeps the bevel and the pommel highlight readable in a dark corridor,
- * which is where the game mostly is, while still carrying against a lantern-lit
- * wall a metre away — the two cases were checked separately, because a level
- * that looks right against black is barely visible against warm stone.
+ * Red carries less than the orange this started as — the same fraction of a red
+ * is a much darker pixel, and the dungeon it has to stand out against is already
+ * warm — so the peak is higher than the 0.4 orange needed. Checked in a dark
+ * corridor and against a lantern-lit wall a metre away, because a level that
+ * looks right against black is barely visible against warm stone.
  */
-const LUNGE_GLOW_PEAK = 0.4;
+const LUNGE_GLOW_PEAK = 0.55;
 const glowTmp = new THREE.Color();
 /** Cached: this runs every frame, and re-traversing to find four materials is waste. */
 let bladeMats: { mat: THREE.MeshStandardMaterial; base: THREE.Color }[] = [];
