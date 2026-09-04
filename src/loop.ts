@@ -5,7 +5,9 @@ import {
   ATTACK_IMPACT, ATTACK_IMPACT_REACH, CELL, CHEST_LID_OPEN, CREATURE_DRAW_DISTANCE,
   DASH_ROLL, DASH_SPEED, DASH_TIME, EYE_H, GROUND_SPEED_SMOOTH,
   FALLBACK_ATTACK_TIME, GEAR_BOB, GEAR_BOB_ROLL, LAMP_SWAY, LAMP_SWAY_LAG,
-  LANTERN_WARN, LOOT_TIME, MUSKET_RELOAD, PORTAL_RADIUS, SPEED, STRIDE_RATE, SWAY_DAMP,
+  CREATURE_PUSH, LANTERN_WARN, LOOT_TIME, MUSKET_RELOAD, PLAYER_R, PORTAL_RADIUS, SPEED,
+  STRIDE_RATE,
+  SWAY_DAMP, TYPES,
   LUNGE_WINDOW, SWING_IMPACT,
   SWING_SPEED, SWING_WINDUP, TURN_RATE, WALK_CLIP_SPEED, WALK_TIMESCALE_RANGE, WALL_H,
 } from './config';
@@ -114,9 +116,21 @@ function updatePlayer(dt: number, now: number): boolean {
   state.lungeT = Math.max(0, state.lungeT - dt);
 
   // Moving each axis separately is what lets the player slide along a wall.
+  //
+  // Creatures are solid too, except mid-dodge. `collides()` only ever knew about
+  // walls, so the player walked straight through them — and once creatures stop
+  // sharing a space with each other, walking through one is the only thing left
+  // on screen that looks broken. The dodge is the exception on purpose: config
+  // already calls it "what turns a blocked corridor from a death into a
+  // decision", and that is only true if it is the one thing that gets through a
+  // body. Solid creatures without it would make being surrounded a cage rather
+  // than a threat.
   const step = (dx: number, dz: number): void => {
-    if (!collides(state.pos.x + dx, state.pos.z)) state.pos.x += dx;
-    if (!collides(state.pos.x, state.pos.z + dz)) state.pos.z += dz;
+    const solid = state.dashT < 0;
+    if (!collides(state.pos.x + dx, state.pos.z)
+      && !(solid && entersCreature(state.pos.x + dx, state.pos.z))) state.pos.x += dx;
+    if (!collides(state.pos.x, state.pos.z + dz)
+      && !(solid && entersCreature(state.pos.x, state.pos.z + dz))) state.pos.z += dz;
   };
 
   // ---- Dodging: the locked direction overrides input until it ends ----
@@ -371,7 +385,138 @@ function updateMonsters(dt: number, now: number): number {
     if (m.playback) animLoaded(m, m.playback, dt);
     else if (m.rig) animProcedural(m, m.rig, dt, now);
   }
+  separateMonsters(dt);
   return nearest;
+}
+
+/**
+ * Whether moving to (wx, wz) would put the player inside a creature it is not
+ * already inside.
+ *
+ * Entry, not overlap — and that asymmetry is the whole design. Creatures walk
+ * into the player, so the player ends up overlapping one without ever having
+ * moved. A plain "is this spot occupied" test would then reject every escape as
+ * well, pinning the player exactly where they are least able to afford it. Being
+ * allowed to keep moving through a creature already touching you means you can
+ * always walk out of what walked into you.
+ */
+function entersCreature(wx: number, wz: number): boolean {
+  for (const m of state.monsters) {
+    // Corpses are walked over, not around.
+    if (m.hp <= 0) continue;
+    const min = PLAYER_R + m.type.r;
+    const nx = wx - m.mesh.position.x, nz = wz - m.mesh.position.z;
+    if (nx * nx + nz * nz >= min * min) continue;
+    const ox = state.pos.x - m.mesh.position.x, oz = state.pos.z - m.mesh.position.z;
+    if (ox * ox + oz * oz < min * min) continue;
+    return true;
+  }
+  return false;
+}
+
+/**
+ * The same rule the other way round: whether a shove would push a creature into
+ * the player it is not already touching.
+ *
+ * Creatures are not separated *from* the player — a crowd that could shove the
+ * player around would push them into corners and off the exit, and being pressed
+ * is the threat rather than a bug. But without this a creature squeezed by the
+ * nine behind it gets squirted through the player's body and ends up inside the
+ * camera. Walking creatures never reach this close on their own: every one of
+ * them stops at `reach * 0.75`, which is wider than its own radius plus the
+ * player's. Only the shove can do it, so only the shove is checked.
+ */
+function shovesIntoPlayer(wx: number, wz: number, r: number, fromX: number, fromZ: number): boolean {
+  const min = PLAYER_R + r;
+  const dx = wx - state.pos.x, dz = wz - state.pos.z;
+  if (dx * dx + dz * dz >= min * min) return false;
+  const ox = fromX - state.pos.x, oz = fromZ - state.pos.z;
+  return ox * ox + oz * oz >= min * min;
+}
+
+// ================= Creature separation =================
+/**
+ * Bucket edge for the neighbour search, in metres.
+ *
+ * Derived from the widest creature rather than written down, so adding a bigger
+ * one cannot silently leave pairs untested: two creatures can only overlap
+ * within the sum of their radii, so a bucket of the largest diameter means the
+ * 3x3 block around a creature is guaranteed to contain every one it could be
+ * touching.
+ */
+const SEP_CELL = Math.max(...Object.values(TYPES).map((t) => t.r)) * 2;
+const sepBuckets = new Map<number, Monster[]>();
+
+/** Bucket coordinates packed into one number, so the Map can key on a primitive. */
+function sepKey(gx: number, gz: number): number {
+  return (gx + 4096) * 8192 + (gz + 4096);
+}
+
+/**
+ * Push overlapping creatures apart. Runs after everything has moved, so it
+ * resolves the positions they actually ended up in rather than the ones they
+ * asked for.
+ *
+ * Bucketed rather than every-pair: stage 12 puts 113 creatures in the dungeon,
+ * and the naive version is 6,328 pairs a frame to find the handful that are
+ * actually touching.
+ */
+function separateMonsters(dt: number): void {
+  sepBuckets.clear();
+  for (const m of state.monsters) {
+    // Corpses do not shove, and are not shoved. Standing over a body is fine;
+    // a body sliding out from under a fight is not.
+    if (m.hp <= 0) continue;
+    const key = sepKey(Math.floor(m.mesh.position.x / SEP_CELL), Math.floor(m.mesh.position.z / SEP_CELL));
+    const b = sepBuckets.get(key);
+    if (b) b.push(m);
+    else sepBuckets.set(key, [m]);
+  }
+
+  const maxStep = CREATURE_PUSH * dt;
+  for (const m of state.monsters) {
+    if (m.hp <= 0) continue;
+    const gx = Math.floor(m.mesh.position.x / SEP_CELL), gz = Math.floor(m.mesh.position.z / SEP_CELL);
+    let px = 0, pz = 0;
+    for (let bz = -1; bz <= 1; bz++) {
+      for (let bx = -1; bx <= 1; bx++) {
+        const bucket = sepBuckets.get(sepKey(gx + bx, gz + bz));
+        if (!bucket) continue;
+        for (const o of bucket) {
+          if (o === m) continue;
+          const ox = m.mesh.position.x - o.mesh.position.x;
+          const oz = m.mesh.position.z - o.mesh.position.z;
+          const min = m.type.r + o.type.r;
+          const d2 = ox * ox + oz * oz;
+          if (d2 >= min * min) continue;
+          const d = Math.sqrt(d2);
+          // Two creatures at the same point have no direction to separate along.
+          // The mesh id gives each a fixed angle, so they pick opposite ways and
+          // stay picked instead of jittering on a fresh random every frame.
+          const a = m.mesh.id * 2.399963;
+          const [ux, uz] = d > 1e-4 ? [ox / d, oz / d] : [Math.cos(a), Math.sin(a)];
+          // Normalised, so the push grows the deeper they are into each other.
+          const overlap = (min - d) / min;
+          px += ux * overlap;
+          pz += uz * overlap;
+        }
+      }
+    }
+    const pl = Math.hypot(px, pz);
+    if (pl < 1e-5) continue;
+    // Half the budget each: the neighbour moves itself the other way on its own
+    // turn, so a pair separates at the full CREATURE_PUSH.
+    const scale = (Math.min(pl, 1) * maxStep * 0.5) / pl;
+    const nx = m.mesh.position.x + px * scale;
+    const nz = m.mesh.position.z + pz * scale;
+    // Per axis, exactly like walking: being shoved must not push anyone through
+    // a wall, and a creature pinned against one should slide along it instead.
+    const fromX = m.mesh.position.x, fromZ = m.mesh.position.z;
+    if (!collides(nx, m.mesh.position.z, m.type.clearance)
+      && !shovesIntoPlayer(nx, m.mesh.position.z, m.type.r, fromX, fromZ)) m.mesh.position.x = nx;
+    if (!collides(m.mesh.position.x, nz, m.type.clearance)
+      && !shovesIntoPlayer(m.mesh.position.x, nz, m.type.r, fromX, fromZ)) m.mesh.position.z = nz;
+  }
 }
 
 // ================= Chests =================

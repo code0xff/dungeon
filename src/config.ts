@@ -561,6 +561,29 @@ export const GROUND_SPEED_SMOOTH = 8;
  *
  * They still think and animate out there — only the drawing stops.
  */
+/**
+ * How fast a pair of creatures pushes out of each other, in metres per second
+ * at full overlap.
+ *
+ * They are spawned apart, but every one of them paths to the same point — the
+ * player — so without this they converge and end up standing inside one another.
+ * Nothing in `collides()` ever looked at another creature; it only knows walls.
+ *
+ * Deliberately a push and not a wall. If creatures blocked each other outright,
+ * the first two into a corridor would cork it and everything behind would be
+ * stuck forever, which turns a horde into a queue and makes being surrounded
+ * *safer*. So they crowd shoulder to shoulder and can still squeeze past when
+ * the geometry demands it.
+ *
+ * The number is set by what it has to beat. A crowd converging on the player is
+ * pressing inward at the walk speed the whole time, so the resting gap is where
+ * the push balances that, not where the bodies stop touching. Ten zombies
+ * dropped on one spot and left to press in settle 0.30m apart at 4 and 0.44-0.65
+ * at 7, against the 0.90 they would want in open ground — 7 is where a crowd
+ * reads as a crowd instead of a smear, and they still reach the player.
+ */
+export const CREATURE_PUSH = 7;
+
 export const CREATURE_DRAW_DISTANCE = 30;
 /** Top turn rate in rad/s, so creatures rotate rather than snap. */
 export const TURN_RATE = 6.0;
