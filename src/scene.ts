@@ -321,6 +321,15 @@ export function equipWeaponModel(kind: WeaponKind, model: THREE.Object3D, muzzle
  */
 const LUNGE_GLOW = new THREE.Color(0xff2216);
 /**
+ * Where the colour goes past full charge.
+ *
+ * Pushing the red further just clips all three channels into a flat neon slab —
+ * more saturation is not more brightness. A struck spark is white at the core,
+ * so the discharge blends toward this instead and reads as heat rather than as
+ * a light-up toy.
+ */
+const LUNGE_HOT = new THREE.Color(0xffd2a4);
+/**
  * How much of that colour the blade takes at full.
  *
  * At 1 the emissive swamps the material: the sword goes a flat pale yellow with
@@ -357,13 +366,18 @@ cacheBladeMats();
 
 /** `k` is 0..1, the fraction of the lunge window left. */
 export function setBladeGlow(k: number): void {
-  // Quantised because this is called every frame and the common case is 0.
-  const q = Math.round(Math.max(0, Math.min(1, k)) * 40) / 40;
+  // Quantised because this is called every frame and the common case is 0. The
+  // ceiling is above 1 so a landed lunge can discharge brighter than the armed
+  // glow ever gets — see LUNGE_HIT_GLOW.
+  const q = Math.round(Math.max(0, Math.min(3, k)) * 40) / 40;
   if (q === lastGlow) return;
   lastGlow = q;
-  for (const { mat, base } of bladeMats) {
-    mat.emissive.copy(base).add(glowTmp.copy(LUNGE_GLOW).multiplyScalar(q * LUNGE_GLOW_PEAK));
-  }
+  // Up to 1 this is the armed charge reddening; past it, the discharge, which
+  // goes hotter and whiter rather than redder.
+  glowTmp.copy(LUNGE_GLOW);
+  if (q > 1) glowTmp.lerp(LUNGE_HOT, Math.min(1, (q - 1) / 1.4));
+  glowTmp.multiplyScalar(q * LUNGE_GLOW_PEAK);
+  for (const { mat, base } of bladeMats) mat.emissive.copy(base).add(glowTmp);
 }
 
 scene.add(camera);

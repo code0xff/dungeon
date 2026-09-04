@@ -207,6 +207,32 @@ export const LUNGE_WINDOW = 0.5;
  */
 export const LUNGE_DMG = 5.52;
 
+// ---- Lunge impact ----
+/**
+ * How long the impact reads for, in seconds, and how hard.
+ *
+ * A lunge that landed used to be indistinguishable from one that missed except
+ * by the sound, which is a poor way to teach a mechanic whose whole difficulty
+ * is knowing whether you got it. All three of these fire together on a landed
+ * lunge and decay over the same window, so it reads as one event rather than
+ * three effects.
+ */
+export const LUNGE_HIT_TIME = 0.26;
+/**
+ * Blade glow at the moment of impact, as a multiple of the armed level.
+ *
+ * Above 1 on purpose: the armed glow is the charge and this is it being spent,
+ * so the blade has to visibly go brighter than it ever was while waiting. 2.4
+ * was tried and washed the blade to flat white, which stopped reading as a
+ * sword at all; 1.8 lands between the red and the hot colour and still doubles
+ * the armed level.
+ */
+export const LUNGE_HIT_GLOW = 1.8;
+/** Camera pitch kick, in radians. Small — this is a punch, not a stumble. */
+export const LUNGE_HIT_KICK = 0.055;
+/** Peak intensity of the light thrown at the point of impact. */
+export const LUNGE_HIT_LIGHT = 2.6;
+
 /**
  * Chests at the reference size, scaled by area like everything else — but never
  * below CHEST_ITEMS.length, because the guaranteed contents have to have

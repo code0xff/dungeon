@@ -2,7 +2,7 @@ import { clipDuration, setAnim } from './assets';
 import { sfxHit, sfxLunge, sfxShot, sfxSwing, sfxTrap } from './audio';
 import {
   ATTACK_BUFFER, ATTACK_CD, ATTACK_RANGE, CORPSE_LINGER, LUNGE_DMG, MUSKET_DMG, MUSKET_RANGE,
-  REWARD_SPREAD,
+  LUNGE_HIT_LIGHT, LUNGE_HIT_TIME, REWARD_SPREAD,
   TRAP_ALERT_RADIUS, TRAP_ALERT_TIME, TRAP_DMG,
   SHOT_ALERT_RADIUS, SHOT_ALERT_TIME,
   SWORD_ARC, SWORD_CLEAVE, SWORD_DMG_WORN, SWORD_DUR_MAX, SWORD_WARN_AT, SWORD_WEAR,
@@ -194,27 +194,43 @@ export function resolveSwing(): void {
   // it. Wear is deliberately *not* scaled with the multiplier: see LUNGE_DMG.
   const lunge = state.swingLunge;
   const dmg = swordDamage() * (lunge ? LUNGE_DMG : 1);
-  if (lunge && inArc.length > 0) sfxLunge();
+  const landed = lunge && inArc.length > 0;
+  if (landed) {
+    sfxLunge();
+    state.lungeHitT = LUNGE_HIT_TIME;
+    // Thrown at the creature rather than at the player, so the light rakes
+    // across whatever was hit instead of washing the whole corridor evenly.
+    const hit = inArc[0].m.mesh.position;
+    flashLight.position.set(hit.x, state.pos.y * 0.7, hit.z);
+    flashLight.intensity = LUNGE_HIT_LIGHT;
+  }
+  // Collected and shown once at the end rather than called as they happen.
+  // showMsg replaces, so a swing that killed two creatures only ever reported
+  // the second — and the first lunge of a run silently ate its own kill line,
+  // because the explanation below fired a frame's worth of logic later.
+  const lines: string[] = [];
   for (const { m } of inArc.slice(0, SWORD_CLEAVE)) {
     m.hp -= dmg;
     m.hurtT = 0.18;
     // Charged per creature cut, so a cleave that catches two costs two.
     state.swordDur = Math.max(0, state.swordDur - SWORD_WEAR);
     sfxHit(false);
-    if (m.hp <= 0) showMsg(`${m.type.name} killed +${killMonster(m)} G`);
+    if (m.hp <= 0) lines.push(`${m.type.name} killed +${killMonster(m)} G`);
   }
 
-  // Named once, the first time it happens. A bonus the player cannot see is a
-  // bonus they will never repeat on purpose.
-  if (lunge && inArc.length > 0 && !state.lungeShown) {
+  // Named once, the first time it lands in a run. A bonus the player cannot see
+  // is a bonus they will never repeat on purpose; after that the kill speaks for
+  // itself and repeating the rate every swing would be noise.
+  if (landed && !state.lungeShown) {
     state.lungeShown = true;
-    showMsg(`Lunge — ${LUNGE_DMG}x damage. A sharp blade kills a zombie outright`);
+    lines.push(`Lunge — ${LUNGE_DMG}x damage. A sharp blade kills a zombie outright`);
   }
 
   if (!state.swordWarned && state.swordDur <= SWORD_WARN_AT) {
     state.swordWarned = true;
-    showMsg('The blade is going blunt');
+    lines.push('The blade is going blunt');
   }
+  if (lines.length) showMsg(lines.join('\n'));
   updateHUD();
 }
 

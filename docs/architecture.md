@@ -310,6 +310,13 @@ a lunge, 0.5s and beyond honestly misses, and mashing measures 1.85 swings a
 second against the 2.22 the cooldown allows — the buffer queues one swing, not a
 backlog.
 
+**A landed lunge has its own impact**, driven off one `state.lungeHitT` timer so
+the three parts cannot drift apart: the blade discharges — brighter and hotter
+than the armed glow ever gets, because the armed glow is the charge and this is
+it being spent — the view takes a small upward kick, and `flashLight` is thrown
+at the creature that was hit. None of it fires on a lunge that swung at air, so
+it answers the question the mechanic actually raises: *did that land?*
+
 The wear is deliberately not scaled with the multiplier. It was, and at 4x that
 is 1.8 durability an enemy, so using the mechanic destroyed the sharpness the
 mechanic depends on. It is

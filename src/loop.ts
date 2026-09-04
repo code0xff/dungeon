@@ -9,7 +9,7 @@ import {
   TRAP_RADIUS,
   STRIDE_RATE,
   SWAY_DAMP, TYPES,
-  LUNGE_WINDOW, SWING_IMPACT,
+  LUNGE_HIT_GLOW, LUNGE_HIT_KICK, LUNGE_HIT_LIGHT, LUNGE_HIT_TIME, LUNGE_WINDOW, SWING_IMPACT,
   SWING_SPEED, SWING_WINDUP, TURN_RATE, WALK_CLIP_SPEED, WALK_TIMESCALE_RANGE, WALL_H,
 } from './config';
 import { playerHurt, releaseQueuedAttack, resolveSwing, springTrap } from './combat';
@@ -255,6 +255,19 @@ function updateWeapons(dt: number): void {
     musket.position.z = MUSKET_REST.z + k * 0.16;
     musket.rotation.x = MUSKET_REST.rotX + k * 0.22;
     if (state.recoilT >= 1) state.recoilT = -1;
+  }
+
+  // ---- Lunge impact ----
+  // Owns flashLight only while no muzzle flash is running: the two never overlap
+  // in practice, since one is the sword and the other the musket, but a shot
+  // fired at the tail of a lunge would otherwise have its flash cut short.
+  if (state.lungeHitT > 0) {
+    state.lungeHitT = Math.max(0, state.lungeHitT - dt);
+    if (state.flashT <= 0) {
+      const k = state.lungeHitT / LUNGE_HIT_TIME;
+      // Squared: a hard arrival and a quick falloff, like a struck spark.
+      flashLight.intensity = LUNGE_HIT_LIGHT * k * k;
+    }
   }
 
   // ---- Muzzle flash ----
@@ -711,7 +724,10 @@ export function animate(): void {
   // the KILLED panel reads as an effect that got stuck. Only with the sword in
   // hand — a lunge does nothing for the musket, so lighting up would be a lie.
   const armed = !state.gameOver && state.weapon === 'sword' ? state.lungeT / LUNGE_WINDOW : 0;
-  setBladeGlow(armed);
+  // The discharge overrides the armed glow rather than adding to it, so the
+  // blade goes brightest at the instant the charge is spent and then dies.
+  const discharge = state.gameOver ? 0 : (state.lungeHitT / LUNGE_HIT_TIME) * LUNGE_HIT_GLOW;
+  setBladeGlow(Math.max(armed, discharge));
   // Shown twice, because a thumb on a phone is nowhere near the sword in the
   // corner: the attack button is where the player is about to press anyway.
   atkBtn.classList.toggle('armed', armed > 0);
@@ -748,7 +764,11 @@ export function animate(): void {
   // A sideways dodge rolls the view into it and back out. Straight dodges do not
   // roll, because rolling a forward lunge reads as a stumble.
   const dashK = state.dashT >= 0 ? Math.sin((state.dashT / DASH_TIME) * Math.PI) : 0;
-  camera.rotation.set(state.pitch, state.yaw + Math.PI, state.dashSide * DASH_ROLL * dashK, 'YXZ');
+  // A landed lunge kicks the view up and settles. Added to the pitch here rather
+  // than written into state.pitch, so it cannot accumulate into the player's aim.
+  const kickK = state.lungeHitT / LUNGE_HIT_TIME;
+  const kick = LUNGE_HIT_KICK * kickK * kickK;
+  camera.rotation.set(state.pitch + kick, state.yaw + Math.PI, state.dashSide * DASH_ROLL * dashK, 'YXZ');
   updateAmbience(dt, now);
   renderFrame();
 }
