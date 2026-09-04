@@ -176,11 +176,23 @@ adding it.
 
 ## Pausing
 
-`state.paused` is set only by the guide. The frame loop still renders — the panel
+`state.paused` is set only by the menu. The frame loop still renders — the panel
 sits over a dungeon that looks alive — but nothing advances, so reading the
-controls cannot get the player killed. Input is gated to match: with the guide
-open, only the keys that close it or change the sound do anything, or Space
-would swing the sword at a frozen dungeon.
+controls cannot get the player killed. Input is gated to match: while paused,
+only the sound key does anything, or Space would swing the sword at a frozen
+dungeon.
+
+`menu.ts` owns the pause and the panel stack; the guide is a child screen whose
+Back returns to the menu rather than to the game, so there is one way out and it
+is always the same key. It registers its own key, click and touch handlers rather
+than being driven from `input.ts` — `world.ts` imports `input.ts`, and the menu
+needs `buildWorld()` for New game, which through `input.ts` would have been a
+cycle.
+
+New game is the only thing in the game that clears `bankGold`, since that is
+exactly what death spares. It arms on the first click and names the sum it is
+about to erase; leaving the menu disarms it, so a stray click on the way past
+cannot wipe a run's savings.
 
 It is deliberately separate from `gameOver`. That one means the run is over and
 the shop is up; this one means the world is on hold and will carry on.

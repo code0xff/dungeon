@@ -319,16 +319,16 @@ export function equipWeaponModel(kind: WeaponKind, model: THREE.Object3D, muzzle
  * emissive the model already had rather than overwriting it, so a model with its
  * own glow keeps it at k=0.
  */
-const LUNGE_GLOW = new THREE.Color(0xff2216);
+const LUNGE_GLOW = new THREE.Color(0xffc060);
 /**
  * Where the colour goes past full charge.
  *
- * Pushing the red further just clips all three channels into a flat neon slab —
- * more saturation is not more brightness. A struck spark is white at the core,
- * so the discharge blends toward this instead and reads as heat rather than as
- * a light-up toy.
+ * The discharge separates from the charge by **hue**, not brightness. A blade is
+ * already a light surface, so a near-white emissive saturates almost at once and
+ * two levels of it look identical — measured 0.34 against 0.53 and the two
+ * frames were indistinguishable. Amber going to white reads instantly.
  */
-const LUNGE_HOT = new THREE.Color(0xffd2a4);
+const LUNGE_HOT = new THREE.Color(0xfff6ea);
 /**
  * How much of that colour the blade takes at full.
  *
@@ -336,13 +336,16 @@ const LUNGE_HOT = new THREE.Color(0xffd2a4);
  * no shading, no highlight and no silhouette, which reads as a rendering bug
  * rather than a hot edge.
  *
- * Red carries less than the orange this started as — the same fraction of a red
- * is a much darker pixel, and the dungeon it has to stand out against is already
- * warm — so the peak is higher than the 0.4 orange needed. Checked in a dark
- * corridor and against a lantern-lit wall a metre away, because a level that
- * looks right against black is barely visible against warm stone.
+ * This is exactly flashLight's colour — the light thrown at whatever was hit —
+ * so the blade and the thing it strikes read as one effect rather than two.
+ *
+ * The number is entirely a function of the colour. Red needed 0.55 because a
+ * fraction of a red is a dark pixel; the same fraction of a near-white is far
+ * brighter, so this comes down hard or the blade blows out to a flat slab.
+ * Checked in a dark corridor and against a lantern-lit wall a metre away,
+ * because a level that looks right against black washes out against warm stone.
  */
-const LUNGE_GLOW_PEAK = 0.55;
+const LUNGE_GLOW_PEAK = 0.42;
 const glowTmp = new THREE.Color();
 /** Cached: this runs every frame, and re-traversing to find four materials is waste. */
 let bladeMats: { mat: THREE.MeshStandardMaterial; base: THREE.Color }[] = [];

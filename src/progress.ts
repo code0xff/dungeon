@@ -112,6 +112,18 @@ export function bankRun(
   saveProgress();
 }
 
+/**
+ * New game: everything, bank included.
+ *
+ * The one thing in here that `loseRun()` deliberately spares, so this is the
+ * only way to actually start over — which is why the menu asks before calling it
+ * and names the number it is about to destroy.
+ */
+export function resetProgress(): void {
+  Object.assign(progress, fresh());
+  saveProgress();
+}
+
 /** Death: the run's gold and everything carried is gone. The bank is not. */
 export function loseRun(): void {
   const { bankGold } = progress;

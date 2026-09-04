@@ -188,7 +188,25 @@
   #soundBtn.muted .ico { display:none; }
   #soundBtn.muted .off { display:block; }
 
-  #guide { position:fixed; inset:0; z-index:22; display:none; align-items:center;
+  /* The menu sits above the end-of-run overlay (z-index 20) so a run can be
+     abandoned from the death screen, which is exactly where you want to. */
+  #menu { position:fixed; inset:0; z-index:23; display:none; align-items:center;
+          justify-content:flex-start; flex-direction:column;
+          overflow-y:auto; overscroll-behavior:contain; touch-action:pan-y;
+          background:rgba(2,3,4,.94); padding:20px; color:var(--ink); }
+  #menu > :first-child { margin-top:auto; margin-bottom:auto; }
+  .menuItem { display:block; width:100%; margin-top:9px; font-family:var(--display); font-size:12.5px;
+              letter-spacing:2.2px; text-transform:uppercase; padding:13px 16px; border-radius:2px;
+              border:1px solid rgba(201,192,174,.24); background:rgba(30,28,25,.85); color:var(--ink);
+              cursor:pointer; font-weight:600; text-align:center;
+              transition:border-color .14s, color .14s, background .14s; }
+  .menuItem:hover { border-color:rgba(212,178,90,.6); color:var(--gold); }
+  /* Wiping the bank is the one thing here that cannot be undone, so it asks
+     first — and says the number it is about to destroy. */
+  .menuItem.arm { border-color:rgba(196,86,64,.75); color:#e0a08e; background:rgba(48,24,20,.9); }
+  .menuStatus { font-size:13.5px; opacity:.55; font-style:italic; padding:2px 0 4px; }
+
+  #guide { position:fixed; inset:0; z-index:24; display:none; align-items:center;
            justify-content:flex-start; flex-direction:column;
            overflow-y:auto; overscroll-behavior:contain; touch-action:pan-y;
            background:rgba(2,3,4,.94); padding:20px; color:var(--ink); }
@@ -288,6 +306,10 @@
   #crosshair { position:fixed; left:50%; top:50%; width:6px; height:6px; margin:-3px 0 0 -3px; border-radius:50%; background:rgba(201,192,174,.7); z-index:10; display:none; pointer-events:none; }
   #reloadBar { position:fixed; top:calc(50% + 18px); left:50%; transform:translateX(-50%); width:90px; height:4px; z-index:10; display:none; background:rgba(201,192,174,.15); border-radius:2px; overflow:hidden; }
   #reloadBar div { height:100%; width:0; background:#c9c0ae; }
+  /* Its own bar rather than sharing the reload one: a musket can be reloading
+     while a potion goes down, and two states driving one bar would show a lie. */
+  #drinkBar { position:fixed; top:calc(50% + 28px); left:50%; transform:translateX(-50%); width:90px; height:4px; z-index:10; display:none; background:rgba(201,192,174,.15); border-radius:2px; overflow:hidden; }
+  #drinkBar div { height:100%; width:0; background:#7fc98a; }
   #slots { margin-top:5px; display:flex; gap:10px; }
   .slot { display:inline-flex; align-items:center; gap:5px; font-size:13px; }
   /* A keycap, so the number reads as a key to press and not as a quantity. */
@@ -388,16 +410,27 @@
 <div id="objective" class="panel">
   Loot chests for the <span class="item">key</span> — the exit will not open without it<br>
   Then carry the treasure out through the <span class="portal">blue portal</span><br>
-  <span style="opacity:.6">Press <b id="guideHint"></b> for the controls</span>
+  <span style="opacity:.6">Press <b id="guideHint"></b> for the menu</span>
 </div>
 <canvas id="minimap" width="150" height="150"></canvas>
 
 <div id="msg"></div>
 <div id="topBtns">
-  <div id="guideBtn" class="topBtn" role="button" aria-label="Controls">?</div>
+  <div id="guideBtn" class="topBtn" role="button" aria-label="Menu">?</div>
   <div id="soundBtn" class="topBtn" role="button" aria-label="Sound">
     <svg class="ico"><use href="#i-sound"/></svg>
     <svg class="ico off"><use href="#i-mute"/></svg>
+  </div>
+</div>
+
+<div id="menu">
+  <div class="guidePanel">
+    <div class="guideHead">Dungeon</div>
+    <p class="menuStatus" id="menuStatus"></p>
+    <button class="menuItem" id="menuResume">Resume</button>
+    <button class="menuItem" id="menuGuide">Controls</button>
+    <button class="menuItem" id="menuNew">New game</button>
+    <p class="guideNote" id="menuNote">A new game wipes the bank and starts again at stage 1.</p>
   </div>
 </div>
 
@@ -419,6 +452,7 @@
 <div id="lootBar"><div></div></div>
 <div id="crosshair"></div>
 <div id="reloadBar"><div></div></div>
+<div id="drinkBar"><div></div></div>
 
 <div id="moveStick" class="stick" style="left:calc(24px + env(safe-area-inset-left)); bottom:calc(24px + env(safe-area-inset-bottom)); width:114px; height:114px;"><div class="knob"></div></div>
 <div id="atkBtn" class="tbtn"><svg class="ico"><use href="#i-sword"/></svg><span>Attack</span></div>

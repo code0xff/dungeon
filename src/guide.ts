@@ -1,9 +1,10 @@
 import { GUIDE_KEY, LANTERN_KEY, LUNGE_DMG, POTION_KEY, SOUND_KEY, WHETSTONE_KEY } from './config';
 import { el } from './dom';
-import { state } from './state';
 
 /**
- * The controls panel.
+ * The controls panel — now a child screen of the menu rather than what
+ * GUIDE_KEY opens directly. It shows and hides itself; `state.paused` and the
+ * panel stack belong to menu.ts.
  *
  * It replaced a permanent strip of key hints across the bottom of the screen.
  * That strip had to stay short enough not to be clutter, which meant it could
@@ -25,7 +26,7 @@ const KEYS: readonly (readonly [string, string])[] = [
   ['Attack / fire', 'Click or Space'],
   ['Open chest', 'E'],
   ['Swap weapon', 'Q — or 1 for the sword, 2 for the musket'],
-  ['Drink a potion', POTION_KEY],
+  ['Drink a potion', `${POTION_KEY} — takes a moment to go down`],
   ['Light a lantern', LANTERN_KEY],
   ['Sharpen the sword', WHETSTONE_KEY],
   ['This guide', GUIDE_KEY],
@@ -67,24 +68,10 @@ listEl.append(rows(KEYS, 'guideKeyboard'), rows(TOUCH, 'guideTouch'));
 // the two can never disagree.
 el('guideHint').textContent = GUIDE_KEY;
 
-export function isGuideOpen(): boolean {
-  return state.paused;
-}
-
-export function openGuide(): void {
-  if (state.gameOver) return;
-  state.paused = true;
-  // Reading needs the cursor back; the click that re-locks it is harmless.
-  if (document.pointerLockElement) document.exitPointerLock();
+export function openGuidePanel(): void {
   guideEl.style.display = 'flex';
 }
 
-export function closeGuide(): void {
-  state.paused = false;
+export function closeGuidePanel(): void {
   guideEl.style.display = 'none';
-}
-
-export function toggleGuide(): void {
-  if (isGuideOpen()) closeGuide();
-  else openGuide();
 }

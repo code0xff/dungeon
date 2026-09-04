@@ -13,7 +13,7 @@ import { portal, portalCore, portalLight, scene, setLampLit, setPortalOpen, worl
 import { state } from './state';
 import { ceilTex, floorTex, wallTex } from './textures';
 import type { CreatureKey, GridCell, Monster } from './types';
-import { cancelLoot, minimapEl, objectiveEl, overlayEl, updateHUD, wpnBtn } from './ui';
+import { cancelLoot, drinkBarEl, minimapEl, objectiveEl, overlayEl, updateHUD, wpnBtn } from './ui';
 import { pointerLock } from './input';
 import { lockHintEl } from './ui';
 import { setWeapon } from './weapons';
@@ -373,6 +373,9 @@ export function buildWorld(): void {
   state.swordWarned = false;
   // Gear carried out of the previous stage. A fresh run has none of it.
   // The map is never carried — see the note on Progress in src/progress.ts.
+  // A potion left half-drunk when the run ended must not leave its bar on screen.
+  state.drinkT = -1;
+  drinkBarEl.style.display = 'none';
   state.lanternT = progress.lanternT;
   state.lanternWarned = false;
   state.hasMap = false;

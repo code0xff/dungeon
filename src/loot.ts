@@ -7,7 +7,7 @@ import {
 import { setLampLit, setPortalOpen } from './scene';
 import { state } from './state';
 import type { Chest } from './types';
-import { lootBarEl, minimapEl, objectiveEl, showMsg, updateHUD, wpnBtn } from './ui';
+import { drinkBarEl, drinkFillEl, lootBarEl, minimapEl, objectiveEl, showMsg, updateHUD, wpnBtn } from './ui';
 import { setWeapon, startReload } from './weapons';
 
 export function startLoot(): void {
@@ -99,13 +99,28 @@ export function openChest(c: Chest): void {
  */
 export function usePotion(): void {
   if (state.gameOver) return;
+  if (state.drinkT >= 0) return;
   if (state.potions <= 0) return showMsg('No potions');
   if (state.hp >= MAX_HP) return showMsg('Already at full health');
+  // Spent at the first sip, not the last. Otherwise the key could be held down
+  // and the same potion would heal every frame it was still going down.
   state.potions--;
-  state.hp = Math.min(MAX_HP, state.hp + POTION_HEAL);
+  state.drinkT = 0;
+  drinkBarEl.style.display = 'block';
   sfxPickup();
   updateHUD();
-  showMsg(`Potion +${POTION_HEAL} HP`);
+}
+
+/** The health lands here, POTION_DRINK later. loop.ts calls this. */
+export function finishDrink(): void {
+  state.drinkT = -1;
+  drinkBarEl.style.display = 'none';
+  drinkFillEl.style.width = '0%';
+  if (state.gameOver) return;
+  const healed = Math.min(MAX_HP, state.hp + POTION_HEAL) - state.hp;
+  state.hp += healed;
+  updateHUD();
+  showMsg(`Potion +${Math.round(healed)} HP`);
 }
 
 /**

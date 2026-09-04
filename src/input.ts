@@ -1,15 +1,14 @@
 import { initAudio, isMuted, setMuted, sfxDash } from './audio';
 import {
-  DASH_CD, GUIDE_KEY, LANTERN_KEY, LUNGE_AIM, LUNGE_WINDOW, POTION_KEY, SOUND_KEY, WHETSTONE_KEY,
+  DASH_CD, LANTERN_KEY, LUNGE_AIM, LUNGE_WINDOW, POTION_KEY, SOUND_KEY, WHETSTONE_KEY,
 } from './config';
 import { el, queryChild } from './dom';
 import { canvasEl } from './scene';
 import { state } from './state';
 import { tryAttack } from './combat';
-import { closeGuide, isGuideOpen, toggleGuide } from './guide';
 import { startLoot, useLantern, usePotion, useWhetstone } from './loot';
 import {
-  atkBtn, dashBtn, guideBtn, guideCloseBtn, lampBtn, lockHintEl, lootBtn, potBtn, showMsg,
+  atkBtn, dashBtn, lampBtn, lockHintEl, lootBtn, potBtn, showMsg,
   soundBtn, whetBtn, wpnBtn,
 } from './ui';
 import { setWeapon, toggleWeapon } from './weapons';
@@ -67,10 +66,10 @@ export function tryDash(): void {
 }
 
 addEventListener('keydown', (e) => {
-  // With the guide open only the keys that can close it or change the sound do
-  // anything — otherwise Space would swing the sword at a paused dungeon.
-  if (isGuideOpen()) {
-    if (e.code === `Key${GUIDE_KEY}` || e.code === 'Escape') closeGuide();
+  // Paused, only the sound key does anything here — otherwise Space would swing
+  // the sword at a stopped dungeon. Opening and closing the menu is menu.ts's
+  // own listener, so this does not have to know the panel stack.
+  if (state.paused) {
     if (e.code === `Key${SOUND_KEY}`) toggleSound();
     return;
   }
@@ -81,7 +80,6 @@ addEventListener('keydown', (e) => {
     tryAttack();
   }
   if (e.code === 'KeyE') startLoot();
-  if (e.code === `Key${GUIDE_KEY}`) toggleGuide();
   if (e.code === `Key${SOUND_KEY}`) toggleSound();
   // Shift, not a direction key of its own: the dodge goes where you are already
   // going, so it adds a finger rather than a decision.
@@ -271,7 +269,7 @@ export function toggleSound(): void {
 
 soundBtn.classList.toggle('muted', isMuted());
 for (const [btn, action] of [
-  [guideBtn, toggleGuide], [soundBtn, toggleSound], [guideCloseBtn, closeGuide],
+  [soundBtn, toggleSound],
 ] as const) {
   // pointerdown rather than click so a phone does not wait for the tap delay,
   // and stopPropagation so it never reaches the canvas as an attack.

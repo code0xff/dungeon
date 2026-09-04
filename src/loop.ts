@@ -5,7 +5,8 @@ import {
   ATTACK_IMPACT, ATTACK_IMPACT_REACH, CELL, CHEST_LID_OPEN, CREATURE_DRAW_DISTANCE,
   DASH_ROLL, DASH_SPEED, DASH_TIME, EYE_H, GROUND_SPEED_SMOOTH,
   FALLBACK_ATTACK_TIME, GEAR_BOB, GEAR_BOB_ROLL, LAMP_SWAY, LAMP_SWAY_LAG,
-  CREATURE_PUSH, LANTERN_WARN, LOOT_TIME, MUSKET_RELOAD, PLAYER_R, PORTAL_RADIUS, SPEED,
+  CREATURE_PUSH, LANTERN_WARN, LOOT_TIME, MUSKET_RELOAD, PLAYER_R, PORTAL_RADIUS, POTION_DRINK,
+  SPEED,
   TRAP_RADIUS,
   STRIDE_RATE,
   SWAY_DAMP, TYPES,
@@ -15,7 +16,7 @@ import {
 import { playerHurt, releaseQueuedAttack, resolveSwing, springTrap } from './combat';
 import { findPath } from './dungeon';
 import { edgeTurn, keys, moveInput } from './input';
-import { openChest } from './loot';
+import { finishDrink, openChest } from './loot';
 import { setTrapJaws } from './props';
 import {
   DUST, camera, dustGeo, flashLight, gearBob, handLamp, LAMP_REST, MUSKET_REST, musket,
@@ -26,7 +27,7 @@ import { state } from './state';
 import { collides } from './world';
 import type { CreatureRig, Monster, MonsterPlayback } from './types';
 import {
-  atkBtn, cancelLoot, drawMinimap, endRun, lootBtn, lootFillEl,
+  atkBtn, cancelLoot, drawMinimap, drinkFillEl, endRun, lootBtn, lootFillEl,
   promptEl, reloadBarEl, reloadFillEl, showMsg, updateHUD,
 } from './ui';
 
@@ -619,6 +620,14 @@ function updateChests(dt: number, playerMoving: boolean): void {
   }
 }
 
+/** Advances a potion going down and applies the health when it lands. */
+function updateDrink(dt: number): void {
+  if (state.drinkT < 0) return;
+  state.drinkT += dt;
+  drinkFillEl.style.width = Math.min(100, (state.drinkT / POTION_DRINK) * 100) + '%';
+  if (state.drinkT >= POTION_DRINK) finishDrink();
+}
+
 /** Burns the lantern down, warns once, and puts it out when the fuel runs dry. */
 function updateLantern(dt: number): void {
   if (state.lanternT <= 0) return;
@@ -736,6 +745,7 @@ export function animate(): void {
     const moving = updatePlayer(dt, now);
     updateWeapons(dt);
     updateLantern(dt);
+    updateDrink(dt);
     const nearest = updateMonsters(dt, now);
     updateChests(dt, moving);
     updateTraps(dt);

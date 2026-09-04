@@ -227,7 +227,7 @@ export const LUNGE_HIT_TIME = 0.26;
  * sword at all; 1.8 lands between the red and the hot colour and still doubles
  * the armed level.
  */
-export const LUNGE_HIT_GLOW = 1.8;
+export const LUNGE_HIT_GLOW = 1.9;
 /** Camera pitch kick, in radians. Small — this is a punch, not a stumble. */
 export const LUNGE_HIT_KICK = 0.055;
 /** Peak intensity of the light thrown at the point of impact. */
@@ -275,6 +275,24 @@ export const MASTER_VOLUME = 0.4;
 export const MAX_HP = 100;
 /** Health one potion restores. */
 export const POTION_HEAL = 35;
+/**
+ * Seconds a potion takes to go down before the health arrives.
+ *
+ * Healing used to be instant, which made a potion a button that undid the last
+ * two hits with no decision attached — you could take the hit, press 3, and be
+ * whole again before the next swing landed. Now there is a moment where you have
+ * spent it and have not got it yet, so the choice becomes *when*: backing off to
+ * drink is the cost.
+ *
+ * Well under MUSKET_RELOAD's 3s. A reload is meant to be a real gap you plan
+ * around; this is a beat, roughly a zombie's attack cooldown, so being caught
+ * mid-drink is possible but not a sentence.
+ *
+ * Nothing interrupts it. The potion is spent up front, so dying with one in your
+ * throat loses it — that is the risk, and it is legible without also needing a
+ * cancel rule the player has to learn.
+ */
+export const POTION_DRINK = 0.9;
 /**
  * How far the lid swings open, in radians. Negative tips the front up.
  * Past about -1.6 the lid clears vertical and looks detached rather than open.
