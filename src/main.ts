@@ -6,6 +6,8 @@ import { buildWorld } from './world';
 import { closeShop } from './shop';
 // Imported for side effects: keyboard/mouse/touch listeners and the audio unlock.
 import './input';
+// Same: the pause menu registers its own key, click and touch handlers.
+import './menu';
 
 // Restore the bank and any carried gear before the first world is built.
 loadProgress();

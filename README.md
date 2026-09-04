@@ -116,15 +116,26 @@ rules, with the detail in [docs/](docs/). `CLAUDE.md` is a symlink to it.
 | Attack / fire | click or `Space` |
 | Open chest | `E` |
 | Swap weapon | `Q` |
-| Drink potion / light lantern / sharpen sword | `3` / `4` / `5` |
-| Controls | `H` — opens a guide, and pauses while it is open |
+| Drink potion / light lantern / sharpen sword | `3` / `4` / `5` — a potion takes a moment to go down |
+| Menu | `H` — resume, controls, or start a new game. Pauses while it is open |
 | Sound on / off | `M` — remembered between runs |
 
-The guide replaced a permanent strip of key hints along the bottom of the screen.
-That strip had to stay short enough not to be clutter, so it never listed the
-dodge or the pack keys, and it was in the way for every hour after the first
-five minutes. Every key in the guide is read from `src/config.ts`, so a
-rebinding cannot leave it saying something untrue.
+`H` opens a pause menu — resume, the controls, or a new game. It used to open the
+control list directly, which meant the only thing reachable mid-run was a
+reference card and there was no way to abandon a run short of clearing the
+browser's storage. A new game wipes the bank, so it asks first and names the
+number it is about to destroy.
+
+The controls list itself replaced a permanent strip of key hints along the bottom
+of the screen. That strip had to stay short enough not to be clutter, so it never
+listed the dodge or the pack keys, and it was in the way for every hour after the
+first five minutes. Every key in it is read from `src/config.ts`, so a rebinding
+cannot leave it saying something untrue.
+
+**A potion takes a moment to go down.** Healing used to be instant, which made it
+a button that undid the last two hits with no decision attached. The potion is
+spent at the first sip and the health arrives 0.9s later, so the question becomes
+*when* — and dying with one in your throat loses it.
 
 **The sword blunts as it cuts.** Every creature it touches takes a little off the
 edge, and damage falls with it — a fresh blade kills a zombie in five swings, a

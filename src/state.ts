@@ -93,6 +93,8 @@ export const state = {
   nearChest: null as Chest | null,
 
   // ---- Items ----
+  /** Seconds into drinking a potion; -1 means not drinking. */
+  drinkT: -1,
   /** Seconds of lantern fuel left. 0 means unlit. */
   lanternT: 0,
   /** Whether the low-fuel warning has already fired this run. */
