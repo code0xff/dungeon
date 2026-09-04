@@ -153,9 +153,26 @@ total. Capping the sum would have silently changed the mix at the top by
 dropping whichever creature was counted last; clamping the input keeps the ratio
 the formula intended.
 
-The ratio moves on purpose. Brutes and lunatics grow faster than zombies, from
-65% zombies down to 56%, because a deeper stage should change *what* kills you
-and not only how much of it there is.
+The ratio moves on purpose, and it is the larger half of what a stage number
+means. Brutes and lunatics start rare and grow far faster than zombies: stage 1
+is 85% zombies with one of each of the others, and the peak is 45% zombies to 27%
+each. A deeper stage should change *what* kills you and not only how much of it
+there is.
+
+They ramp differently. Lunatics start slightly commoner and climb a little
+slower; brutes are nearly absent at the start and climb hardest, so the thing you
+learn to fear arrives last. Measured over 20 runs a stage:
+
+| Stage | Total | Zombie | Lunatic | Brute |
+|---|---|---|---|---|
+| 1 | 14 | 12 (85%) | 1 (8%) | 1 (7%) |
+| 4 | 29 | 19 (66%) | 5 (19%) | 4 (15%) |
+| 8 | 61 | 32 (52%) | 14 (24%) | 14 (24%) |
+| 12 | 107 | 49 (45%) | 29 (27%) | 29 (27%) |
+
+The headcount curve is untouched. Summed creature hp is 6% higher at the peak and
+9% lower at stage 1, so this redistributes threat along the stages rather than
+adding it.
 
 ## Pausing
 

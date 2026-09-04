@@ -659,10 +659,18 @@ export const TYPES: Record<CreatureKey, CreatureType> = {
  * spawned: stage 1 is 9 zombies, 2 brutes and 3 lunatics in a 76m dungeon, and
  * stage 12 is 61, 21 and 27 in a 124m one.
  *
- * **The mix shifts, not just the count.** Brutes and lunatics grow faster than
- * zombies in proportion, so a late stage is not the early one with more of the
- * same: stage 1 is 65% zombies, the peak is 56%. That matters more than the
- * headcount, because the thing that kills you changes.
+ * **The mix shifts, and that is the larger half of the design.** Brutes and
+ * lunatics start rare and grow far faster than zombies, so a late stage is not
+ * the early one with more of the same — stage 1 is 86% zombies against 45% at
+ * the peak. What kills you changes, which matters more than how many there are.
+ *
+ * The two grow differently on purpose. Lunatics start slightly commoner and ramp
+ * a little slower; brutes are nearly absent at the start and climb hardest, so
+ * the thing you learn to fear arrives last.
+ *
+ * The totals barely move: the reference count is 40 at stage 1 and 112 at the
+ * peak, as before. Summed creature hp goes up 6% at the peak and *down* 9% at
+ * stage 1, so this redistributes threat rather than adding it.
  *
  * Density, not headcount, is what is actually being tuned here — one creature
  * per few floor cells is what makes backing away from one back you into another.
@@ -671,9 +679,9 @@ export const TYPES: Record<CreatureKey, CreatureType> = {
  * by accident.
  */
 export const SPAWN: Readonly<Record<CreatureKey, SpawnRate>> = {
-  zombie: { base: 26, perStage: 3.4 },
-  brute: { base: 6, perStage: 1.5 },
-  lunatic: { base: 8, perStage: 1.9 },
+  zombie: { base: 34, perStage: 1.5 },
+  lunatic: { base: 4, perStage: 2.4 },
+  brute: { base: 2, perStage: 2.6 },
 };
 /**
  * Stage at which the counts stop growing.

@@ -69,9 +69,9 @@ falls back to a box model for it.
 
 | | HP | Damage | Speed | Notices you | Reward | Stage 1 → 12 |
 |---|---|---|---|---|---|---|
-| **Zombie** | 4 | 17 | 2.9 | 13m | 8-16 G | 9 → 61 |
-| **Brute** | 9 | 32 | 2.0 | 13m | 36-74 G | 2 → 21 |
-| **Lunatic** | 3 | 14 | 4.5 | 18m | 20-40 G | 3 → 27 |
+| **Zombie** | 4 | 17 | 2.9 | 13m | 8-16 G | 12 → 49 |
+| **Brute** | 9 | 32 | 2.0 | 13m | 36-74 G | 1 → 29 |
+| **Lunatic** | 3 | 14 | 4.5 | 18m | 20-40 G | 1 → 29 |
 
 **The dungeon grows as well as filling up.** Stage 1 is a 76m maze with 14
 creatures in it; by stage 12 it is 124m and 109, where both stop. Dungeons are
@@ -84,8 +84,12 @@ a smaller stage 1 is a gentler one — the same creatures in a third of the spac
 would have been three times as dense. What a short stage really buys is less
 ground to search: the key sits 51m from the start instead of 92m.
 
-The mix shifts too: 64% zombies at the start, 56% at the peak, so a late stage
-is not the early one with more of the same.
+**What is down there changes more than how much of it there is.** Stage 1 is 85%
+zombies with a single brute and a single lunatic in the whole dungeon; by the
+peak it is 45% zombies against 27% each. Brutes are the rarest thing early and
+the fastest-growing, so the creature you learn to fear is the one that arrives
+last. The headcount curve is unchanged — this moves threat between stages rather
+than adding it.
 
 | Stage | Creatures | Floor cells each | Aware of you at any moment |
 |---|---|---|---|
