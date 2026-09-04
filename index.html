@@ -243,6 +243,14 @@
             border:1px solid rgba(184,74,66,.55); color:#e8cfc6;
             background:radial-gradient(circle at 50% 32%, rgba(150,48,44,.62), rgba(74,22,20,.5) 72%);
             box-shadow:0 6px 22px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,190,175,.16); }
+  /* The lunge window, on the button the thumb is already heading for. No
+     transition on the way in and a slow one on the way out, so the light
+     arrives the instant the dodge does and then visibly runs out — the fade is
+     the countdown, the same as the glow on the blade. */
+  #atkBtn { transition:border-color .38s linear, box-shadow .38s linear; }
+  #atkBtn.armed { transition:none; border-color:rgba(255,168,72,.95);
+                  box-shadow:0 6px 22px rgba(0,0,0,.5), 0 0 16px rgba(255,150,50,.55),
+                             inset 0 1px 0 rgba(255,200,150,.3); }
   /* Smaller than attack and centred over it: opening a chest is a deliberate
      act you have already stopped moving for, not something the thumb has to
      find in a hurry. */

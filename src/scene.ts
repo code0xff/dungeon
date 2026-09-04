@@ -298,11 +298,73 @@ export function equipWeaponModel(kind: WeaponKind, model: THREE.Object3D, muzzle
     // Culling misjudges children of the camera. A held weapon is always on screen, so turn it off.
     if ((o as THREE.Mesh).isMesh) (o as THREE.Mesh).frustumCulled = false;
   });
+  if (kind === 'sword') cacheBladeMats();
   if (!muzzle) return;
   SMOKE_REST_Y = muzzle.y;
   muzzleFlash.position.set(muzzle.x, muzzle.y, muzzle.z - 0.12);
   smoke.position.set(muzzle.x, muzzle.y, muzzle.z - 0.06);
 }
+/**
+ * Telling the player the lunge window is open, on the blade rather than in the
+ * HUD.
+ *
+ * The crosshair would have been the obvious place and is the wrong one: it is
+ * only drawn for the musket, and the lunge is a sword mechanic. The sword is
+ * always on screen, it is the thing the bonus applies to, and — the part that
+ * makes this work as a teaching cue — the *fade is the countdown*. There is no
+ * second element to read; the light going out is the window closing.
+ *
+ * Every material on the equipped sword glows, not just the blade, because which
+ * mesh is the blade is not knowable in an arbitrary GLB. Added to whatever
+ * emissive the model already had rather than overwriting it, so a model with its
+ * own glow keeps it at k=0.
+ */
+const LUNGE_GLOW = new THREE.Color(0xff9a2e);
+/**
+ * How much of that colour the blade takes at full.
+ *
+ * At 1 the emissive swamps the material: the sword goes a flat pale yellow with
+ * no shading, no highlight and no silhouette, which reads as a rendering bug
+ * rather than a hot edge.
+ *
+ * 0.4 keeps the bevel and the pommel highlight readable in a dark corridor,
+ * which is where the game mostly is, while still carrying against a lantern-lit
+ * wall a metre away — the two cases were checked separately, because a level
+ * that looks right against black is barely visible against warm stone.
+ */
+const LUNGE_GLOW_PEAK = 0.4;
+const glowTmp = new THREE.Color();
+/** Cached: this runs every frame, and re-traversing to find four materials is waste. */
+let bladeMats: { mat: THREE.MeshStandardMaterial; base: THREE.Color }[] = [];
+let lastGlow = -1;
+
+function cacheBladeMats(): void {
+  bladeMats = [];
+  lastGlow = -1;
+  sword.traverse((o) => {
+    const mesh = o as THREE.Mesh;
+    if (!mesh.isMesh) return;
+    for (const m of Array.isArray(mesh.material) ? mesh.material : [mesh.material]) {
+      // MeshBasicMaterial has no emissive at all, so this is a real filter.
+      if (!m || !('emissive' in m)) continue;
+      const mat = m as THREE.MeshStandardMaterial;
+      bladeMats.push({ mat, base: mat.emissive.clone() });
+    }
+  });
+}
+cacheBladeMats();
+
+/** `k` is 0..1, the fraction of the lunge window left. */
+export function setBladeGlow(k: number): void {
+  // Quantised because this is called every frame and the common case is 0.
+  const q = Math.round(Math.max(0, Math.min(1, k)) * 40) / 40;
+  if (q === lastGlow) return;
+  lastGlow = q;
+  for (const { mat, base } of bladeMats) {
+    mat.emissive.copy(base).add(glowTmp.copy(LUNGE_GLOW).multiplyScalar(q * LUNGE_GLOW_PEAK));
+  }
+}
+
 scene.add(camera);
 
 // ================= Floating dust =================

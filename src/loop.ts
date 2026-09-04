@@ -6,7 +6,7 @@ import {
   DASH_ROLL, DASH_SPEED, DASH_TIME, EYE_H, GROUND_SPEED_SMOOTH,
   FALLBACK_ATTACK_TIME, GEAR_BOB, GEAR_BOB_ROLL, LAMP_SWAY, LAMP_SWAY_LAG,
   LANTERN_WARN, LOOT_TIME, MUSKET_RELOAD, PORTAL_RADIUS, SPEED, STRIDE_RATE, SWAY_DAMP,
-  SWING_IMPACT,
+  LUNGE_WINDOW, SWING_IMPACT,
   SWING_SPEED, SWING_WINDUP, TURN_RATE, WALK_CLIP_SPEED, WALK_TIMESCALE_RANGE, WALL_H,
 } from './config';
 import { playerHurt, resolveSwing } from './combat';
@@ -15,14 +15,14 @@ import { edgeTurn, keys, moveInput } from './input';
 import { openChest } from './loot';
 import {
   DUST, camera, dustGeo, flashLight, gearBob, handLamp, LAMP_REST, MUSKET_REST, musket,
-  muzzleFlash, portal, portalCore, renderFrame, scene, setLampLit, SMOKE_REST_Y, smoke, sword,
-  SWORD_REST, playerLight,
+  muzzleFlash, portal, portalCore, renderFrame, scene, setBladeGlow, setLampLit, SMOKE_REST_Y,
+  smoke, sword, SWORD_REST, playerLight,
 } from './scene';
 import { state } from './state';
 import { collides } from './world';
 import type { CreatureRig, Monster, MonsterPlayback } from './types';
 import {
-  cancelLoot, drawMinimap, endRun, lootBtn, lootFillEl,
+  atkBtn, cancelLoot, drawMinimap, endRun, lootBtn, lootFillEl,
   promptEl, reloadBarEl, reloadFillEl, showMsg, updateHUD,
 } from './ui';
 
@@ -512,6 +512,16 @@ export function animate(): void {
 
   // Paused still renders — the guide sits over a live-looking dungeon — but
   // nothing advances, so reading the controls cannot get the player killed.
+  // Outside the block on purpose. Paused, the window is frozen and so is the
+  // glow, which is right; dead, it has to go out, and a sword still lit behind
+  // the KILLED panel reads as an effect that got stuck. Only with the sword in
+  // hand — a lunge does nothing for the musket, so lighting up would be a lie.
+  const armed = !state.gameOver && state.weapon === 'sword' ? state.lungeT / LUNGE_WINDOW : 0;
+  setBladeGlow(armed);
+  // Shown twice, because a thumb on a phone is nowhere near the sword in the
+  // corner: the attack button is where the player is about to press anyway.
+  atkBtn.classList.toggle('armed', armed > 0);
+
   if (!state.gameOver && !state.paused) {
     const moving = updatePlayer(dt, now);
     updateWeapons(dt);

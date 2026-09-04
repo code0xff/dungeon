@@ -399,6 +399,20 @@ export const SHOP = {
   whetstone: 110,
 } as const;
 
+/**
+ * How far a kill's gold varies from the creature's `reward`, as a fraction.
+ *
+ * `reward` is the middle of a band, not a price list. A fixed payout made every
+ * zombie the same twelve gold, so killing things stopped being a result and
+ * became arithmetic — you knew what a corridor was worth before you walked into
+ * it. At 0.35 a zombie pays 8-16 and a brute 36-74, enough that a good run feels
+ * lucky without the spread being large enough to matter over a whole stage.
+ *
+ * Proportional rather than a flat +/-, so the band scales with what the creature
+ * is worth instead of being noise on a brute and the whole payout on a zombie.
+ */
+export const REWARD_SPREAD = 0.35;
+
 // ================= Creatures =================
 /**
  * Creature stats.
@@ -407,6 +421,9 @@ export const SHOP = {
  * musket ball does MUSKET_DMG. In play a sword is never pristine for long: it
  * dulls as it cuts, so a 4hp zombie takes 5 swings from a fresh blade and 9 from
  * a blunt one. Read hp as "roughly this many swings, more as the edge goes".
+ *
+ * `reward` is the *middle* of what a kill pays, not the payout — see
+ * REWARD_SPREAD for the band either side of it.
  */
 export const TYPES: Record<CreatureKey, CreatureType> = {
   zombie: {

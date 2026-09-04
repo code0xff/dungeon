@@ -20,7 +20,7 @@ const listEl = el('guideList');
 const KEYS: readonly (readonly [string, string])[] = [
   ['Move', 'W A S D'],
   ['Dodge', 'Shift'],
-  ['Lunge', `Dodge forward, then attack at once — ${LUNGE_DMG}x damage and ${LUNGE_DMG}x the wear`],
+  ['Lunge', `Dodge forward and the blade lights up. Attack while it is lit for ${LUNGE_DMG}x damage — and ${LUNGE_DMG}x the wear`],
   ['Look', 'Move the mouse — click to lock it, Esc to release'],
   ['Attack / fire', 'Click or Space'],
   ['Open chest', 'E'],
@@ -38,7 +38,7 @@ const TOUCH: readonly (readonly [string, string])[] = [
   ['Look', 'Drag anywhere on the right'],
   ['Attack / fire', 'The red button'],
   ['Dodge', 'The blue button beside it'],
-  ['Lunge', `Dodge with the stick pushed forward, then attack — ${LUNGE_DMG}x damage`],
+  ['Lunge', `Dodge with the stick pushed forward; attack while the button glows for ${LUNGE_DMG}x damage`],
   ['Open chest', 'Appears when you are near one'],
   ['Potion / lantern / whetstone', 'The small buttons above the swap, when you carry one'],
 ];

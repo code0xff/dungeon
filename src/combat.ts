@@ -1,7 +1,7 @@
 import { clipDuration, setAnim } from './assets';
 import { sfxHit, sfxLunge, sfxShot, sfxSwing } from './audio';
 import {
-  ATTACK_CD, ATTACK_RANGE, CORPSE_LINGER, LUNGE_DMG, MUSKET_DMG, MUSKET_RANGE,
+  ATTACK_CD, ATTACK_RANGE, CORPSE_LINGER, LUNGE_DMG, MUSKET_DMG, MUSKET_RANGE, REWARD_SPREAD,
   SHOT_ALERT_RADIUS, SHOT_ALERT_TIME,
   SWORD_ARC, SWORD_CLEAVE, SWORD_DMG_WORN, SWORD_DUR_MAX, SWORD_WARN_AT, SWORD_WEAR,
 } from './config';
@@ -28,9 +28,18 @@ function facing(): [fx: number, fz: number] {
   return [-Math.sin(state.yaw + Math.PI), -Math.cos(state.yaw + Math.PI)];
 }
 
-export function killMonster(m: Monster): void {
+/**
+ * Banks a kill and returns what it actually paid.
+ *
+ * Returned rather than read back off the type, because the payout is rolled per
+ * kill — a caller that formatted `m.type.reward` into the message would show a
+ * different number from the one the HUD just added.
+ */
+export function killMonster(m: Monster): number {
   m.hp = 0;
-  state.runGold += m.type.reward;
+  const spread = m.type.reward * REWARD_SPREAD;
+  const gold = Math.max(1, Math.round(m.type.reward - spread + Math.random() * spread * 2));
+  state.runGold += gold;
   updateHUD();
   // With a death clip, play it out and leave the corpse a moment. Without one, remove at once.
   if (m.playback?.clips.death) {
@@ -42,6 +51,7 @@ export function killMonster(m: Monster): void {
   } else {
     scene.remove(m.mesh);
   }
+  return gold;
 }
 
 /**
@@ -103,10 +113,7 @@ export function fireMusket(): void {
     best.hp -= MUSKET_DMG;
     best.hurtT = 0.25;
     sfxHit(false);
-    if (best.hp <= 0) {
-      showMsg(`${best.type.name} shot +${best.type.reward} G`);
-      killMonster(best);
-    }
+    if (best.hp <= 0) showMsg(`${best.type.name} shot +${killMonster(best)} G`);
   }
 
   // The report carries a long way.
@@ -168,10 +175,7 @@ export function resolveSwing(): void {
     // Charged per creature cut, so a cleave that catches two costs two.
     state.swordDur = Math.max(0, state.swordDur - wear);
     sfxHit(false);
-    if (m.hp <= 0) {
-      showMsg(`${m.type.name} killed +${m.type.reward} G`);
-      killMonster(m);
-    }
+    if (m.hp <= 0) showMsg(`${m.type.name} killed +${killMonster(m)} G`);
   }
 
   // Named once, the first time it happens. A bonus the player cannot see is a
