@@ -281,6 +281,25 @@ clears 4. It was 4x first — the bare multiplier at a *pristine* edge — which
 useless, because one ordinary swing takes 0.45 off and the zombie survives on
 0.01hp. A reward that exists for one swing after a repair is not a reward.
 
+**Attack input is buffered**, and that is what made the lunge usable rather than
+theoretical. `tryAttack()` used to drop a press outright while the cooldown was
+running — no sound, no animation, nothing to tell the player their key had been
+eaten. The game's ordinary rhythm walks straight into it: swing, dodge forward,
+swing again. Measured on that sequence with a single press, everything from 0 to
+0.35s after the dodge vanished and only 0.36-0.43s produced a lunge, because
+`ATTACK_CD` (0.45) eats almost all of `LUNGE_WINDOW` (0.5). Mashing got there in
+about seven discarded presses.
+
+A press during the cooldown is now remembered and fires the moment it clears,
+carrying the lunge flag from **when it was pressed** — the window has always been
+about how quickly the player reacted, not about when the engine got round to
+swinging. `ATTACK_BUFFER` equals `ATTACK_CD` for a reason: pressing at the
+*start* of a dodge leaves the full cooldown to wait out, so anything shorter
+still drops the most natural press of all. Every delay from 0 to 0.44s now lands
+a lunge, 0.5s and beyond honestly misses, and mashing measures 1.85 swings a
+second against the 2.22 the cooldown allows — the buffer queues one swing, not a
+backlog.
+
 The wear is deliberately not scaled with the multiplier. It was, and at 4x that
 is 1.8 durability an enemy, so using the mechanic destroyed the sharpness the
 mechanic depends on. It is

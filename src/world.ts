@@ -358,6 +358,8 @@ export function buildWorld(): void {
   state.runGold = 0;
   state.gameOver = false;
   state.atkTimer = 0;
+  state.atkQueue = 0;
+  state.queueLunge = false;
   state.swingT = -1;
   state.swingHit = false;
   state.dashT = -1;

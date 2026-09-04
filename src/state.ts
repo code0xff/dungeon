@@ -48,6 +48,13 @@ export const state = {
   swordWarned: false,
   /** Attack cooldown left, in seconds. */
   atkTimer: 0,
+  /**
+   * Seconds left on a swing that was pressed while the cooldown was still
+   * running. It fires the moment the cooldown ends. See ATTACK_BUFFER.
+   */
+  atkQueue: 0,
+  /** Whether that queued press was made inside the lunge window. */
+  queueLunge: false,
   /** Swing progress 0..1; -1 means not swinging. */
   swingT: -1,
   /** Whether this swing already resolved, so one swing cuts once. */
