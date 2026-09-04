@@ -167,8 +167,47 @@
   #overlay button:hover { border-color:rgba(212,178,90,.6); color:var(--gold); }
   #overlay button:active { transform:scale(.97); }
 
-  #help { position:fixed; bottom:12px; left:50%; transform:translateX(-50%); color:rgba(201,192,174,.42); font-size:13.5px; z-index:10; font-style:italic;
-          background:rgba(6,7,9,.5); padding:6px 12px; border-radius:6px; user-select:none; pointer-events:none; text-align:center; }
+  /* Two quiet buttons at the top centre — the one strip of screen that neither
+     the HUD, the objective, the minimap, the stick nor the touch cluster uses. */
+  #topBtns { position:fixed; top:calc(10px + env(safe-area-inset-top)); left:50%; transform:translateX(-50%);
+             z-index:13; display:flex; gap:8px; }
+  .topBtn { width:30px; height:30px; display:flex; align-items:center; justify-content:center;
+            border:1px solid rgba(201,192,174,.2); border-radius:50%; color:rgba(201,192,174,.55);
+            background:rgba(8,9,11,.55); cursor:pointer; user-select:none;
+            font-family:var(--display); font-size:13px; font-weight:600;
+            -webkit-tap-highlight-color:transparent; transition:color .12s, border-color .12s; }
+  .topBtn:hover { color:var(--ink); border-color:rgba(201,192,174,.45); }
+  .topBtn:active { transform:scale(.93); }
+  .topBtn .ico { width:16px; height:16px; }
+  /* One icon is shown at a time; the class says which. */
+  #soundBtn .off { display:none; }
+  #soundBtn.muted .ico { display:none; }
+  #soundBtn.muted .off { display:block; }
+
+  #guide { position:fixed; inset:0; z-index:22; display:none; align-items:center;
+           justify-content:flex-start; flex-direction:column;
+           overflow-y:auto; overscroll-behavior:contain; touch-action:pan-y;
+           background:rgba(2,3,4,.94); padding:20px; color:var(--ink); }
+  #guide > :first-child { margin-top:auto; margin-bottom:auto; }
+  .guidePanel { width:min(520px, 92vw); text-align:left;
+                border:1px solid rgba(201,192,174,.16); border-radius:3px; padding:18px 22px 20px;
+                background:linear-gradient(rgba(20,18,15,.8), rgba(8,9,11,.85));
+                box-shadow:0 4px 22px rgba(0,0,0,.5), inset 0 1px 0 rgba(230,220,196,.06); }
+  .guideHead { font-family:var(--display); font-size:12px; letter-spacing:2.6px; text-transform:uppercase;
+               opacity:.5; padding-bottom:10px; margin-bottom:6px;
+               border-bottom:1px solid rgba(201,192,174,.12); }
+  .guideRow { display:flex; align-items:baseline; gap:12px; padding:6px 0; }
+  .guideLabel { flex:0 0 132px; font-size:14.5px; }
+  .guideKeys { flex:1; min-width:0; font-size:13px; opacity:.55; font-style:italic; }
+  /* The keyboard list on a pointer device, the touch list on a phone. */
+  .guideTouch { display:none; }
+  .guideNote { margin-top:14px; padding-top:12px; border-top:1px solid rgba(201,192,174,.12);
+               font-size:13.5px; line-height:1.55; opacity:.6; font-style:italic; }
+  #guideClose { display:block; margin:18px auto 0; font-family:var(--display); font-size:12px;
+                letter-spacing:2.4px; text-transform:uppercase; padding:11px 30px; border-radius:2px;
+                border:1px solid rgba(201,192,174,.28); background:rgba(30,28,25,.9); color:var(--ink);
+                cursor:pointer; font-weight:600; transition:border-color .14s, color .14s; }
+  #guideClose:hover { border-color:rgba(212,178,90,.6); color:var(--gold); }
   #prompt { position:fixed; bottom:52px; left:50%; transform:translateX(-50%); color:var(--gold); font-size:15px; z-index:10; display:none;
             background:rgba(6,7,9,.7); padding:6px 14px; border-radius:6px; border:1px solid rgba(212,178,90,.3); user-select:none; pointer-events:none; }
   #prompt b { background:#d4b25a; color:#1a1207; padding:1px 7px; border-radius:4px; margin-right:6px; }
@@ -250,14 +289,19 @@
     .stick { display:block }
     #atkBtn { display:flex } #lootBtn.show { display:flex } #wpnBtn.show { display:flex }
     #potBtn.show { display:flex } #lampBtn.show { display:flex } #dashBtn.show { display:flex }
-    #help, #prompt, #lockHint { display:none!important }
+    #prompt, #lockHint { display:none!important }
+    .guideKeyboard { display:none }
+    .guideTouch { display:block }
     #hud { top:calc(12px + env(safe-area-inset-top)); left:calc(12px + env(safe-area-inset-left)); }
     #objective, #minimap { top:calc(12px + env(safe-area-inset-top)); right:calc(12px + env(safe-area-inset-right)); }
     #msg { font-size:14px; top:24%; }
   }
+  /* Wide tracking plus uppercase wraps onto two or three lines on a phone, and
+     the default line-height packed them together. */
   #loading { position:fixed; inset:0; z-index:30; display:flex; align-items:center; justify-content:center;
              background:#020304; color:var(--ink); font-family:var(--display); font-size:12px;
-             letter-spacing:3.5px; text-transform:uppercase; opacity:.6; }
+             letter-spacing:3.5px; text-transform:uppercase; opacity:.6;
+             line-height:2.4; text-align:center; padding:0 28px; max-width:100%; }
 </style>
 </head>
 <body>
@@ -275,6 +319,14 @@
   </symbol>
   <symbol id="i-swap" viewBox="0 0 24 24">
     <path d="M3.5 8.8h14l-3.4-3.4M20.5 15.2h-14l3.4 3.4"/>
+  </symbol>
+  <symbol id="i-sound" viewBox="0 0 24 24">
+    <path d="M4 9.5h3.5L12 5.5v13L7.5 14.5H4z"/>
+    <path d="M15.8 9.2a4 4 0 0 1 0 5.6M18.4 6.6a7.6 7.6 0 0 1 0 10.8"/>
+  </symbol>
+  <symbol id="i-mute" viewBox="0 0 24 24">
+    <path d="M4 9.5h3.5L12 5.5v13L7.5 14.5H4z"/>
+    <path d="m16 9.5 5 5m0-5-5 5"/>
   </symbol>
   <symbol id="i-potion" viewBox="0 0 24 24">
     <path d="M10 2.8h4M12 2.8v4.6l4.4 8.6a3.4 3.4 0 0 1-3 5H10.6a3.4 3.4 0 0 1-3-5L12 7.4"/>
@@ -308,13 +360,29 @@
 <div id="objective" class="panel">
   Loot chests for the <span class="item">key</span> — the exit will not open without it<br>
   Then carry the treasure out through the <span class="portal">blue portal</span><br>
-  <span style="opacity:.6">Potions and lanterns go in your pack — press 3 and 4<br>
-  <b>Shift</b> dodges the way you are moving</span>
+  <span style="opacity:.6">Press <b id="guideHint"></b> for the controls</span>
 </div>
 <canvas id="minimap" width="150" height="150"></canvas>
 
 <div id="msg"></div>
-<div id="help">Move: WASD &middot; Dodge: Shift &middot; Look: move mouse &middot; Attack/Fire: click or Space &middot; Chest: E &middot; Swap weapon: Q</div>
+<div id="topBtns">
+  <div id="guideBtn" class="topBtn" role="button" aria-label="Controls">?</div>
+  <div id="soundBtn" class="topBtn" role="button" aria-label="Sound">
+    <svg class="ico"><use href="#i-sound"/></svg>
+    <svg class="ico off"><use href="#i-mute"/></svg>
+  </div>
+</div>
+
+<div id="guide">
+  <div class="guidePanel">
+    <div class="guideHead">Controls</div>
+    <div id="guideList"></div>
+    <p class="guideNote">Find the key in a chest — the portal will not open without
+      it. Carry the treasure out. Die and this run's gold stays down there; the bank
+      does not.</p>
+    <button id="guideClose">Back</button>
+  </div>
+</div>
 <div id="lockHint"><div>Move the mouse to look around<br><small>Click once to lock the cursor for smoother aiming (Esc to release)</small></div></div>
 <div id="prompt"><b>E</b>Open chest</div>
 <div id="lootBar"><div></div></div>

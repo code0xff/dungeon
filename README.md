@@ -103,6 +103,14 @@ rules, with the detail in [docs/](docs/). `CLAUDE.md` is a symlink to it.
 | Open chest | `E` |
 | Swap weapon | `Q` |
 | Drink potion / light lantern | `3` / `4` |
+| Controls | `H` — opens a guide, and pauses while it is open |
+| Sound on / off | `M` — remembered between runs |
+
+The guide replaced a permanent strip of key hints along the bottom of the screen.
+That strip had to stay short enough not to be clutter, so it never listed the
+dodge or the pack keys, and it was in the way for every hour after the first
+five minutes. Every key in the guide is read from `src/config.ts`, so a
+rebinding cannot leave it saying something untrue.
 
 **The sword blunts as it cuts.** Every creature it touches takes a little off the
 edge, and damage falls with it — a fresh blade kills a zombie in five swings, a

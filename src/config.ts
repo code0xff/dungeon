@@ -129,6 +129,16 @@ export const CHEST_ITEMS: readonly ItemKind[] = [
  */
 export const POTION_KEY = '3';
 export const LANTERN_KEY = '4';
+/** Opens the controls panel, and closes it again. */
+export const GUIDE_KEY = 'H';
+/** Mutes and unmutes everything. */
+export const SOUND_KEY = 'M';
+
+/**
+ * Master output level, 0..1. Muting sets the same gain node to 0 rather than
+ * suspending the context, so the drone resumes exactly where it left off.
+ */
+export const MASTER_VOLUME = 0.4;
 
 export const MAX_HP = 100;
 /** Health one potion restores. */

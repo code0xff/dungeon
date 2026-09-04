@@ -82,7 +82,7 @@ const STOCK: Stock[] = [
   {
     id: 'Ammo',
     name: 'Musket balls',
-    held: () => `${progress.ammo} held`,
+    held: () => `${progress.ammo} held  ·  +${AMMO_PICKUP}`,
     price: () => atStage(SHOP.ammo),
     buy: () => {
       progress.ammo += AMMO_PICKUP;
@@ -115,17 +115,21 @@ const rows = STOCK.map((item) => {
 });
 
 /**
- * Just the price. The row already names the item and the button already looks
- * like a button, so the word "Buy" was only making the widest label wider —
- * and a flex item is min-width:auto, so an over-long nowrap label pushes past
- * its basis and knocks the column out of alignment.
+ * Just the price, on every row.
  *
- * Ammo is the only one bought in a batch, so it is the only one that says so.
+ * Ammo used to carry its batch size here as "×3 · 45 G", which made it the one
+ * button that was not a single clean figure and left the column looking ragged
+ * next to "60 G" and "90 G". The batch size is a property of what you are
+ * buying, not of the price, so it sits with the rest of that — beside "+35 HP"
+ * and "3 min" in the held column.
+ *
+ * The word "Buy" is gone for a related reason: the row already names the item
+ * and the button already looks like a button, so it only made the widest label
+ * wider — and a flex item is min-width:auto, so an over-long nowrap label pushes
+ * past its width and knocks the column out of alignment.
  */
-function label(item: Stock, price: number | null): string {
-  if (price === null) return 'Full';
-  const many = item.id === 'Ammo' ? `×${AMMO_PICKUP} · ` : '';
-  return `${many}${price} G`;
+function label(price: number | null): string {
+  return price === null ? 'Full' : `${price} G`;
 }
 
 export function render(): void {
@@ -136,7 +140,7 @@ export function render(): void {
   for (const { item, held, btn } of rows) {
     const price = item.price();
     held.textContent = item.held();
-    btn.textContent = label(item, price);
+    btn.textContent = label(price);
     // Disabled rather than hidden: a price you cannot afford yet is information.
     btn.disabled = price === null || price > progress.bankGold;
   }

@@ -28,7 +28,7 @@ loop                        frame loop, creature AI
 world  input  combat  loot  weapons        systems
 props                       world content built from assets
 assets                      external model and texture loading
-scene  ui  shop  textures  dungeon          presentation and generation
+scene  ui  shop  guide  textures  dungeon   presentation and generation
 config  state  progress  creatures  audio     data and primitives
 types  dom                  leaves, no internal imports
 ```
@@ -99,6 +99,17 @@ the formula intended.
 The ratio moves on purpose. Brutes and lunatics grow faster than zombies, from
 65% zombies down to 56%, because a deeper stage should change *what* kills you
 and not only how much of it there is.
+
+## Pausing
+
+`state.paused` is set only by the guide. The frame loop still renders — the panel
+sits over a dungeon that looks alive — but nothing advances, so reading the
+controls cannot get the player killed. Input is gated to match: with the guide
+open, only the keys that close it or change the sound do anything, or Space
+would swing the sword at a frozen dungeon.
+
+It is deliberately separate from `gameOver`. That one means the run is over and
+the shop is up; this one means the world is on hold and will carry on.
 
 ## Gold has a sink
 

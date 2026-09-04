@@ -1,3 +1,5 @@
+import { MASTER_VOLUME } from './config';
+
 declare global {
   interface Window {
     webkitAudioContext?: typeof AudioContext;
@@ -15,6 +17,39 @@ interface Audio {
 let audio: Audio | null = null;
 
 /**
+ * Muting, remembered across runs in its own localStorage key.
+ *
+ * Not part of `progress`, which is wiped back to defaults on death — a sound
+ * preference has nothing to do with the run and should not be undone by dying.
+ */
+const MUTE_KEY = 'dungeon.muted.v1';
+
+let muted = (() => {
+  try {
+    return localStorage.getItem(MUTE_KEY) === '1';
+  } catch {
+    // Storage unavailable in some privacy modes. Sound on is the right default.
+    return false;
+  }
+})();
+
+export function isMuted(): boolean {
+  return muted;
+}
+
+export function setMuted(value: boolean): void {
+  muted = value;
+  try {
+    localStorage.setItem(MUTE_KEY, value ? '1' : '0');
+  } catch {
+    // The setting still applies to this session, it just will not be remembered.
+  }
+  // The gain node, not ctx.suspend(): the drone and its slow filter LFO keep
+  // running, so unmuting drops back into the ambience rather than restarting it.
+  if (audio) audio.master.gain.value = value ? 0 : MASTER_VOLUME;
+}
+
+/**
  * Opens the audio context on the first user gesture (browser autoplay policy).
  * The ambience is a low drone plus band-passed noise.
  */
@@ -25,7 +60,7 @@ export function initAudio(): void {
   const ctx = new Ctor();
 
   const master = ctx.createGain();
-  master.gain.value = 0.4;
+  master.gain.value = muted ? 0 : MASTER_VOLUME;
   master.connect(ctx.destination);
 
   // ---- Low drone ----
