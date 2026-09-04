@@ -231,9 +231,21 @@ for (const [btn, action] of touchButtons) {
   );
 }
 
+/**
+ * Whether touch belongs to the game rather than to the end-of-run overlay.
+ *
+ * The overlay is a scrollable panel, and the handlers below both preventDefault
+ * and steal the touch for looking — so without this the shop cannot be scrolled
+ * on a phone at all, however it is styled.
+ */
+function touchIsForGame(): boolean {
+  return !state.gameOver;
+}
+
 addEventListener(
   'touchstart',
   (e) => {
+    if (!touchIsForGame()) return;
     for (const t of Array.from(e.changedTouches)) {
       if (touchButtons.some(([btn]) => t.target === btn)) continue;
       // Left half of the screen is the move stick, right half drags the view.
@@ -252,6 +264,7 @@ addEventListener(
 addEventListener(
   'touchmove',
   (e) => {
+    if (!touchIsForGame()) return;
     e.preventDefault();
     for (const t of Array.from(e.changedTouches)) {
       if (t.identifier === stickId) updateStick(t);
@@ -265,6 +278,12 @@ addEventListener(
 );
 
 addEventListener('touchend', (e) => {
+  if (!touchIsForGame()) {
+    // The run ended mid-drag; drop any stick or look the fingers still hold.
+    resetStick();
+    lookId = null;
+    return;
+  }
   for (const t of Array.from(e.changedTouches)) {
     if (t.identifier === stickId) resetStick();
     if (t.identifier === lookId) lookId = null;
