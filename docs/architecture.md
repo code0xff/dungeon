@@ -241,10 +241,20 @@ that mattered.
 **Two systems get a second job out of this.**
 
 The **lantern** was a timer: you lit it and waited for it to burn out. Traps are
-pale, knee-high geometry lit by nothing but the player's own lamp, so spotting
-distance is exactly `LIGHT_DIM.distance` against `LIGHT_LIT.distance` — 11m
-against 19m. Lighting one is now a decision about a corridor. Nothing in code
-hides or reveals a trap; it is only ever the light.
+knee-high geometry lit by nothing but the player's own lamp, so spotting distance
+is exactly `LIGHT_DIM.distance` against `LIGHT_LIT.distance` — 11m against 19m.
+Lighting one is now a decision about a corridor. Nothing in code hides or reveals
+a trap; it is only ever the light.
+
+Which is why the trap is a **bear trap in light weathered rust, with bones caught
+in it**, and not the dark iron the shape wants. Realistic iron was tried and was
+flatly invisible at 12m with a lit lantern. The *value* of the material matters
+more here than what it is made of, so the metal is light and the bones are what
+actually carry at range — and they say what the thing does faster than the
+silhouette can. The jaws lie splayed open when set and rotate shut when sprung,
+so a spent trap is distinguishable from a live one at a glance; getting that
+backwards was the first attempt's bug, and it read as a hoop collapsing rather
+than a mouth closing.
 
 The **map** only ever said which chests were still shut. It now draws trapped
 ones red, which is worth knowing before crossing a dungeon to reach one.

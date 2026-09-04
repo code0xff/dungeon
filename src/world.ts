@@ -270,12 +270,12 @@ function placeTraps(scale: number): void {
   const count = Math.round(TRAP_COUNT * scale);
   for (let i = 0; i < count; i++) {
     const [gx, gz] = randomFloorCell(5);
-    const mesh = makeTrap();
+    const { group: mesh, jaws } = makeTrap();
     // Off-centre, so a corridor of them does not read as a dotted line.
     mesh.position.set(gx * CELL + (Math.random() - 0.5) * 1.4, 0, gz * CELL + (Math.random() - 0.5) * 1.4);
     mesh.rotation.y = Math.random() * Math.PI * 2;
     scene.add(mesh);
-    state.traps.push({ mesh, sprung: false, springT: 0 });
+    state.traps.push({ mesh, jaws, sprung: false, springT: 0 });
   }
 }
 
