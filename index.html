@@ -13,39 +13,86 @@
 <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
 <title>Dungeon</title>
 <style>
+  /* Two faces, self-hosted rather than pulled from a CDN: the service worker only
+     caches same-origin requests, so a cross-origin font would be the one thing
+     that stopped working offline. Latin subsets only — every string here is
+     English. Both are SIL OFL; see README. */
+  @font-face { font-family:'Cinzel'; font-style:normal; font-weight:600; font-display:swap;
+               src:url('fonts/cinzel-600.woff2') format('woff2'); }
+  /* One file, not one per weight: Google serves EB Garamond as a variable font,
+     so asking for 400 and 600 downloads the same bytes twice and the second
+     @font-face is a lie the browser resolves by faking bold. A weight range
+     declares what the file actually contains. */
+  @font-face { font-family:'EB Garamond'; font-style:normal; font-weight:400 700; font-display:swap;
+               src:url('fonts/eb-garamond.woff2') format('woff2'); }
+
+  :root {
+    /* Cinzel is inscriptional Roman capitals — it carries titles and the short
+       uppercase labels. EB Garamond does everything that has to be read rather
+       than looked at. The fallbacks are serifs on purpose: swapping to a sans
+       would change the whole feel for the seconds before the font lands. */
+    --display: 'Cinzel', 'Trajan Pro', Georgia, serif;
+    --text: 'EB Garamond', Georgia, 'Times New Roman', serif;
+    --ink: #c9c0ae;          /* parchment, the base text colour */
+    --ink-bright: #e6dcc4;
+    --gold: #d4b25a;
+    --portal: #6a9fd8;
+    --blood: #8e2b2b;
+  }
   * { margin:0; padding:0; box-sizing:border-box; }
-  html,body { width:100%; height:100%; overflow:hidden; background:#020304; font-family:'Segoe UI',system-ui,sans-serif; touch-action:none; }
+  html,body { width:100%; height:100%; overflow:hidden; background:#020304;
+              font-family:var(--text); touch-action:none;
+              /* Garamond's default figures are old-style and hop about in a HUD
+                 full of numbers, so the whole interface is pinned to lining. */
+              font-variant-numeric:lining-nums tabular-nums; }
   #game { position:fixed; inset:0; }
   canvas { display:block; }
-  .panel { background:rgba(6,7,9,.65); border:1px solid rgba(190,180,160,.12); border-radius:6px; color:#c9c0ae; user-select:none; }
+  /* Panels read as something lit from above rather than a flat box: a top-down
+     tint, a hairline of light on the upper edge, and a colder shadow under it. */
+  .panel { background:linear-gradient(rgba(18,16,14,.72), rgba(5,6,8,.78));
+           border:1px solid rgba(190,180,160,.14); border-radius:3px; color:var(--ink);
+           box-shadow:0 2px 14px rgba(0,0,0,.5), inset 0 1px 0 rgba(230,220,196,.07);
+           user-select:none; }
 
   /* Icons inherit their colour from the text they sit in, so one sprite serves
      the HUD, the messages and the touch buttons. */
   #sprite { position:absolute; width:0; height:0; overflow:hidden; }
   .ico { fill:none; stroke:currentColor; stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round; }
-  #hud { position:fixed; top:12px; left:12px; z-index:10; padding:10px 14px; font-size:14px; line-height:1.7; pointer-events:none; }
-  #hpbarWrap { width:150px; height:8px; background:rgba(190,180,160,.12); border-radius:4px; overflow:hidden; margin-top:2px; }
-  #hpbar { height:100%; width:100%; background:#8e2b2b; transition:width .15s; }
-  #gold { color:#d4b25a; font-weight:600; }
-  #bank { opacity:.6; font-size:12px; }
-  #items { font-size:12px; opacity:.8; margin-top:3px; letter-spacing:.3px; }
+  /* Garamond has a small x-height, so everything here is a point or two larger
+     than the sans it replaced to read at the same size. */
+  #hud { position:fixed; top:12px; left:12px; z-index:10; padding:11px 15px 10px; font-size:15px;
+         line-height:1.55; pointer-events:none; }
+  /* "HP" is a label, not prose. */
+  #hud > :first-child { font-family:var(--display); font-size:10px; letter-spacing:2.2px;
+                        opacity:.45; }
+  #hpbarWrap { width:150px; height:7px; background:rgba(190,180,160,.1); overflow:hidden;
+               margin:4px 0 7px; border:1px solid rgba(190,180,160,.14); }
+  #hpbar { height:100%; width:100%; background:linear-gradient(90deg,#6d1f1f,#a83636); transition:width .15s; }
+  #stage { font-family:var(--display); font-size:14px; letter-spacing:1.6px; color:var(--ink-bright); }
+  #gold { color:var(--gold); font-weight:600; }
+  #bank { opacity:.55; font-size:13px; }
+  #items { font-size:13px; opacity:.75; margin-top:4px; letter-spacing:.2px; }
 
-  #objective { position:fixed; top:12px; right:12px; z-index:10; padding:8px 14px; font-size:13px; text-align:right; pointer-events:none; transition:opacity 1.6s; }
-  #objective .portal { color:#6a9fd8; }
-  #objective .item { color:#d4b25a; }
-  #minimap { position:fixed; top:12px; right:12px; z-index:10; display:none; border-radius:6px; border:1px solid rgba(201,192,174,.2); background:rgba(6,7,9,.75); }
+  #objective { position:fixed; top:12px; right:12px; z-index:10; padding:10px 15px; font-size:14px;
+               line-height:1.6; text-align:right; pointer-events:none; transition:opacity 1.6s;
+               font-style:italic; opacity:.9; }
+  #objective .portal { color:var(--portal); font-style:normal; }
+  #objective .item { color:var(--gold); font-style:normal; }
+  #objective b { font-family:var(--display); font-size:12px; letter-spacing:1px; font-style:normal; }
+  #minimap { position:fixed; top:12px; right:12px; z-index:10; display:none; border-radius:2px; border:1px solid rgba(201,192,174,.2); background:rgba(6,7,9,.75); }
 
   #msg { position:fixed; top:31%; left:50%; z-index:12; pointer-events:none;
          padding:11px 18px 11px 15px; border-radius:8px;
          background:linear-gradient(180deg, rgba(15,16,19,.93), rgba(8,9,11,.93));
          border:1px solid rgba(212,178,90,.26); border-left:3px solid #d4b25a;
          box-shadow:0 10px 30px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.045);
-         color:#e6dcc4; font-size:15px; line-height:1.65; letter-spacing:.2px;
+         color:var(--ink-bright); font-size:16.5px; line-height:1.55; letter-spacing:.1px;
          text-align:left; max-width:min(86vw,440px); white-space:pre-line;
          opacity:0; transform:translate(-50%,-8px); transition:opacity .26s ease, transform .26s ease; }
   #msg.show { opacity:1; transform:translate(-50%,0); }
-  /* The first line is the gold, so it carries the accent and the weight. */
-  #msg .gold { color:#d4b25a; font-weight:600; font-size:16px; }
+  /* The first line is the gold, so it carries the accent and the display face. */
+  #msg .gold { color:var(--gold); font-family:var(--display); font-weight:600; font-size:15px;
+               letter-spacing:.8px; }
   #vignette { position:fixed; inset:0; z-index:11; pointer-events:none; box-shadow:inset 0 0 180px 40px rgba(0,0,0,.98); transition:background .12s; }
   #vignette.hurt { background:rgba(160,20,20,.32); }
   #grain { position:fixed; inset:-50%; z-index:11; pointer-events:none; opacity:.085;
@@ -55,38 +102,61 @@
 
   #overlay { position:fixed; inset:0; z-index:20; display:none; align-items:center; justify-content:center; flex-direction:column;
              background:rgba(2,3,4,.93); color:#c9c0ae; text-align:center; padding:20px; }
-  #overlay h1 { font-size:38px; font-weight:600; margin-bottom:12px; letter-spacing:2px; }
-  #overlay h1.win { color:#6a9fd8; } #overlay h1.dead { color:#8e2b2b; }
-  #overlay p { font-size:17px; margin-bottom:8px; opacity:.8; }
-  #overlay .bankline { color:#d4b25a; margin-bottom:26px; }
-  #shop { display:none; width:min(420px, 88vw); margin:0 0 24px; padding:14px 16px 6px;
-          border:1px solid rgba(201,192,174,.18); border-radius:8px; background:rgba(12,13,16,.75); }
-  .shopHead { display:flex; justify-content:space-between; align-items:baseline; font-size:12px;
-              letter-spacing:1.4px; text-transform:uppercase; opacity:.55; margin-bottom:10px; }
-  #shopBank { color:#d4b25a; opacity:1; font-size:14px; letter-spacing:0; text-transform:none; }
+  #overlay h1 { font-family:var(--display); font-size:40px; font-weight:600; margin-bottom:14px;
+                letter-spacing:7px; text-indent:7px; text-transform:uppercase; }
+  /* The glow is the only light in the room at that moment, so it comes off the word. */
+  #overlay h1.win { color:var(--portal); text-shadow:0 0 34px rgba(106,159,216,.4); }
+  #overlay h1.dead { color:var(--blood); text-shadow:0 0 34px rgba(142,43,43,.45); }
+  #overlay p { font-size:18px; margin-bottom:8px; opacity:.8; line-height:1.5; max-width:min(92vw,540px); }
+  #overlay .bankline { color:var(--gold); margin-bottom:26px; font-size:17px; }
+  #shop { display:none; width:min(470px, 90vw); margin:0 0 24px; padding:14px 18px 8px;
+          border:1px solid rgba(201,192,174,.16); border-radius:3px;
+          background:linear-gradient(rgba(20,18,15,.8), rgba(8,9,11,.85));
+          box-shadow:0 4px 22px rgba(0,0,0,.5), inset 0 1px 0 rgba(230,220,196,.06); }
+  .shopHead { display:flex; justify-content:space-between; align-items:baseline;
+              font-family:var(--display); font-size:11px; letter-spacing:2.4px;
+              text-transform:uppercase; opacity:.5; margin-bottom:11px;
+              padding-bottom:9px; border-bottom:1px solid rgba(201,192,174,.12); }
+  #shopBank { font-family:var(--text); color:var(--gold); opacity:1; font-size:15px;
+              letter-spacing:0; text-transform:none; }
   .shopRow { display:flex; align-items:center; gap:10px; padding:7px 0;
              border-top:1px solid rgba(201,192,174,.09); }
-  .shopName { flex:0 0 96px; font-size:14px; }
+  /* The overlay centres its text; the shop is a table and wants its own alignment. */
+  .shopName { flex:0 0 100px; font-size:15px; text-align:left; }
   /* Fixed width on the button so the right edge stays straight as prices change. */
-  .shopHeld { flex:1; font-size:12px; opacity:.5; text-align:right; padding-right:10px; }
-  .shopBuy { flex:0 0 128px; font-size:12.5px; font-weight:600; padding:6px 0; border-radius:5px;
-             border:1px solid rgba(201,192,174,.3); background:#1a1c20; color:#c9c0ae; cursor:pointer;
-             white-space:nowrap; text-align:center; }
+  .shopHeld { flex:1; font-size:13px; opacity:.45; text-align:right; padding-right:10px;
+              font-style:italic; white-space:nowrap; }
+  /* An explicit width rather than a flex basis. A flex item is min-width:auto by
+     default, so a nowrap button whose text is wider than its basis silently grows
+     past it — the ammo row's "×3 · 120 G" came out 27px wider than the rest and
+     broke the column. min-width:0 turns that off and the width then holds. */
+  .shopBuy { flex:0 0 auto; width:124px; min-width:0;
+             font-family:var(--display); font-size:11px; font-weight:600;
+             letter-spacing:1px; padding:8px 6px; border-radius:2px;
+             border:1px solid rgba(201,192,174,.28); background:rgba(30,28,25,.9); color:var(--ink);
+             cursor:pointer; white-space:nowrap; text-align:center; transition:border-color .12s, color .12s; }
+  .shopBuy:not(:disabled):hover { border-color:rgba(212,178,90,.55); color:var(--gold); }
   .shopBuy:disabled { opacity:.3; cursor:default; }
   .shopBuy:not(:disabled):active { transform:scale(.97); }
   /* On a phone the row has ~310px to share, so give the middle column less to do. */
   @media (max-width:460px) {
-    .shopName { flex-basis:78px; font-size:13px; }
-    .shopHeld { font-size:11px; padding-right:6px; }
-    .shopBuy { flex-basis:104px; font-size:11.5px; }
+    .shopName { flex-basis:70px; font-size:13.5px; }
+    .shopHeld { font-size:11.5px; padding-right:6px; }
+    .shopBuy { width:104px; font-size:9.5px; letter-spacing:.4px; padding:8px 4px; }
+    .shopRow { gap:6px; }
   }
 
-  #overlay button { font-size:17px; padding:12px 32px; border-radius:6px; border:1px solid rgba(201,192,174,.3); background:#1a1c20; color:#c9c0ae; cursor:pointer; font-weight:600; }
+  #overlay button { font-family:var(--display); font-size:14px; letter-spacing:3px;
+                    text-transform:uppercase; padding:14px 40px; border-radius:2px;
+                    border:1px solid rgba(201,192,174,.28); background:rgba(30,28,25,.9);
+                    color:var(--ink); cursor:pointer; font-weight:600;
+                    transition:border-color .14s, color .14s; }
+  #overlay button:hover { border-color:rgba(212,178,90,.6); color:var(--gold); }
   #overlay button:active { transform:scale(.97); }
 
-  #help { position:fixed; bottom:12px; left:50%; transform:translateX(-50%); color:rgba(201,192,174,.5); font-size:12.5px; z-index:10;
+  #help { position:fixed; bottom:12px; left:50%; transform:translateX(-50%); color:rgba(201,192,174,.42); font-size:13.5px; z-index:10; font-style:italic;
           background:rgba(6,7,9,.5); padding:6px 12px; border-radius:6px; user-select:none; pointer-events:none; text-align:center; }
-  #prompt { position:fixed; bottom:52px; left:50%; transform:translateX(-50%); color:#d4b25a; font-size:14px; z-index:10; display:none;
+  #prompt { position:fixed; bottom:52px; left:50%; transform:translateX(-50%); color:var(--gold); font-size:15px; z-index:10; display:none;
             background:rgba(6,7,9,.7); padding:6px 14px; border-radius:6px; border:1px solid rgba(212,178,90,.3); user-select:none; pointer-events:none; }
   #prompt b { background:#d4b25a; color:#1a1207; padding:1px 7px; border-radius:4px; margin-right:6px; }
   #lootBar { position:fixed; bottom:96px; left:50%; transform:translateX(-50%); width:160px; height:6px; z-index:10; display:none;
@@ -105,7 +175,8 @@
 
   .tbtn { position:fixed; z-index:15; display:none; flex-direction:column; gap:1px;
           align-items:center; justify-content:center; user-select:none; -webkit-tap-highlight-color:transparent;
-          border-radius:50%; font-size:10.5px; font-weight:600; letter-spacing:.6px; text-transform:uppercase;
+          border-radius:50%; font-family:var(--display); font-size:9.5px; font-weight:600;
+          letter-spacing:1.2px; text-transform:uppercase;
           transition:transform .09s ease, filter .09s ease; }
   .tbtn .ico { width:26px; height:26px; margin:0; stroke-width:1.6; }
   .tbtn span { opacity:.72; }
@@ -149,15 +220,19 @@
   #reloadBar { position:fixed; top:calc(50% + 18px); left:50%; transform:translateX(-50%); width:90px; height:4px; z-index:10; display:none; background:rgba(201,192,174,.15); border-radius:2px; overflow:hidden; }
   #reloadBar div { height:100%; width:0; background:#c9c0ae; }
   #slots { margin-top:5px; display:flex; gap:10px; }
-  .slot { display:inline-flex; align-items:center; gap:5px; font-size:12px; }
-  .slot b { display:inline-flex; align-items:center; justify-content:center; width:15px; height:15px;
-            border:1px solid rgba(201,192,174,.4); border-radius:3px; font-size:10px; font-weight:600;
-            color:#c9c0ae; background:rgba(201,192,174,.08); }
+  .slot { display:inline-flex; align-items:center; gap:5px; font-size:13px; }
+  /* A keycap, so the number reads as a key to press and not as a quantity. */
+  .slot b { display:inline-flex; align-items:center; justify-content:center; width:16px; height:16px;
+            border:1px solid rgba(201,192,174,.34); border-radius:2px;
+            font-family:var(--display); font-size:9.5px; font-weight:600;
+            color:var(--ink); background:rgba(201,192,174,.07); }
   .slot.empty { opacity:.35; }
 
   #lockHint { position:fixed; inset:0; z-index:14; display:flex; align-items:center; justify-content:center; pointer-events:none; }
-  #lockHint div { background:rgba(6,7,9,.75); border:1px solid rgba(201,192,174,.25); color:#c9c0ae; padding:14px 22px; border-radius:8px; font-size:15px; text-align:center; line-height:1.6; }
-  #lockHint small { opacity:.6; font-size:12.5px; }
+  #lockHint div { background:linear-gradient(rgba(18,16,14,.8), rgba(5,6,8,.85));
+                  border:1px solid rgba(201,192,174,.22); color:var(--ink); padding:16px 26px;
+                  border-radius:3px; font-size:16px; text-align:center; line-height:1.6; }
+  #lockHint small { opacity:.55; font-size:13px; font-style:italic; }
   @media (pointer:coarse) {
     .stick { display:block }
     #atkBtn { display:flex } #lootBtn.show { display:flex } #wpnBtn.show { display:flex }
@@ -167,7 +242,9 @@
     #objective, #minimap { top:calc(12px + env(safe-area-inset-top)); right:calc(12px + env(safe-area-inset-right)); }
     #msg { font-size:14px; top:24%; }
   }
-  #loading { position:fixed; inset:0; z-index:30; display:flex; align-items:center; justify-content:center; background:#020304; color:#c9c0ae; font-size:16px; letter-spacing:1px; }
+  #loading { position:fixed; inset:0; z-index:30; display:flex; align-items:center; justify-content:center;
+             background:#020304; color:var(--ink); font-family:var(--display); font-size:12px;
+             letter-spacing:3.5px; text-transform:uppercase; opacity:.6; }
 </style>
 </head>
 <body>

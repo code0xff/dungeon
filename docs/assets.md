@@ -18,6 +18,13 @@ committing it is what lets a fresh clone run the real game rather than the box
 models. `raw/` is not, both for size and because Mixamo forbids redistributing
 the FBX files themselves.
 
+Fonts are a third, much smaller case: `assets/fonts/` holds two woff2 files and
+their SIL OFL licences. They are **self-hosted rather than linked**, because the
+service worker only caches same-origin requests — a CDN font would be the one
+thing that broke offline. Watch for variable fonts: Google serves EB Garamond as
+a single file spanning the weight axis, so asking its CSS API for 400 and 600
+hands you the same bytes under two names.
+
 ## The two pipelines
 
 | | Mixamo | Poly Haven |
@@ -111,6 +118,7 @@ service worker only makes the second visit free.
 | weapons | 1.2MB |
 | props | 1.3MB |
 | textures | 1.4MB |
+| fonts | 60KB (two woff2, latin subsets) |
 
 Creature bulk is **geometry, not texture**, and it is not spread evenly:
 

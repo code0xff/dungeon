@@ -55,6 +55,7 @@ dungeon/
    ├─ creatures/lunatic/    idle.glb  walk.glb  attack.glb  death.glb
    ├─ weapons/              sword.glb  musket.glb
    ├─ props/                chest.glb  lantern.glb
+   ├─ fonts/                Cinzel + EB Garamond (woff2, SIL OFL)
    ├─ icons/                PWA icons
    ├─ manifest.webmanifest
    ├─ sw.js                 service worker (offline cache)
@@ -226,7 +227,28 @@ are baked; nothing reads them again.
 
 ---
 
-## 4. Walls, floors and weapons — Poly Haven
+## 4. Type
+
+Two faces, both **SIL Open Font License 1.1**, self-hosted under `assets/fonts/`
+with their licences beside them:
+
+| | |
+|---|---|
+| **Cinzel** 600 | inscriptional Roman capitals — titles, buttons, short labels |
+| **EB Garamond** (variable, 400–700) | everything meant to be read |
+
+Self-hosted rather than pulled from a CDN because the service worker only caches
+same-origin requests: a font from `fonts.googleapis.com` would be the one part of
+the game that stopped working offline. Latin subsets only, since every string is
+English — 60KB for the pair.
+
+EB Garamond is a **variable** font. Google serves one file for the whole weight
+axis, so requesting 400 and 600 downloads identical bytes twice; it is declared
+once with `font-weight: 400 700`.
+
+---
+
+## 5. Walls, floors and weapons — Poly Haven
 
 ```bash
 npm run fetch-assets
@@ -294,7 +316,7 @@ name stays `musket` throughout the code.
 
 ---
 
-## 5. Licences
+## 6. Licences
 
 Mixamo characters and animations are free to use and ship inside a game, including
 commercially, but **the FBX files themselves must not be redistributed**. So `raw/`
@@ -303,9 +325,13 @@ is git-ignored and only the baked `assets/creatures/**/*.glb` is committed.
 Poly Haven assets — wall and floor textures, weapon models — are **CC0**: no
 attribution, redistribution and commercial use allowed.
 
+Cinzel and EB Garamond are **SIL Open Font License 1.1**, which permits bundling
+and redistribution provided the licence travels with the font. Both licences are
+in `assets/fonts/` next to the woff2 files they cover.
+
 ---
 
-## 6. Ideas
+## 7. Ideas
 
 - **Shadows** are off. `renderer.shadowMap.enabled = true` in `src/scene.ts` plus
   `castShadow` on the player's light turns them on, but there are a lot of walls, so check
