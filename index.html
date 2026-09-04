@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<meta name="description" content="A first-person dungeon crawler. Loot the chests, escape through the portal, or lose it all.">
+<meta name="description" content="A first-person extraction dungeon crawler. Find the key, carry the gold out, or leave it in the dark.">
 <meta name="theme-color" content="#0d0f12">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -11,7 +11,7 @@
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="icon" href="./icons/icon-192.png" type="image/png">
 <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
-<title>Dungeon</title>
+<title>In the Bone Dark</title>
 <style>
   /* Two faces, self-hosted rather than pulled from a CDN: the service worker only
      caches same-origin requests, so a cross-origin font would be the one thing
@@ -342,7 +342,12 @@
      whole box including its background, so an opacity here made the black
      backdrop 60% transparent and the HUD, the objective panel and the
      click-to-lock card all bled through and collided with the message. */
+  /* The title sits above the progress line rather than beside it, so the first
+     thing on screen is the name and not a status message. */
+  .loadTitle { display:block; font-size:19px; letter-spacing:5px; color:rgba(212,178,90,.62);
+               margin-bottom:22px; }
   #loading { position:fixed; inset:0; z-index:30; display:flex; align-items:center; justify-content:center;
+             flex-direction:column;
              background:#020304; color:rgba(201,192,174,.6); font-family:var(--display); font-size:12px;
              letter-spacing:3.5px; text-transform:uppercase;
              line-height:2.4; text-align:center; padding:0 28px; max-width:100%; }
@@ -393,7 +398,7 @@
 </defs></svg>
 
 <div id="game"></div>
-<div id="loading">Loading assets...</div>
+<div id="loading"><b class="loadTitle">In the Bone Dark</b><span id="loadMsg">Loading assets...</span></div>
 <div id="vignette"></div>
 <div id="grain"></div>
 
@@ -425,7 +430,7 @@
 
 <div id="menu">
   <div class="guidePanel">
-    <div class="guideHead">Dungeon</div>
+    <div class="guideHead">In the Bone Dark</div>
     <p class="menuStatus" id="menuStatus"></p>
     <button class="menuItem" id="menuResume">Resume</button>
     <button class="menuItem" id="menuNew">New game</button>

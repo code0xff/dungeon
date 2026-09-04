@@ -1,5 +1,11 @@
 # Architecture
 
+The game is **In the Bone Dark**. The name is display-only — it lives in
+`index.html` (tab title, loading screen, menu header), the web manifest and the
+README. The repository, the deploy path and the service worker's `dungeon-`
+cache prefix all keep the old name on purpose: renaming the prefix would orphan
+every installed copy's offline cache to rename a string nobody sees.
+
 A single-page Three.js game. No framework, no router, no state library. One
 module per concern, wired together by `main.ts`.
 

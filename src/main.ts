@@ -26,6 +26,9 @@ if (import.meta.env.PROD && 'serviceWorker' in navigator) {
 }
 
 const loadingEl = el('loading');
+// The progress line is its own element: writing textContent on the wrapper would
+// take the title out with it on the first asset loaded.
+const loadMsgEl = el('loadMsg');
 
 el('restart').addEventListener('click', () => {
   // The shop wrote straight into progress, so buildWorld() picks up whatever
@@ -35,7 +38,7 @@ el('restart').addEventListener('click', () => {
 });
 
 loadAssets((msg) => {
-  loadingEl.textContent = msg + '...';
+  loadMsgEl.textContent = msg + '...';
 })
   .then(() => {
     loadingEl.style.display = 'none';
@@ -44,5 +47,5 @@ loadAssets((msg) => {
   })
   .catch((err: unknown) => {
     console.error(err);
-    loadingEl.textContent = 'Load error — check the console (F12)';
+    loadMsgEl.textContent = 'Load error — check the console (F12)';
   });
