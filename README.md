@@ -98,7 +98,7 @@ rules, with the detail in [docs/](docs/). `CLAUDE.md` is a symlink to it.
 |---|---|
 | Move | `WASD` |
 | Dodge | `Shift` — a 3.8m burst the way you are already moving |
-| Lunge | dodge *forward*, then attack at once — double damage, double wear |
+| Lunge | dodge *forward*, then attack while the blade glows — double damage, double wear |
 | Look | move the mouse (click to lock the cursor, `Esc` to release) |
 | Attack / fire | click or `Space` |
 | Open chest | `E` |
@@ -121,9 +121,15 @@ the shop grinds 45 points back, spent with `5` — the only repair available whi
 you are still down there.
 
 **A forward dodge into an attack is a lunge**, worth double damage on that one
-swing. It costs double durability to match and puts you inside reach with a
+swing. The blade lights up when the window opens and fades out as it closes, so
+the timing is something you can see rather than something you have to be told;
+on a phone the attack button lights with it. It costs double durability to match and puts you inside reach with a
 cooldown before you can back out again, which is the trade: the most dangerous
 place in the game is also the only place the sword hits hard.
+
+**Kills pay a range, not a price.** A zombie is worth 8-16 G, a brute 36-74 —
+the same average as before, so the economy is unchanged, but a corridor is no
+longer worth a number you could have worked out before entering it.
 
 **Noise draws them.** A musket shot is heard 20m away and hunted for 10 seconds.
 A chest lid carries 9m for 6 — quieter, but not free, so looting in the open is

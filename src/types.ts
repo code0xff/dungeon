@@ -49,7 +49,7 @@ export interface CreatureType {
    * under 2 or a creature cannot enter a corridor at all.
    */
   clearance: number;
-  /** Gold awarded for the kill. */
+  /** Middle of the gold a kill pays; REWARD_SPREAD sets the band around it. */
   reward: number;
   /** Distance at which the player is noticed, in metres. */
   aggro: number;

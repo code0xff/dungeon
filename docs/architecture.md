@@ -84,6 +84,11 @@ Health is carried precisely because it makes stopping at the portal a decision
 rather than a formality, and unspent potions and lanterns are carried because
 walking out with a full pack is part of what extraction is worth.
 
+Kill gold is **rolled per kill**, `REWARD_SPREAD` either side of the creature's
+`reward`. A fixed payout meant you knew what a corridor was worth before walking
+into it. The roll is returned by `killMonster()` rather than read back off the
+type, so the message and the HUD cannot show different numbers.
+
 ## What a stage is worth
 
 The stage number is the difficulty. `SPAWN` gives each creature a stage-1 count
@@ -170,6 +175,16 @@ mid-dodge earns nothing; and it is latched when the player presses rather than
 read when the blade lands, because those are `SWING_IMPACT / SWING_SPEED` apart
 and the window belongs to the input. Exactly one swing is bought: the flag is
 cleared at the press, so the follow-up is an ordinary hit.
+
+The window is **shown on the blade**, which glows and fades out over it. The
+crosshair would have been the obvious place and is the wrong one — it is only
+drawn for the musket. The sword is always on screen, it is the thing the bonus
+applies to, and the fade *is* the countdown, so there is no second element to
+read. On touch the attack button lights with it, because a thumb is nowhere near
+the sword in the corner. Both are driven outside the paused/dead block in
+`animate()`: frozen while the guide is open (correct — so is the window) and
+extinguished on death, where a still-glowing sword behind the panel would read
+as an effect that got stuck.
 
 The split is the whole point of an extraction game — keep the two apart. A field
 that should reset but lives in `progress` becomes a permanent buff; one that
