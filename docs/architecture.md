@@ -294,6 +294,15 @@ than a mouth closing.
 The **map** only ever said which chests were still shut. It now draws trapped
 ones red, which is worth knowing before crossing a dungeon to reach one.
 
+Traps are scattered anywhere in their cell, walls included. They used to sit in
+the middle half of it, which meant walking with a shoulder on either wall cleared
+the 1.1m trigger every time — the whole mechanic could be switched off by a habit
+rather than by looking. Now a trap can lean against a wall and a player pressed
+to that same wall walks into it: measured over 184 corridor traps, 66% catch you
+if you hug their side. None are unavoidable, because the widest offset still
+leaves 2.9m of clearance on the far wall — what changed is that the safe side is
+a property of the individual trap, so it has to be seen.
+
 A chest trap fires when the lid comes open, not on the creak, so backing out of a
 loot you have started still avoids it. That is what makes the tell on the lid
 worth reading — seeing it only helps if there is still a choice left. The best
