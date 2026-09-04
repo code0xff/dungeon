@@ -119,15 +119,23 @@ export const SPEED = 5.2;
  * through the same per-axis wall checks as walking and cannot slip through a
  * corner.
  */
-export const DASH_SPEED = 22;
+export const DASH_SPEED = 17;
 /**
  * Seconds the burst lasts.
  *
  * Distance is not SPEED * TIME: the burst eases out on 1-(t/T)^2, whose integral
- * is 2T/3, so these two give 3.8m. That number is chosen against creature reach,
+ * is 2T/3, so these two give 2.9m. The floor on that number is creature reach,
  * which tops out at the brute's 2.2m — a dodge has to clear the reach of the
  * thing swinging at you or it dodges nothing. The first pass covered 1.67m and
  * was useless for exactly that reason.
+ *
+ * It was 3.8m, and that turned out to be over the ceiling rather than under it:
+ * a dodge that crosses most of a 4m cell stops being a sidestep and starts being
+ * a short teleport, which reads badly in a corridor and made positioning sloppy.
+ * 2.9m still clears a brute from contact with 0.7m to spare. The speed was cut
+ * rather than the duration, so the burst keeps its 0.26s of camera roll and
+ * simply covers less ground — shortening the time instead would have made it
+ * snappier and harder to read.
  */
 export const DASH_TIME = 0.26;
 /**
@@ -136,7 +144,7 @@ export const DASH_TIME = 0.26;
  * The dodge has no invulnerability — it works by taking the player out of a
  * creature's reach before the blow lands, which is honest and needs no timing
  * minigame. That means the cooldown is the only thing stopping it from being
- * plain faster movement. At 1.1s, spamming it averages 3.5m/s against a walk of
+ * plain faster movement. At 1.1s, spamming it averages 2.7m/s against a walk of
  * SPEED 5.2, so it is a burst and never a way to travel.
  */
 export const DASH_CD = 1.1;

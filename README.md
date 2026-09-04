@@ -106,7 +106,7 @@ rules, with the detail in [docs/](docs/). `CLAUDE.md` is a symlink to it.
 | | |
 |---|---|
 | Move | `WASD` |
-| Dodge | `Shift` — a 3.8m burst the way you are already moving |
+| Dodge | `Shift` — a 2.9m burst the way you are already moving |
 | Lunge | dodge *forward*, then attack while the blade glows — double damage, double wear |
 | Look | move the mouse (click to lock the cursor, `Esc` to release) |
 | Attack / fire | click or `Space` |
@@ -161,9 +161,12 @@ walk out rather than push on until something killed you. The shop opens after
 death too, because the bank is the one thing death does not take.
 
 The dodge has no invulnerability frames. It gets you out of a creature's reach
-before the blow lands, which is why 3.8m — the brute swings from 2.2m. On a 1.1s
-cooldown, so spamming it averages 3.5m/s against a walk of 5.2: it is a way out
-of a swing, never a way to cross the dungeon.
+before the blow lands, which sets the floor on the distance — the brute swings
+from 2.2m — and it is also the only way through a body. 2.9m clears both with
+room to spare. It was 3.8m, which crossed most of a 4m cell and read as a short
+teleport rather than a sidestep. On a 1.1s cooldown, so spamming it averages
+2.7m/s against a walk of 5.2: a way out of a swing, never a way to cross the
+dungeon.
 
 ---
 
