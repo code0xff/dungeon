@@ -84,6 +84,38 @@ Health is carried precisely because it makes stopping at the portal a decision
 rather than a formality, and unspent potions and lanterns are carried because
 walking out with a full pack is part of what extraction is worth.
 
+**Bodies are solid.** `collides()` only ever knew about walls, so for a long
+time nothing in the game compared two creature positions: they were *placed*
+without overlapping and then all pathed to the same point — the player — and
+converged into one another. `separateMonsters()` runs after everything has moved
+and pushes overlapping pairs apart at `CREATURE_PUSH`, bucketed by the widest
+creature's diameter so stage 12's 113 creatures cost a neighbour check rather
+than 6,328 pairs.
+
+It is a push and not a wall on purpose. Creatures that blocked each other
+outright would cork the first corridor they entered and leave everything behind
+them queueing, which makes being surrounded *safer*. The resting gap is where the
+push balances the crowd still pressing inward at walking speed, so the number is
+set by what it has to beat rather than by the body size.
+
+The player is solid to creatures too, with two exemptions that are the whole
+design:
+
+- **A dodge shoulders through.** `config.ts` already called the dodge "what turns
+  a blocked corridor from a death into a decision", and that is only true if it
+  is the one thing that gets through a body. Solid creatures without it make
+  being surrounded a cage rather than a threat.
+- **You can always walk out of what walked into you.** The test is *entry*, not
+  overlap: a move is refused only if it enters a creature the player is not
+  already inside. Creatures walk into the player, so a plain occupancy test would
+  pin them in place exactly where they can least afford it.
+
+Shoves are checked against the player as well, one way only — a crowd cannot
+push the player around, but it also cannot squirt one of its own through the
+player's body and into the camera. Walking creatures never get that close on
+their own; they all stop at `reach * 0.75`, which is wider than their radius plus
+the player's, so only the shove needed the check.
+
 Kill gold is **rolled per kill**, `REWARD_SPREAD` either side of the creature's
 `reward`. A fixed payout meant you knew what a corridor was worth before walking
 into it. The roll is returned by `killMonster()` rather than read back off the

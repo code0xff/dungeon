@@ -127,6 +127,10 @@ on a phone the attack button lights with it. It costs double durability to match
 cooldown before you can back out again, which is the trade: the most dangerous
 place in the game is also the only place the sword hits hard.
 
+**Bodies are solid.** Creatures crowd each other instead of standing in the same
+space, and you cannot walk through one — but a dodge shoulders past, which is
+what keeps a corridor full of them a decision rather than a wall.
+
 **Kills pay a range, not a price.** A zombie is worth 8-16 G, a brute 36-74 —
 the same average as before, so the economy is unchanged, but a corridor is no
 longer worth a number you could have worked out before entering it.
