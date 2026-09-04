@@ -109,6 +109,9 @@ function updatePlayer(dt: number, now: number): boolean {
   edgeTurn(dt);
 
   state.dashCd = Math.max(0, state.dashCd - dt);
+  // Runs from the moment the dodge starts, so it overlaps DASH_TIME: swinging
+  // mid-dodge is the cleanest lunge there is, and should not have to wait.
+  state.lungeT = Math.max(0, state.lungeT - dt);
 
   // Moving each axis separately is what lets the player slide along a wall.
   const step = (dx: number, dz: number): void => {

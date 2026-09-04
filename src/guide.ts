@@ -1,4 +1,4 @@
-import { GUIDE_KEY, LANTERN_KEY, POTION_KEY, SOUND_KEY } from './config';
+import { GUIDE_KEY, LANTERN_KEY, LUNGE_DMG, POTION_KEY, SOUND_KEY, WHETSTONE_KEY } from './config';
 import { el } from './dom';
 import { state } from './state';
 
@@ -20,12 +20,14 @@ const listEl = el('guideList');
 const KEYS: readonly (readonly [string, string])[] = [
   ['Move', 'W A S D'],
   ['Dodge', 'Shift'],
+  ['Lunge', `Dodge forward, then attack at once — ${LUNGE_DMG}x damage and ${LUNGE_DMG}x the wear`],
   ['Look', 'Move the mouse — click to lock it, Esc to release'],
   ['Attack / fire', 'Click or Space'],
   ['Open chest', 'E'],
   ['Swap weapon', 'Q — or 1 for the sword, 2 for the musket'],
   ['Drink a potion', POTION_KEY],
   ['Light a lantern', LANTERN_KEY],
+  ['Sharpen the sword', WHETSTONE_KEY],
   ['This guide', GUIDE_KEY],
   ['Sound on / off', SOUND_KEY],
 ];
@@ -36,8 +38,9 @@ const TOUCH: readonly (readonly [string, string])[] = [
   ['Look', 'Drag anywhere on the right'],
   ['Attack / fire', 'The red button'],
   ['Dodge', 'The blue button beside it'],
+  ['Lunge', `Dodge with the stick pushed forward, then attack — ${LUNGE_DMG}x damage`],
   ['Open chest', 'Appears when you are near one'],
-  ['Potion / lantern', 'The two small buttons above the swap'],
+  ['Potion / lantern / whetstone', 'The small buttons above the swap, when you carry one'],
 ];
 
 function rows(pairs: readonly (readonly [string, string])[], cls: string): HTMLElement {

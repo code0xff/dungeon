@@ -1,4 +1,6 @@
-import { CELL, GRID, LANTERN_KEY, POTION_KEY, SPAWN_PEAK_STAGE, SWORD_DUR_MAX } from './config';
+import {
+  CELL, GRID, LANTERN_KEY, POTION_KEY, SPAWN_PEAK_STAGE, SWORD_DUR_MAX, WHETSTONE_KEY,
+} from './config';
 import { context2d, el, firstChild, queryChild } from './dom';
 import { bankRun, loseRun, progress } from './progress';
 import { openShop } from './shop';
@@ -26,6 +28,7 @@ export const lootBtn = el('lootBtn');
 export const wpnBtn = el('wpnBtn');
 export const potBtn = el('potBtn');
 export const lampBtn = el('lampBtn');
+export const whetBtn = el('whetBtn');
 export const dashBtn = el('dashBtn');
 export const atkBtn = el('atkBtn');
 export const guideBtn = el('guideBtn');
@@ -36,6 +39,7 @@ export const minimapEl = el<HTMLCanvasElement>('minimap');
 
 const potCount = queryChild(potBtn, '.count');
 const lampCount = queryChild(lampBtn, '.count');
+const whetCount = queryChild(whetBtn, '.count');
 
 const mctx = context2d(minimapEl);
 
@@ -67,13 +71,18 @@ export function updateHUD(): void {
   slotsEl.replaceChildren(
     slot(POTION_KEY, 'Potion', state.potions),
     slot(LANTERN_KEY, 'Lantern', state.lanterns),
+    slot(WHETSTONE_KEY, 'Whetstone', state.whetstones),
   );
   atkLabel.textContent = attackLabel();
   dashBtn.classList.add('show');
   potBtn.classList.toggle('show', state.potions > 0);
   lampBtn.classList.toggle('show', state.lanterns > 0);
+  // Only while the sword is in hand: a whetstone does nothing for the musket,
+  // and the column is already three deep on a phone.
+  whetBtn.classList.toggle('show', state.whetstones > 0 && state.weapon === 'sword');
   potCount.textContent = String(state.potions);
   lampCount.textContent = String(state.lanterns);
+  whetCount.textContent = String(state.whetstones);
 }
 
 /**
@@ -183,7 +192,8 @@ export function endRun(extracted: boolean): void {
     // and not when the player clicks through to the next stage.
     bankRun(state.runGold, {
       hp: state.hp, lanternT: state.lanternT, ammo: state.ammo,
-      potions: state.potions, lanterns: state.lanterns, swordDur: state.swordDur,
+      potions: state.potions, lanterns: state.lanterns, whetstones: state.whetstones,
+      swordDur: state.swordDur,
     });
     title.textContent = 'Extracted';
     title.className = 'win';
@@ -201,6 +211,7 @@ export function endRun(extracted: boolean): void {
       `${state.runGold} G`,
       state.potions > 0 && `${state.potions} potion${state.potions > 1 ? 's' : ''}`,
       state.lanterns > 0 && `${state.lanterns} lantern${state.lanterns > 1 ? 's' : ''}`,
+      state.whetstones > 0 && `${state.whetstones} whetstone${state.whetstones > 1 ? 's' : ''}`,
       state.ammo > 0 && `${state.ammo} ammo`,
     ].filter(Boolean) as string[];
     // "a, b and c" — the last item joins with "and", the rest with commas.

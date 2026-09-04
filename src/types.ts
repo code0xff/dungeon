@@ -172,7 +172,7 @@ export interface Monster {
 }
 
 // ================= Chests and props =================
-export type ItemKind = 'key' | 'lantern' | 'map' | 'ammo' | 'potion' | 'musket';
+export type ItemKind = 'key' | 'lantern' | 'map' | 'ammo' | 'potion' | 'musket' | 'whetstone';
 
 export interface Chest {
   mesh: THREE.Group;

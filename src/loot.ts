@@ -2,7 +2,7 @@ import { sfxCreak, sfxPickup } from './audio';
 import { alertCreatures } from './combat';
 import {
   AMMO_PICKUP, CHEST_ALERT_RADIUS, CHEST_ALERT_TIME, LANTERN_FUEL, LANTERN_KEY, MAX_HP,
-  MUSKET_AMMO, POTION_HEAL, POTION_KEY,
+  MUSKET_AMMO, POTION_HEAL, POTION_KEY, SWORD_DUR_MAX, WHETSTONE_KEY, WHETSTONE_REPAIR,
 } from './config';
 import { setLampLit, setPortalOpen } from './scene';
 import { state } from './state';
@@ -45,6 +45,10 @@ export function openChest(c: Chest): void {
       state.potions++;
       msg += `\nPotion — press ${POTION_KEY} to drink it`;
       break;
+    case 'whetstone':
+      state.whetstones++;
+      msg += `\nWhetstone — press ${WHETSTONE_KEY} to grind the blade back`;
+      break;
     case 'musket':
       state.hasMusket = true;
       state.ammo += MUSKET_AMMO;
@@ -86,6 +90,26 @@ export function usePotion(): void {
   sfxPickup();
   updateHUD();
   showMsg(`Potion +${POTION_HEAL} HP`);
+}
+
+/**
+ * Repairs where the sword was worn out, which the shop cannot do.
+ *
+ * It refuses at full durability like the potion refuses at full health, and for
+ * the same reason: a stone spent on a blade that did not need it is the whole
+ * rest of the run fought blunt.
+ */
+export function useWhetstone(): void {
+  if (state.gameOver) return;
+  if (state.whetstones <= 0) return showMsg('No whetstones');
+  if (state.swordDur >= SWORD_DUR_MAX) return showMsg('The blade is already keen');
+  state.whetstones--;
+  state.swordDur = Math.min(SWORD_DUR_MAX, state.swordDur + WHETSTONE_REPAIR);
+  // So the "going blunt" warning can fire again if it wears down a second time.
+  state.swordWarned = false;
+  sfxPickup();
+  updateHUD();
+  showMsg(`Blade sharpened — ${Math.round((state.swordDur / SWORD_DUR_MAX) * 100)}%`);
 }
 
 export function useLantern(): void {

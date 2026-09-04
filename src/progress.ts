@@ -27,6 +27,7 @@ export interface Progress {
   /** Unspent slot items. Walking out with a full pack is part of the reward. */
   potions: number;
   lanterns: number;
+  whetstones: number;
   /** Sword durability carried out. A new run after death gets a fresh blade. */
   swordDur: number;
 }
@@ -36,7 +37,7 @@ const KEY = 'dungeon.progress.v1';
 function fresh(): Progress {
   return {
     stage: 1, bankGold: 0, hp: MAX_HP, lanternT: 0, ammo: START_AMMO,
-    potions: 0, lanterns: 0, swordDur: SWORD_DUR_MAX,
+    potions: 0, lanterns: 0, whetstones: 0, swordDur: SWORD_DUR_MAX,
   };
 }
 
@@ -59,6 +60,9 @@ function merge(raw: unknown): void {
   if (typeof o.ammo === 'number' && Number.isFinite(o.ammo)) progress.ammo = Math.max(0, o.ammo | 0);
   if (typeof o.potions === 'number' && Number.isFinite(o.potions)) progress.potions = Math.max(0, o.potions | 0);
   if (typeof o.lanterns === 'number' && Number.isFinite(o.lanterns)) progress.lanterns = Math.max(0, o.lanterns | 0);
+  if (typeof o.whetstones === 'number' && Number.isFinite(o.whetstones)) {
+    progress.whetstones = Math.max(0, o.whetstones | 0);
+  }
   if (typeof o.swordDur === 'number' && Number.isFinite(o.swordDur)) {
     progress.swordDur = Math.min(SWORD_DUR_MAX, Math.max(0, o.swordDur));
   }
@@ -91,7 +95,7 @@ export function bankRun(
   runGold: number,
   gear: {
     hp: number; lanternT: number; ammo: number;
-    potions: number; lanterns: number; swordDur: number;
+    potions: number; lanterns: number; whetstones: number; swordDur: number;
   },
 ): void {
   progress.bankGold += runGold;
@@ -103,6 +107,7 @@ export function bankRun(
   progress.ammo = gear.ammo;
   progress.potions = gear.potions;
   progress.lanterns = gear.lanterns;
+  progress.whetstones = gear.whetstones;
   progress.swordDur = gear.swordDur;
   saveProgress();
 }

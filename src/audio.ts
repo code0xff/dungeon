@@ -243,6 +243,33 @@ export function sfxSwing(): void {
   s.stop(t + 0.25);
 }
 
+/**
+ * The extra weight under a lunge, layered over the ordinary sfxHit().
+ *
+ * A pitch drop rather than a louder version of the same sound: the whole point
+ * of the cue is that the player can tell a lunge landed without looking at
+ * anything, and volume alone is not distinguishable mid-fight.
+ */
+export function sfxLunge(): void {
+  if (!audio) return;
+  const { ctx, master } = audio;
+  const t = ctx.currentTime;
+  const o = ctx.createOscillator();
+  o.type = 'sawtooth';
+  o.frequency.setValueAtTime(220, t);
+  o.frequency.exponentialRampToValueAtTime(55, t + 0.22);
+  const lp = ctx.createBiquadFilter();
+  lp.type = 'lowpass';
+  lp.frequency.value = 700;
+  const g = ctx.createGain();
+  env(g, t, 0.01, 0.45, 0.3);
+  o.connect(lp);
+  lp.connect(g);
+  g.connect(master);
+  o.start(t);
+  o.stop(t + 0.32);
+}
+
 /** low=true is the duller thud of the player taking the hit. */
 export function sfxHit(low: boolean): void {
   if (!audio) return;

@@ -108,6 +108,43 @@ export const DASH_CD = 1.1;
 /** Camera roll at the peak of a sideways dodge, in radians. Sells the weight. */
 export const DASH_ROLL = 0.09;
 
+// ---- Lunge ----
+/**
+ * How forward a dodge has to be to arm a lunge, as the cosine of the angle
+ * between it and where the player is facing.
+ *
+ * 0.7 is 45 degrees, so a diagonal still counts and a strafe never does. It is
+ * measured against the *dodge* direction rather than the camera, which matters
+ * because the view can be swung around mid-dodge: what earns the bonus is
+ * closing the distance, not looking like you did.
+ */
+export const LUNGE_AIM = 0.7;
+/**
+ * How long after a forward dodge an attack still counts as a lunge.
+ *
+ * Measured from the press, not from the blade landing. The swing takes
+ * `SWING_IMPACT / SWING_SPEED` = 0.2s to reach the target, so judging it at
+ * impact would silently cost the player a fifth of the window for something
+ * they cannot see or control.
+ *
+ * At 0.5s against a DASH_TIME of 0.26 the input has to come during the dodge or
+ * immediately out of it. ATTACK_CD is 0.45, so a lunge is never two swings.
+ */
+export const LUNGE_WINDOW = 0.5;
+/**
+ * Damage multiplier on that hit.
+ *
+ * Doubling is deliberately large: the dodge puts the player inside reach with
+ * DASH_CD seconds before they can back out again, which against a brute is the
+ * most dangerous place in the game. A 10-20% bonus would not pay for that, so
+ * nobody would ever take the risk and the mechanic would be decoration.
+ *
+ * It is charged wear to match — see resolveSwing(). A hit that lands double
+ * damage costs double durability, so the aggressive style has a bill and not
+ * just an advantage.
+ */
+export const LUNGE_DMG = 2;
+
 export const CHEST_COUNT = 14;
 /**
  * What the chests hold, one entry per chest that is not empty, shuffled across
@@ -119,7 +156,7 @@ export const CHEST_COUNT = 14;
  * unopened chests are.
  */
 export const CHEST_ITEMS: readonly ItemKind[] = [
-  'key', 'lantern', 'map', 'ammo', 'ammo', 'potion', 'potion',
+  'key', 'lantern', 'map', 'ammo', 'ammo', 'potion', 'potion', 'whetstone',
 ];
 
 /**
@@ -129,6 +166,7 @@ export const CHEST_ITEMS: readonly ItemKind[] = [
  */
 export const POTION_KEY = '3';
 export const LANTERN_KEY = '4';
+export const WHETSTONE_KEY = '5';
 /** Opens the controls panel, and closes it again. */
 export const GUIDE_KEY = 'H';
 /** Mutes and unmutes everything. */
@@ -177,6 +215,20 @@ export const SWORD_WEAR = 0.45;
 export const SWORD_DMG_WORN = 0.45;
 /** Durability at which the player is warned once per run. */
 export const SWORD_WARN_AT = 25;
+/**
+ * Durability a whetstone puts back.
+ *
+ * The shop already repairs a sword to full, but only between stages — which
+ * means a blade that goes blunt halfway down is blunt for the rest of the run,
+ * and the only answer was to leave early. The whetstone is that answer's
+ * replacement: a pack item, spent where the wear happened.
+ *
+ * At 45 it is worth `45 * SHOP.repairPerPoint` = 90 G of counter repair, the
+ * same as a lantern, and buys back about 100 more cuts at SWORD_WEAR. It tops
+ * up rather than replacing, so grinding a nearly-fresh blade wastes most of it —
+ * the decision is when to spend it, not whether.
+ */
+export const WHETSTONE_REPAIR = 45;
 /**
  * Half-width of the sword's arc, as the cosine of the angle from where the
  * player is looking. 0.62 is about 103 degrees of total sweep.
@@ -339,6 +391,12 @@ export const SHOP = {
   lantern: 90,
   /** Price of one batch, which is AMMO_PICKUP rounds. */
   ammo: 45,
+  /**
+   * A whetstone carried into the dungeon. Dearer than the WHETSTONE_REPAIR
+   * points of counter repair it is worth, because the counter is only open
+   * between stages — the premium is for being able to sharpen at the bottom.
+   */
+  whetstone: 110,
 } as const;
 
 // ================= Creatures =================
