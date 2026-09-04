@@ -3,7 +3,7 @@ import { clipDuration, flashLoadedMesh, setAnim } from './assets';
 import { audioReady, lastBeat, setLastBeat, sfxCreature, sfxHeartbeat, sfxReloadStep } from './audio';
 import {
   ATTACK_IMPACT, ATTACK_IMPACT_REACH, CELL, CHEST_LID_OPEN, CREATURE_DRAW_DISTANCE,
-  DASH_ROLL, DASH_SPEED, DASH_TIME, EYE_H,
+  DASH_ROLL, DASH_SPEED, DASH_TIME, EYE_H, GROUND_SPEED_SMOOTH,
   FALLBACK_ATTACK_TIME, GEAR_BOB, GEAR_BOB_ROLL, LAMP_SWAY, LAMP_SWAY_LAG,
   LANTERN_WARN, LOOT_TIME, MUSKET_RELOAD, PORTAL_RADIUS, SPEED, STRIDE_RATE, SWAY_DAMP,
   SWING_IMPACT,
@@ -40,7 +40,7 @@ function animLoaded(m: Monster, pb: MonsterPlayback, dt: number): void {
     // Match playback rate to actual ground speed so the feet stop sliding.
     if (pb.action) {
       const [lo, hi] = WALK_TIMESCALE_RANGE;
-      const scale = (m.type.speed * m.speedMul) / (pb.walkClipSpeed ?? WALK_CLIP_SPEED);
+      const scale = m.groundSpeed / (pb.walkClipSpeed ?? WALK_CLIP_SPEED);
       pb.action.timeScale = Math.max(lo, Math.min(hi, scale));
     }
   } else {
@@ -300,6 +300,7 @@ function updateMonsters(dt: number, now: number): number {
 
     const aggroed = dist < t.aggro || m.alert > 0;
 
+    let moved = 0;
     if (aggroed) {
       // While attacking it stands still and finishes the animation.
       if (!attacking) {
@@ -326,12 +327,17 @@ function updateMonsters(dt: number, now: number): number {
         const ddx = tx - m.mesh.position.x, ddz = tz - m.mesh.position.z;
         const dl = Math.hypot(ddx, ddz);
         if (dl > 0.05 && dist > t.reach * 0.75) {
-          m.moving = true;
           const step = t.speed * m.speedMul * dt;
           const nx = m.mesh.position.x + (ddx / dl) * step;
           const nz = m.mesh.position.z + (ddz / dl) * step;
+          const fromX = m.mesh.position.x, fromZ = m.mesh.position.z;
           if (!collides(nx, m.mesh.position.z, t.clearance)) m.mesh.position.x = nx;
           if (!collides(m.mesh.position.x, nz, t.clearance)) m.mesh.position.z = nz;
+          // What it covered, not what it asked for. Collision is per axis, so a
+          // creature sliding along a wall gets a fraction of `step` — and the
+          // walk clip has to be retimed to that or the legs run on the spot.
+          moved = Math.hypot(m.mesh.position.x - fromX, m.mesh.position.z - fromZ);
+          m.moving = moved > 1e-6;
         }
       }
       // Turn toward the player smoothly rather than snapping.
@@ -339,6 +345,10 @@ function updateMonsters(dt: number, now: number): number {
 
       if (!attacking && dist < t.reach && m.atkCd <= 0) startAttack(m);
     }
+
+    // Smoothed so one blocked frame does not stutter the legs.
+    const k = Math.min(1, dt * GROUND_SPEED_SMOOTH);
+    m.groundSpeed += (moved / dt - m.groundSpeed) * k;
 
     if (m.playback) animLoaded(m, m.playback, dt);
     else if (m.rig) animProcedural(m, m.rig, dt, now);

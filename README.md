@@ -108,8 +108,14 @@ edge, and damage falls with it — a fresh blade kills a zombie in five swings, 
 ruined one in nine. It never stops working entirely, because a weapon that does
 would strand you with no way back to the exit.
 
+**Noise draws them.** A musket shot is heard 20m away and hunted for 10 seconds.
+A chest lid carries 9m for 6 — quieter, but not free, so looting in the open is
+a decision rather than a gift.
+
 **Between stages you outfit.** Extraction — or death — opens a shop that spends
-banked gold on repairs, potions, lantern oil and musket balls. That is what the
+banked gold on repairs, potions, lantern oil and musket balls. Prices climb 15%
+a stage and flatten where the spawns do, so deeper is dearer but never outruns
+what a run can earn. That is what the
 bank is *for*; before it existed, gold was a score with no sink and no reason to
 walk out rather than push on until something killed you. The shop opens after
 death too, because the bank is the one thing death does not take.

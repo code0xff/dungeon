@@ -195,6 +195,7 @@ function spawnOne(key: CreatureKey): void {
     repath: 0,
     step: null,
     moving: false,
+    groundSpeed: 0,
     speedMul: rand(SPEED_VARIANCE),
     anim: Math.random() * 6,
     bobSeed: Math.random() * 10,

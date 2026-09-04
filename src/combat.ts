@@ -1,7 +1,8 @@
 import { clipDuration, setAnim } from './assets';
 import { sfxHit, sfxShot, sfxSwing } from './audio';
 import {
-  ATTACK_CD, ATTACK_RANGE, CORPSE_LINGER, MUSKET_DMG, MUSKET_RANGE, SHOT_ALERT_RADIUS,
+  ATTACK_CD, ATTACK_RANGE, CORPSE_LINGER, MUSKET_DMG, MUSKET_RANGE,
+  SHOT_ALERT_RADIUS, SHOT_ALERT_TIME,
   SWORD_ARC, SWORD_CLEAVE, SWORD_DMG_WORN, SWORD_DUR_MAX, SWORD_WARN_AT, SWORD_WEAR,
 } from './config';
 import { flashLight, muzzleFlash, scene, smoke } from './scene';
@@ -41,6 +42,27 @@ export function killMonster(m: Monster): void {
   } else {
     scene.remove(m.mesh);
   }
+}
+
+/**
+ * Everything within `radius` learns where the player is and hunts them for
+ * `seconds`, whatever their aggro range.
+ *
+ * Shared because a musket and a chest lid differ only in how far they carry —
+ * see SHOT_ALERT_RADIUS against CHEST_ALERT_RADIUS. Returns how many heard it,
+ * which is what the player is told.
+ */
+export function alertCreatures(radius: number, seconds: number): number {
+  let heard = 0;
+  for (const m of state.monsters) {
+    if (m.hp <= 0) continue;
+    if (Math.hypot(m.mesh.position.x - state.pos.x, m.mesh.position.z - state.pos.z) < radius) {
+      m.alert = seconds;
+      m.repath = 0;
+      heard++;
+    }
+  }
+  return heard;
 }
 
 export function fireMusket(): void {
@@ -87,16 +109,8 @@ export function fireMusket(): void {
     }
   }
 
-  // The report: every creature in radius learns where the player is.
-  let alerted = 0;
-  for (const m of state.monsters) {
-    if (m.hp <= 0) continue;
-    if (Math.hypot(m.mesh.position.x - state.pos.x, m.mesh.position.z - state.pos.z) < SHOT_ALERT_RADIUS) {
-      m.alert = 10;
-      m.repath = 0;
-      alerted++;
-    }
-  }
+  // The report carries a long way.
+  const alerted = alertCreatures(SHOT_ALERT_RADIUS, SHOT_ALERT_TIME);
   if (alerted > 1) showMsg(`The shot echoes... ${alerted} coming your way`);
 
   updateHUD();

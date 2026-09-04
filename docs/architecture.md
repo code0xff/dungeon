@@ -116,6 +116,11 @@ It opens after death as well as after extraction. The bank survives death, and
 being able to kit out a fresh stage 1 with it is what turns banking into a
 decision.
 
+Prices rise with the stage and flatten at `SPAWN_PEAK_STAGE`, the same point the
+spawns do — income stops growing there, so prices that kept climbing would
+eventually outrun any possible run. The rate is set below the rate income grows
+at, so progress still feels like progress; it just stops being free.
+
 The sword's durability is the recurring bill that keeps the sink open. It wears
 per creature *cut*, not per swing, so a cleave that catches two costs two, and
 one thorough run roughly blunts a blade.

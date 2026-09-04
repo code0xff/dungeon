@@ -1,6 +1,8 @@
 import { sfxCreak, sfxPickup } from './audio';
+import { alertCreatures } from './combat';
 import {
-  AMMO_PICKUP, LANTERN_FUEL, LANTERN_KEY, MAX_HP, MUSKET_AMMO, POTION_HEAL, POTION_KEY,
+  AMMO_PICKUP, CHEST_ALERT_RADIUS, CHEST_ALERT_TIME, LANTERN_FUEL, LANTERN_KEY, MAX_HP,
+  MUSKET_AMMO, POTION_HEAL, POTION_KEY,
 } from './config';
 import { setLampLit, setPortalOpen } from './scene';
 import { state } from './state';
@@ -60,6 +62,12 @@ export function openChest(c: Chest): void {
   }
 
   if (c.item) sfxPickup();
+
+  // The lid carries, just not as far as a shot. Looting in the open is meant to
+  // cost something rather than be free gold.
+  const heard = alertCreatures(CHEST_ALERT_RADIUS, CHEST_ALERT_TIME);
+  if (heard > 0) msg += `\nThe lid creaks... ${heard} heard it`;
+
   updateHUD();
   showMsg(msg);
 }

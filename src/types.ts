@@ -149,8 +149,14 @@ export interface Monster {
   repath: number;
   /** The next grid cell being walked toward. */
   step: GridCell | null;
-  /** Whether it moved this frame. */
+  /** Whether it actually moved this frame — not merely whether it tried to. */
   moving: boolean;
+  /**
+   * Ground speed actually achieved, in m/s, smoothed. Drives the walk clip's
+   * playback rate. Not the same as `type.speed`: a creature sliding along a wall
+   * covers a fraction of what it intended.
+   */
+  groundSpeed: number;
   /** Per-creature speed multiplier, so the horde does not move as one body. */
   speedMul: number;
   /** Walk phase of the fallback box model. */

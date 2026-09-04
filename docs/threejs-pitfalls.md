@@ -134,6 +134,15 @@ duration is the speed the walk was authored at, which is exactly the number the
 foot-slide retiming needs. The hand-set constant said 1.45 m/s where the clip was
 a 0.35 m/s shamble.
 
+**Retime from the speed achieved, not the speed intended.** The other half of the
+same bug. Collision is tested per axis, so a creature steering into a wall slides
+along it at a fraction of its `speed` while the clip, scaled from `speed`, keeps
+running the legs at full — which looks like marching on the spot. The brute shows
+it worst: 14.8% of its walking frames have an axis blocked against the zombie's
+1.5%, because its 1.6m clearance puts it against walls far more often. Measure
+how far the creature actually moved this frame, smooth it, and drive the clip
+from that.
+
 ## Limbs reach far outside the collision radius
 
 **Cause.** A capsule or circle sized to the torso says nothing about where the
