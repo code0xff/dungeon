@@ -177,14 +177,23 @@ export const LUNGE_WINDOW = 0.5;
 /**
  * Damage multiplier on that hit.
  *
- * 4x is set by one number: a zombie has 4hp and a pristine sword does exactly 1,
- * so this is the multiplier at which a lunge kills one outright.
+ * Set so a lunge kills a 4hp zombie outright for the **top half of the blade's
+ * life**. Damage is 0.45 + 0.55 * durability, so at 50% a sword does 0.725 and
+ * 5.52 is where that clears 4.
  *
- * That only holds at **full durability**. Damage is 0.45 + 0.55 * durability, so
- * a single ordinary swing — 0.45 off the edge — drops it to 3.98 and the zombie
- * lives. The one-shot is therefore a property of a *sharp* blade rather than of
- * the lunge, which is the intended reading: it is what a whetstone buys back.
- * Holding it for half a run instead would take 5.5x.
+ * It was 4x first, which is the bare multiplier at a *pristine* edge — and
+ * therefore useless, because one ordinary swing takes 0.45 off and the zombie
+ * survives on 0.01hp. A reward that exists for exactly one swing after a repair
+ * is not a reward. At 5.52 it holds for 111 creature-hits of wear, which is half
+ * of a blade, so it lines up with the repair cycle instead of the moment after
+ * it.
+ *
+ * The size is also the answer to how hard the input is: the window is half a
+ * second from a dodge that has to be going forward, and if the payoff is not
+ * obvious nobody will keep trying to hit it.
+ *
+ * Knock-on worth knowing: a brute (9hp) drops from three lunges to two above 66%
+ * durability. Zombies and lunatics are one lunge throughout.
  *
  * Large on purpose either way. The dodge puts the player inside reach with
  * DASH_CD seconds before they can back out again, which against a brute is the
@@ -196,7 +205,7 @@ export const LUNGE_WINDOW = 0.5;
  * in 55 hits and means using the mechanic destroys the sharpness the mechanic
  * depends on. A lunge costs the same SWORD_WEAR as any other cut.
  */
-export const LUNGE_DMG = 4;
+export const LUNGE_DMG = 5.52;
 
 /**
  * Chests at the reference size, scaled by area like everything else — but never
