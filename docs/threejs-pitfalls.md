@@ -244,6 +244,33 @@ emissive flash bleeds across every creature.
 per-instance state. Chests deliberately do not, because nothing writes to a
 chest material.
 
+## A flex row overflows instead of shrinking
+
+**Cause.** A flex item is `min-width: auto`, which means its minimum is its
+*content* — and with `white-space: nowrap` that is the full string. It will not
+shrink below it, so on a narrow screen it pushes its siblings out of the
+container rather than giving way. The shop's buy button was shoved 29px past the
+panel's right edge below 320px, which reads as the text punching through it.
+
+**Fix.** `min-width: 0` on whatever should give way, and let it wrap. Equal row
+heights are worth less than never overlapping.
+
+## An overlay taller than the screen cannot be scrolled to
+
+**Cause.** Two of them, and both have to be fixed or nothing scrolls.
+
+`justify-content: center` on a scrollable flex column puts the overflow *above*
+the scroll origin, where it is unreachable — the end-of-run panel is ~460px tall
+and a landscape phone is ~390px, so the title and the Descend button were both
+cut off with no way to reach either. The fix is `flex-start` plus `margin-top:
+auto` on the first child and `margin-bottom: auto` on the last: centred when
+there is room, scrollable when there is not.
+
+Then, on touch, `body { touch-action: none }` and a `touchmove` handler that
+calls `preventDefault()` unconditionally will swallow the scroll however the
+panel is styled. The overlay needs `touch-action: pan-y`, and the game's touch
+handlers need to bail out while it is open.
+
 ## A held object looks like it is floating beside your head
 
 **Cause.** Nothing in a first-person view holds anything — there is no hand and no

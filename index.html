@@ -100,8 +100,18 @@
     animation:grain .5s steps(4) infinite; }
   @keyframes grain { 0%{transform:translate(0,0)} 25%{transform:translate(-3%,2%)} 50%{transform:translate(2%,-3%)} 75%{transform:translate(-1%,-1%)} 100%{transform:translate(0,0)} }
 
-  #overlay { position:fixed; inset:0; z-index:20; display:none; align-items:center; justify-content:center; flex-direction:column;
+  /* Scrolls when it does not fit — a landscape phone is only ~390px tall and the
+     shop is ~460px, which used to centre the content and cut the Descend button
+     off both ends with no way to reach it. `justify-content:center` is what does
+     that: overflow goes above the scroll origin and is unreachable. The auto
+     margins centre it when there is room and give way when there is not.
+     touch-action has to be re-enabled here because body sets it to none. */
+  #overlay { position:fixed; inset:0; z-index:20; display:none; align-items:center;
+             justify-content:flex-start; flex-direction:column;
+             overflow-y:auto; overscroll-behavior:contain; touch-action:pan-y;
              background:rgba(2,3,4,.93); color:#c9c0ae; text-align:center; padding:20px; }
+  #overlay > :first-child { margin-top:auto; }
+  #overlay > :last-child { margin-bottom:auto; }
   #overlay h1 { font-family:var(--display); font-size:40px; font-weight:600; margin-bottom:14px;
                 letter-spacing:7px; text-indent:7px; text-transform:uppercase; }
   /* The glow is the only light in the room at that moment, so it comes off the word. */
@@ -124,8 +134,11 @@
   /* The overlay centres its text; the shop is a table and wants its own alignment. */
   .shopName { flex:0 0 100px; font-size:15px; text-align:left; }
   /* Fixed width on the button so the right edge stays straight as prices change. */
-  .shopHeld { flex:1; font-size:13px; opacity:.45; text-align:right; padding-right:10px;
-              font-style:italic; white-space:nowrap; }
+  /* min-width:0 so it can shrink past its text, and wrapping rather than nowrap so
+     a long string takes a second line instead of running under the buy button.
+     Equal row heights are worth less than never overlapping. */
+  .shopHeld { flex:1; min-width:0; font-size:13px; opacity:.45; text-align:right;
+              padding-right:10px; font-style:italic; }
   /* An explicit width rather than a flex basis. A flex item is min-width:auto by
      default, so a nowrap button whose text is wider than its basis silently grows
      past it — the ammo row's "×3 · 120 G" came out 27px wider than the rest and
