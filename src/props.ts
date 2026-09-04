@@ -4,14 +4,16 @@ import { chestTemplate } from './assets';
 import { envMap } from './scene';
 import { ENV_INTENSITY, PROP_ASSETS, WALL_H } from './config';
 import { ironMat } from './creatures';
-import { chestTex } from './textures';
+import { chestTex, rustTex } from './textures';
 import type { Chest, Prop, Sconce } from './types';
 
 const boneMat = new THREE.MeshStandardMaterial({ color: 0x9a917c, roughness: 1 });
 const stoneMat = new THREE.MeshStandardMaterial({ color: 0x2a2c31, roughness: 1 });
 const puddleMat = new THREE.MeshStandardMaterial({ color: 0x04060a, metalness: 0.95, roughness: 0.12 });
-// Pale, so the player's lamp is the only thing that reveals a trap. See makeTrap().
-const trapBoneMat = new THREE.MeshStandardMaterial({ color: 0xbdb49a, roughness: 0.85 });
+// Pale, and brighter than the bone piles use. Darkening the trap's iron into
+// proper rust cost it most of its long-range read, and these bones are now the
+// only part of it doing that job. See makeTrap().
+const trapBoneMat = new THREE.MeshStandardMaterial({ color: 0xcfc6ac, roughness: 0.92 });
 const trapCordMat = new THREE.MeshStandardMaterial({ color: 0x6b5a3a, roughness: 1 });
 
 // ---- Chest ----
@@ -238,11 +240,28 @@ export function rollProp(): Prop | null {
  * Kept under knee height. A trap you cannot see past would be a wall, and the
  * dungeon has those.
  */
+// Rust is an oxide, not a metal: high metalness on it reads as polished steel,
+// which is exactly the "brand new trap" look. Low metalness and high roughness
+// with the mottled map is what makes it look like it has been down here a while.
+//
+// Repeated, because every piece of this thing is a small primitive whose UVs
+// span the whole map — one 256px tile stretched over a 3cm tube is a flat
+// colour, which is how the first rusted version still came out looking painted.
+//
+// It is also darker than the floor it lies on. That would have cost the trap its
+// visibility at lantern range back when the iron had to carry it; the bones in
+// the jaws carry that now, which is what frees the metal to actually look like
+// old iron rather than like something that needs to be seen.
+const rustMap = rustTex.clone();
+rustMap.needsUpdate = true;
+rustMap.repeat.set(3, 3);
 const trapIronMat = new THREE.MeshStandardMaterial({
-  color: 0xb9a184, metalness: 0.55, roughness: 0.5, envMap, envMapIntensity: ENV_INTENSITY * 2.6,
+  map: rustMap, color: 0x8e8378, metalness: 0.24, roughness: 0.86,
+  envMap, envMapIntensity: ENV_INTENSITY * 1.3,
 });
 const trapPlateMat = new THREE.MeshStandardMaterial({
-  color: 0x8a7862, metalness: 0.5, roughness: 0.62, envMap, envMapIntensity: ENV_INTENSITY * 1.8,
+  map: rustMap, color: 0x6e6459, metalness: 0.2, roughness: 0.92,
+  envMap, envMapIntensity: ENV_INTENSITY,
 });
 
 const JAW_R = 0.34;
@@ -330,12 +349,16 @@ export function makeTrap(): { group: THREE.Group; jaws: THREE.Object3D[] } {
   // range where the iron has gone to shadow — and it says what the thing is
   // faster than the shape does.
   const skull = makeSkull();
+  skull.traverse((o) => {
+    const mesh = o as THREE.Mesh;
+    if (mesh.isMesh) mesh.material = trapBoneMat;
+  });
   skull.position.set(-0.34, 0.02, -0.26);
   skull.rotation.y = 0.9;
   skull.scale.setScalar(0.8);
   g.add(skull);
   for (let i = 0; i < 3; i++) {
-    const bone = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.045, 0.3), boneMat);
+    const bone = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.05, 0.32), trapBoneMat);
     bone.position.set(-0.15 - i * 0.16, 0.025, -0.34 + i * 0.13);
     bone.rotation.y = 0.5 + i * 1.1;
     g.add(bone);

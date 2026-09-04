@@ -68,6 +68,12 @@ export const state = {
   swingLunge: false,
   /** Whether the lunge has been explained once this run. */
   lungeShown: false,
+  /**
+   * Seconds left on the impact of a landed lunge. Drives the blade discharge,
+   * the camera kick and the light at the hit, all from the one timer so they
+   * cannot drift apart.
+   */
+  lungeHitT: 0,
 
   // ---- Dodge ----
   /** Seconds of dodge left; -1 when not dodging. */

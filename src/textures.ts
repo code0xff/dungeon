@@ -110,11 +110,59 @@ function woodTexture(lightness: number): THREE.CanvasTexture {
   return wrapped(c);
 }
 
+/**
+ * Pitted rust for the bear traps.
+ *
+ * A flat colour made them look freshly forged, which is wrong for something that
+ * has been lying in a dungeon long enough to have bones in it. The mottling is
+ * what sells age: patches of oxide at different stages, dark pitting where it has
+ * eaten in, and a few bright flecks of bare metal where the jaws still rub.
+ *
+ * The mean brightness is deliberately held up. These are the only objects in the
+ * game whose gameplay function is *being seen at the edge of a lantern* — dirtying
+ * them down until they read as old is easy, and doing it far enough to lose them
+ * in the dark would quietly delete the mechanic.
+ */
+function rustTexture(): THREE.CanvasTexture {
+  const [c, x] = canvas2d(256);
+  x.fillStyle = '#8a6a48';
+  x.fillRect(0, 0, 256, 256);
+  // Broad patches of oxide, warm and uneven. Wide lightness range on purpose:
+  // even rust is what reads as paint.
+  for (let i = 0; i < 150; i++) {
+    const r = 10 + Math.random() * 42;
+    x.fillStyle = `hsl(${16 + Math.random() * 26}, ${24 + Math.random() * 40}%, ${14 + Math.random() * 42}%)`;
+    x.globalAlpha = 0.35 + Math.random() * 0.4;
+    x.beginPath();
+    x.ellipse(Math.random() * 256, Math.random() * 256, r, r * (0.5 + Math.random() * 0.7), Math.random() * Math.PI, 0, Math.PI * 2);
+    x.fill();
+  }
+  // Pitting: small dark bites out of the surface.
+  x.globalAlpha = 1;
+  for (let i = 0; i < 340; i++) {
+    x.fillStyle = `rgba(28,16,8,${0.25 + Math.random() * 0.5})`;
+    const r = 1 + Math.random() * 3.5;
+    x.beginPath();
+    x.arc(Math.random() * 256, Math.random() * 256, r, 0, Math.PI * 2);
+    x.fill();
+  }
+  // Bare metal still showing through on the wear edges.
+  for (let i = 0; i < 60; i++) {
+    x.fillStyle = `rgba(214,206,190,${0.1 + Math.random() * 0.28})`;
+    x.beginPath();
+    x.arc(Math.random() * 256, Math.random() * 256, 1 + Math.random() * 2.4, 0, Math.PI * 2);
+    x.fill();
+  }
+  noise(x, 900, 0.28, 0.14);
+  return wrapped(c);
+}
+
 // Fallbacks for when no PBR textures are present. Drawn once at module load.
 export const wallTex = stoneBrickTexture();
 export const floorTex = cobbleTexture();
 export const ceilTex = woodTexture(9);
 export const chestTex = woodTexture(16);
+export const rustTex = rustTexture();
 
 // Floor and ceiling are single large planes sized to the dungeon, and the
 // dungeon changes size every stage — so buildGeometry() sets the repeat from the

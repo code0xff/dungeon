@@ -368,6 +368,7 @@ export function buildWorld(): void {
   state.lungeT = 0;
   state.swingLunge = false;
   state.lungeShown = false;
+  state.lungeHitT = 0;
   state.swordDur = progress.swordDur;
   state.swordWarned = false;
   // Gear carried out of the previous stage. A fresh run has none of it.
