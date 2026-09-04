@@ -146,7 +146,11 @@ longer worth a number you could have worked out before entering it.
 
 **Noise draws them.** A musket shot is heard 20m away and hunted for 10 seconds.
 A chest lid carries 9m for 6 — quieter, but not free, so looting in the open is
-a decision rather than a gift.
+a decision rather than a gift. It fires on the **creak**, not on the lid coming
+open, so they are already moving while you stand there for the `LOOT_TIME` bar;
+walking away cancels the loot but not the noise. About one creature hears an
+average chest on stage 1 and two by stage 12, and roughly half of stage-1 chests
+open in silence against one in eight at the peak.
 
 **Between stages you outfit.** Extraction — or death — opens a shop that spends
 banked gold on repairs, whetstones, potions, lantern oil and musket balls. Prices climb 15%
