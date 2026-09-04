@@ -136,7 +136,9 @@ with durability, so the one-shot is one of the things a whetstone buys back.
 
 The blade lights up red when the window opens and fades out as it closes, so the
 timing is something you can see rather than something you have to be told; on a
-phone the attack button lights with it. A lunge puts you inside reach with a
+phone the attack button lights with it. An attack pressed while the swing
+cooldown is still running is remembered and fires the moment it clears, so you
+never have to guess when the sword is ready. A lunge puts you inside reach with a
 cooldown before you can back out again, which is the trade: the most dangerous
 place in the game is also the only place the sword hits hard.
 

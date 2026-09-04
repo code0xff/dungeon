@@ -256,6 +256,25 @@ export const POTION_HEAL = 35;
 export const CHEST_LID_OPEN = -1.5;
 export const ATTACK_RANGE = 2.3;
 export const ATTACK_CD = 0.45;
+/**
+ * How long a swing pressed during the cooldown is remembered for.
+ *
+ * Equal to ATTACK_CD, which makes the rule simply "a press during the cooldown
+ * fires the moment it ends". It is not a generosity dial; it is the length the
+ * lunge needs.
+ *
+ * Without it the press was dropped in silence, and the ordinary rhythm of the
+ * game walks straight into that: swing at something, dodge forward, swing again.
+ * Measured on that sequence with a single press, everything from 0 to 0.35s
+ * after the dodge vanished and only 0.36-0.43s produced a lunge — a 70ms window,
+ * because ATTACK_CD eats almost all of LUNGE_WINDOW. Mashing got there in about
+ * seven discarded presses.
+ *
+ * A shorter buffer would not have fixed it. Pressing at the *start* of a dodge
+ * leaves the full ATTACK_CD to wait out, so anything less than that still drops
+ * the most natural press of all.
+ */
+export const ATTACK_BUFFER = ATTACK_CD;
 
 // ---- Sword durability ----
 /** Full durability, in points. 100 so the HUD can read it as a percentage. */

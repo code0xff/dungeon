@@ -12,7 +12,7 @@ import {
   LUNGE_WINDOW, SWING_IMPACT,
   SWING_SPEED, SWING_WINDUP, TURN_RATE, WALK_CLIP_SPEED, WALK_TIMESCALE_RANGE, WALL_H,
 } from './config';
-import { playerHurt, resolveSwing, springTrap } from './combat';
+import { playerHurt, releaseQueuedAttack, resolveSwing, springTrap } from './combat';
 import { findPath } from './dungeon';
 import { edgeTurn, keys, moveInput } from './input';
 import { openChest } from './loot';
@@ -194,6 +194,10 @@ function swingCurve(t: number): number {
 
 function updateWeapons(dt: number): void {
   state.atkTimer = Math.max(0, state.atkTimer - dt);
+  if (state.atkQueue > 0) {
+    state.atkQueue = Math.max(0, state.atkQueue - dt);
+    if (state.atkTimer <= 0 && state.atkQueue > 0) releaseQueuedAttack();
+  }
 
   // ---- Sword swing ----
   if (state.swingT >= 0) {

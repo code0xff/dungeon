@@ -1,7 +1,8 @@
 import { clipDuration, setAnim } from './assets';
 import { sfxHit, sfxLunge, sfxShot, sfxSwing, sfxTrap } from './audio';
 import {
-  ATTACK_CD, ATTACK_RANGE, CORPSE_LINGER, LUNGE_DMG, MUSKET_DMG, MUSKET_RANGE, REWARD_SPREAD,
+  ATTACK_BUFFER, ATTACK_CD, ATTACK_RANGE, CORPSE_LINGER, LUNGE_DMG, MUSKET_DMG, MUSKET_RANGE,
+  REWARD_SPREAD,
   TRAP_ALERT_RADIUS, TRAP_ALERT_TIME, TRAP_DMG,
   SHOT_ALERT_RADIUS, SHOT_ALERT_TIME,
   SWORD_ARC, SWORD_CLEAVE, SWORD_DMG_WORN, SWORD_DUR_MAX, SWORD_WARN_AT, SWORD_WEAR,
@@ -125,21 +126,47 @@ export function fireMusket(): void {
   if (state.ammo > 0) startReload();
 }
 
+/** Begins a swing. The cooldown is the caller's problem. */
+function startSwing(lunge: boolean): void {
+  state.atkTimer = ATTACK_CD;
+  state.swingT = 0;
+  state.swingHit = false;
+  state.swingLunge = lunge;
+  state.lungeT = 0;
+  state.atkQueue = 0;
+  sfxSwing();
+}
+
 export function tryAttack(): void {
   if (state.gameOver) return;
   if (state.weapon === 'musket') {
     fireMusket();
     return;
   }
-  if (state.atkTimer > 0) return;
-  state.atkTimer = ATTACK_CD;
-  state.swingT = 0;
-  state.swingHit = false;
-  // Spent here rather than at impact. The window is about how quickly the player
-  // pressed after the dodge, and the blade does not land for another 0.2s.
-  state.swingLunge = state.lungeT > 0;
-  state.lungeT = 0;
-  sfxSwing();
+  // Whether this press counts as a lunge is decided *here*, at the press, and
+  // carried through the queue if the swing has to wait. The window has always
+  // been about how quickly the player reacted, not about when the engine got
+  // round to swinging — and the buffer only means anything if it preserves that.
+  const lunge = state.lungeT > 0;
+  if (state.atkTimer > 0) {
+    // Remembered rather than discarded. A press that vanishes with no sound and
+    // no animation is indistinguishable from a broken key.
+    state.atkQueue = ATTACK_BUFFER;
+    state.queueLunge = lunge;
+    return;
+  }
+  startSwing(lunge);
+}
+
+/** Fires the buffered swing. loop.ts calls this the frame the cooldown clears. */
+export function releaseQueuedAttack(): void {
+  if (state.gameOver || state.atkQueue <= 0 || state.weapon !== 'sword') {
+    state.atkQueue = 0;
+    return;
+  }
+  // Either half can make it a lunge: the press may have been inside the window,
+  // or the window may still be open now.
+  startSwing(state.queueLunge || state.lungeT > 0);
 }
 
 /**
