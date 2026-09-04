@@ -151,9 +151,15 @@ function updatePlayer(dt: number, now: number): boolean {
  * A purely vertical chop sends a blade as long as a sabre clean off the bottom of
  * the screen at the peak, which drains the impact — so the cut runs diagonally,
  * from upper right to lower left.
+ *
+ * These are **offsets**, so they had to be re-tuned when SWORD_REST's yaw moved:
+ * the old windup added a further -0.2 to a rest that was already swung out, and
+ * the blade ended up pointing away from the camera with the pommel toward it.
+ * The rule for both poses is that the blade must stay side-on — a sword seen
+ * down its own length is a stick, which is the whole problem the rest pose fixed.
  */
-const SWING_UP = { rot: [0.55, -0.2, 0.3], pos: [0.06, 0.1, 0.1] } as const;
-const SWING_DOWN = { rot: [-0.85, 0.6, -0.55], pos: [-0.24, 0.06, -0.18] } as const;
+const SWING_UP = { rot: [0.55, 0.25, 0.3], pos: [0.06, 0.1, 0.1] } as const;
+const SWING_DOWN = { rot: [-0.35, 0.9, -1.35], pos: [-0.28, -0.08, -0.04] } as const;
 
 /**
  * The swing curve, mapping t (0..1) to -1 (raised), +1 (cut through) and back to 0.

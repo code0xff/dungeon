@@ -46,8 +46,11 @@ export const PROP_ASSETS = {
  * The muzzle is read off the normalised bounds, so it needs no entry here.
  */
 export const WEAPON_ASSETS: Record<WeaponKind, WeaponAsset> = {
-  // wooden_handle_saber: tip along +Y, grip near the origin
-  sword: { url: 'weapons/sword.glb', rot: [-Math.PI / 2, 0, 0], length: 1.05, back: 0.14 },
+  // wooden_handle_saber: tip along +Y, grip near the origin.
+  // Longer than it was: at 1.05 the blade read as a stick in the corner of the
+  // screen. The model is fine — held square on it is a broad falchion — it was
+  // simply small and edge-on. See SWORD_REST for the other half of that.
+  sword: { url: 'weapons/sword.glb', rot: [-Math.PI / 2, 0, 0], length: 1.24, back: 0.14 },
   // bolt_action_rifle_7_62: muzzle along +X
   musket: { url: 'weapons/musket.glb', rot: [0, Math.PI / 2, 0], length: 1.3, back: 0.3 },
 };
@@ -247,6 +250,16 @@ export const SWAY_DAMP = 2.6;
  */
 export const GEAR_BOB = 0.013;
 export const GEAR_BOB_ROLL = 0.014;
+
+/**
+ * How strongly held gear and props reflect the environment map.
+ *
+ * Only metal is affected in practice, since that is what has nothing but
+ * reflection to show. Kept well below 1: this is a dungeon lit by one lantern,
+ * and a blade that mirrors a room which is not there stops looking like it is in
+ * the dark with you. At 0.35 it reads as a sheen down the edge.
+ */
+export const ENV_INTENSITY = 0.35;
 
 /** The player's light, unlit and lit. Fog closes in when the lantern dies. */
 export const LIGHT_DIM = { distance: 11, intensity: 1.75, fog: FOG_BASE } as const;

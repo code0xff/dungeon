@@ -3,10 +3,11 @@ import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import {
-  CLIP_NAMES, CREATURE_ASSETS, FLOOR_TEX_DIR, GRID, PROP_ASSETS, WALL_TEX_DIR, WEAPON_ASSETS,
+  CLIP_NAMES, CREATURE_ASSETS, ENV_INTENSITY, FLOOR_TEX_DIR, GRID, PROP_ASSETS, WALL_TEX_DIR,
+  WEAPON_ASSETS,
 } from './config';
 import { MAKERS } from './creatures';
-import { equipLantern, equipWeaponModel } from './scene';
+import { envMap, equipLantern, equipWeaponModel } from './scene';
 import type {
   ClipName, Clips, CreatureKey, CreatureRig, CreatureTemplate, MonsterPlayback, PBRMaps, WeaponAsset, WeaponKind,
 } from './types';
@@ -295,6 +296,7 @@ async function loadWeapon(kind: WeaponKind): Promise<string> {
     return `${kind}: file missing → primitive model`;
   }
   const { group, tip } = normalizeWeapon(gltf.scene, cfg);
+  applyEnvMap(group);
   equipWeaponModel(kind, group, kind === 'musket' ? tip : undefined);
   const s = group.scale.x;
   return `${kind}: loaded (scale x${s.toFixed(2)} · tip z=${tip.z.toFixed(2)})`;
@@ -324,6 +326,7 @@ async function loadChest(): Promise<string> {
   root.traverse((o) => {
     if (isMesh(o)) o.castShadow = false;
   });
+  applyEnvMap(root);
   props.chest = root;
   return `chest: loaded (scale x${root.scale.x.toFixed(2)})`;
 }
@@ -360,8 +363,29 @@ async function loadLantern(): Promise<string> {
       s.opacity = 0.85;
     }
   });
+  applyEnvMap(root);
   equipLantern(root);
   return `lantern: loaded (scale x${root.scale.x.toFixed(2)})`;
+}
+
+/**
+ * Gives a loaded model something to reflect.
+ *
+ * Applied per material rather than through `scene.environment`, which would also
+ * light every wall and creature diffusely and lift the dungeon out of the dark.
+ * See buildEnvironment() in scene.ts for why metal needs this at all.
+ */
+function applyEnvMap(root: THREE.Object3D): void {
+  root.traverse((o) => {
+    if (!isMesh(o) || !o.material) return;
+    for (const m of materialsOf(o)) {
+      const std = m as THREE.MeshStandardMaterial;
+      if (!('envMapIntensity' in std)) continue;
+      std.envMap = envMap;
+      std.envMapIntensity = ENV_INTENSITY;
+      std.needsUpdate = true;
+    }
+  });
 }
 
 /** Stands a model on the floor at the given height, whatever transform it arrives with. */

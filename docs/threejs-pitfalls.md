@@ -95,6 +95,43 @@ which strips `.:/[]`, so the bone that is `mixamorig5:Hips` out of an FBX is
 both. The `[assets]` log now prints the worst binding rate per creature so a
 mismatch shows up as a warning rather than as a puzzled look.
 
+## A metal weapon renders as a flat dark stick
+
+**Cause.** A metal surface has **no diffuse response at all** — everything it
+shows is reflection. With `scene.environment` unset there is nothing to reflect,
+so a steel blade is lit only by whatever direct specular a point light throws and
+comes out as a dark silhouette. Poly Haven's glTF is not at fault: metalness and
+roughness sit at 1 and a metalRoughness *texture* carries the real per-texel
+values, which is exactly what the spec says to do.
+
+**Fix.** `buildEnvironment()` in `scene.ts` builds a tiny environment in code —
+a dark box with a warm panel above and a dimmer bounce below — and PMREMs it. No
+asset, no dependency.
+
+**Do not put it on `scene.environment`.** That also adds diffuse IBL to every
+wall and creature and lifts the whole dungeon out of the dark, which is the one
+thing this game cannot afford. `applyEnvMap()` in `assets.ts` sets it on the
+weapon and prop materials only, at `ENV_INTENSITY` well below 1 — a blade that
+mirrors a room which is not there stops looking like it is in the dark with you.
+
+The primitives need it too, or removing a GLB swaps one dark shape for another.
+
+## A first-person weapon looks like a stick
+
+**Cause.** Not the model. `normalizeWeapon()` points a weapon's long axis down
+-Z, which is straight away from the camera — so a blade is seen exactly edge-on,
+and a blade edge is a line. The saber this happened to is a broad falchion when
+you turn it side-on.
+
+**Fix.** Yaw the rest pose until some of the flat faces the camera, and make it
+big enough to read: length 1.05 to 1.24 and yaw -0.26 to -0.55 here. Past about
+-0.6 the tip leaves the frame on a wide window, so there is a ceiling.
+
+**The swing offsets are relative to the rest pose**, so they move with it. The
+old windup added a further -0.2 of yaw to a rest that was already swung out and
+put the pommel toward the camera. Re-check both extremes of an animation after
+touching the pose it is measured from.
+
 ## Simplification barely reduces the triangle count
 
 **Cause.** Exporters duplicate vertices along every UV and normal seam.
