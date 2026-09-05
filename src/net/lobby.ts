@@ -52,7 +52,10 @@ function save(key: string, value: string): void {
 
 nameEl.maxLength = NAME_MAX;
 nameEl.value = load(NAME_KEY);
-serverEl.value = load(SERVER_KEY);
+// ?server= wins over the remembered value, because it is how a host shares a
+// game: the link they send is the whole invitation, and a stale address from
+// last week's session must not quietly win against the one just clicked.
+serverEl.value = new URLSearchParams(location.search).get('server') ?? load(SERVER_KEY);
 
 function render(): void {
   const connected = net.phase === 'lobby' || net.phase === 'run';

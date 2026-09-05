@@ -4,7 +4,7 @@ import {
 import { context2d, el, firstChild, queryChild } from './dom';
 import { bankRun, loseRun, progress } from './progress';
 import { flashLight } from './scene';
-import { openShop } from './shop';
+import { closeShop, openShop } from './shop';
 import { leftRun } from './net/client';
 import { coop } from './net/session';
 import { state } from './state';
@@ -270,7 +270,11 @@ export function endRun(extracted: boolean): void {
     // stage — it goes back to the lobby, and saying "Descend" would promise a
     // dungeon that clicking it does not open.
     el('restart').textContent = 'Back to the lobby';
-    // No shop: there is no bank to spend and no next stage to outfit for.
+    // No shop here — but one may already be open underneath from a solo run
+    // that ended before this player joined the lobby. Its buttons write
+    // straight into progress, so leaving it visible behind a co-op result is a
+    // live path from co-op into the solo bank.
+    closeShop();
     overlayEl.style.display = 'flex';
     updateHUD();
     return;

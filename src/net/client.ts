@@ -1,4 +1,5 @@
 import { PROTOCOL_VERSION, parseMsg } from './protocol';
+import { coop } from './session';
 import type { ClientMsg, LobbyPlayer, ServerMsg } from './protocol';
 
 /**
@@ -91,6 +92,7 @@ export function disconnect(): void {
   net.players = [];
   net.running = false;
   net.runId = 0;
+  coop.active = false;
   changed();
 }
 
@@ -186,6 +188,13 @@ export function connect(server: string, name: string): void {
     net.id = 0;
     net.host = false;
     net.players = [];
+    net.runId = 0;
+    // The dungeon on screen is now nobody's: there is no host to report a death
+    // to and no lobby to go back to. Leaving `active` set would keep the HUD
+    // saying co-op, keep endRun() skipping the solo save, and build the next
+    // solo dungeon at the party's level. The run is left standing — the player
+    // can finish it — but it is a solo run from here.
+    coop.active = false;
     changed();
   });
 

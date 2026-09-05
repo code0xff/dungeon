@@ -218,9 +218,17 @@ function spawnOne(key: CreatureKey): void {
   const scale = rand(SCALE_VARIANCE);
   sp.mesh.scale.setScalar(scale);
   // Start each idle at a different point too, or the horde breathes in unison.
+  //
+  // Drawn before the branch, not inside it. A creature whose model failed to
+  // load has no playback and would have skipped the draw — and in co-op that is
+  // not a cosmetic difference: one player missing one .glb would offset the
+  // shared stream from that creature on, and every chest, trap and prop after it
+  // would land somewhere else in their dungeon. Cosmetic randomness still has to
+  // cost the same number of draws on every path.
+  const idleOffset = random();
   if (sp.playback) {
     const idle = clipDuration(sp.playback, 'idle') ?? 0;
-    setAnim(sp.playback, 'idle', { fade: 0, startAt: random() * idle });
+    setAnim(sp.playback, 'idle', { fade: 0, startAt: idleOffset * idle });
   }
   scene.add(sp.mesh);
   const m: Monster = {
