@@ -17,7 +17,7 @@ animation. **Look at it.**
 ## Starting a session
 
 ```bash
-npm run dev      # http://localhost:5173, also bound to 0.0.0.0
+npm run dev      # http://localhost:5847, also bound to 0.0.0.0
 ```
 
 Reload and read the `[assets]` line first. It reports, per asset, whether the
