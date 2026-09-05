@@ -44,13 +44,23 @@ does not simulate.
   visits to the shop; co-op has no shop, so a level 8 dungeon on a level 1 kit
   is not a difficulty setting, it is a wall. Potions, lanterns, whetstones and
   ammo are granted in proportion to the level.
-- **Up to 4 players.** No joining after the run starts — the lobby closes.
+- **Up to 4 players.** No joining a dungeon after it starts. The *lobby* does
+  not close, though — see death, below.
 - **Gold is one team total, and only what extracted players carry counts.** A
   player who dies contributes nothing, which is where the reason to keep each
   other alive comes from, given there is no revive.
-- **Death is final for that run, and the dead spectate.** The known cost is that
-  a bear trap in the first minute can mean twenty minutes of watching; it is
-  accepted, and it is the reason the run wants to stay short.
+- **Death is final for that run. Spectating is offered, never forced.** A dead
+  player can watch an ally, or drop back to the lobby and be in the next run —
+  or host their own.
+
+  This is what keeps the dungeon full size. Forced spectating would have meant a
+  bear trap in the first minute costing twenty minutes of watching, and the only
+  answer to that would have been making runs short — paying for a death rule
+  with the size of the game. Giving the dead somewhere to go is cheaper than
+  shrinking the dungeon.
+
+  It is why the lobby is a room that outlives a run rather than a screen on the
+  way into one: the host's dungeon can still be going while the dead regroup.
 - **No friendly fire.** The sword cleaves through allies without touching them
   and musket balls pass through. Corridors here are one cell wide — with
   friendly fire everyone backs off and fights alone, which is the opposite of
