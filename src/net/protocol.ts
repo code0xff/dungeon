@@ -115,7 +115,32 @@ export interface CPose {
   a: number;
 }
 
-export type ClientMsg = CJoin | CLevel | CStart | CLeftRun | CPose;
+/**
+ * Something happened to the dungeon itself.
+ *
+ * The dungeon is generated from a shared seed, so both sides already agree on
+ * what chest 3 holds and where trap 7 is. That is what lets an event be two
+ * numbers instead of a description: nothing here carries contents, positions or
+ * damage, only which thing and which kind of thing happened to it.
+ *
+ * `i` indexes state.chests or state.traps, and those arrays are built in the
+ * same order on every client because the seed builds them.
+ */
+export type WorldEvent =
+  /** A lid started opening. The noise, not the contents — see LOOT_TIME. */
+  | 'creak'
+  /** A chest finished opening. */
+  | 'chest'
+  /** A floor trap went off. */
+  | 'trap';
+
+export interface CEvent {
+  t: 'e';
+  k: WorldEvent;
+  i: number;
+}
+
+export type ClientMsg = CJoin | CLevel | CStart | CLeftRun | CPose | CEvent;
 
 /**
  * What a remote body is doing, as one number.
@@ -200,7 +225,15 @@ export interface SSnap {
   p: PoseRow[];
 }
 
-export type ServerMsg = SWelcome | SReject | SLobby | SStart | SSnap;
+/** A world event that happened to somebody else, with who did it. */
+export interface SEvent {
+  t: 'e';
+  k: WorldEvent;
+  i: number;
+  by: number;
+}
+
+export type ServerMsg = SWelcome | SReject | SLobby | SStart | SSnap | SEvent;
 
 /**
  * Parses a message off the wire.

@@ -1,6 +1,6 @@
 import { PROTOCOL_VERSION, parseMsg } from './protocol';
 import { coop } from './session';
-import type { ClientMsg, LobbyPlayer, PoseRow, ServerMsg } from './protocol';
+import type { ClientMsg, LobbyPlayer, PoseRow, ServerMsg, WorldEvent } from './protocol';
 
 /**
  * The client half of the co-op socket: connect, join, and hand messages up.
@@ -58,6 +58,13 @@ let onSnap: ((rows: PoseRow[]) => void) | null = null;
 
 export function onNetSnap(fn: (rows: PoseRow[]) => void): void {
   onSnap = fn;
+}
+
+/** Called when another player changed the dungeon. */
+let onEvent: ((k: WorldEvent, i: number, by: number) => void) | null = null;
+
+export function onNetEvent(fn: (k: WorldEvent, i: number, by: number) => void): void {
+  onEvent = fn;
 }
 
 function changed(): void {
@@ -187,6 +194,9 @@ export function connect(server: string, name: string): void {
         // thing in the mode.
         if (Array.isArray(msg.p)) onSnap?.(msg.p);
         break;
+      case 'e':
+        onEvent?.(msg.k, msg.i, msg.by);
+        break;
       case 'start':
         net.phase = 'run';
         net.level = msg.level;
@@ -231,6 +241,11 @@ export function setLevel(level: number): void {
 /** Host only; ignored by the server otherwise. */
 export function startRun(): void {
   send({ t: 'start' });
+}
+
+/** Tells the rest of the run what this player just did to the dungeon. */
+export function sendEvent(k: WorldEvent, i: number): void {
+  send({ t: 'e', k, i });
 }
 
 /** This player's pose, sent while in a run. */

@@ -209,6 +209,22 @@ wss.on('connection', (sock: WebSocket) => {
       return;
     }
 
+    // Something happened to the dungeon. Relayed untouched and unvalidated: the
+    // host has no dungeon of its own to check an index against, and a bad index
+    // costs the receiver a lookup that finds nothing.
+    //
+    // Sent to the rest of the run and never back to the sender, who has already
+    // applied it — echoing it would open the same chest twice.
+    if (msg.t === 'e') {
+      if (!me.inRun) return;
+      if (!Number.isInteger(msg.i) || msg.i < 0) return;
+      const out: ServerMsg = { t: 'e', k: msg.k, i: msg.i, by: me.id };
+      for (const p of players.values()) {
+        if (p.runId === me.runId && p.id !== me.id) send(p.sock, out);
+      }
+      return;
+    }
+
     // The hot path: 20 a second per player. Kept above the host gate and
     // deliberately silent — a pose from someone in the lobby is not an error
     // worth logging 20 times a second, it is a message in flight from a run

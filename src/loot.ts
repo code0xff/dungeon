@@ -4,6 +4,7 @@ import {
   AMMO_PICKUP, CHEST_ALERT_RADIUS, CHEST_ALERT_TIME, LANTERN_FUEL, LANTERN_KEY, MAX_HP,
   MUSKET_AMMO, POTION_HEAL, POTION_KEY, SWORD_DUR_MAX, WHETSTONE_KEY, WHETSTONE_REPAIR,
 } from './config';
+import { tellChestOpened, tellCreak } from './net/worldsync';
 import { setLampLit, setPortalOpen } from './scene';
 import { state } from './state';
 import type { Chest } from './types';
@@ -28,9 +29,17 @@ export function startLoot(): void {
   // made.
   const heard = alertCreatures(CHEST_ALERT_RADIUS, CHEST_ALERT_TIME);
   if (heard > 0) showMsg(`The lid creaks... ${heard} heard it`);
+  // The others hear it too, from where the chest is. Sent on starting rather
+  // than on finishing for the same reason the alert fires here: the noise was
+  // made, and backing out does not unmake it.
+  tellCreak(state.chests.indexOf(state.looting.chest));
 }
 
 export function openChest(c: Chest): void {
+  // Guarded because in co-op a chest can be opened by someone else between the
+  // loot starting and finishing. cancelLoot() in worldsync.ts is what normally
+  // stops that; this is the backstop, and it is cheap.
+  if (c.state !== 'closed') return;
   c.state = 'opened';
   c.openT = 0;
   // Fired on the lid coming open rather than on the creak, so backing out of a
@@ -84,6 +93,10 @@ export function openChest(c: Chest): void {
       if (!state.loaded && state.reloadT < 0 && state.weapon === 'musket') startReload();
       break;
   }
+
+  // After the contents are resolved, so a trap that kills the player returns
+  // above and the party is not told about a chest that never finished opening.
+  tellChestOpened(state.chests.indexOf(c));
 
   if (c.item) sfxPickup();
   if (trapLine) msg += `\n${trapLine}`;

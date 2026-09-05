@@ -69,11 +69,20 @@ export function killMonster(m: Monster): number {
  * see SHOT_ALERT_RADIUS against CHEST_ALERT_RADIUS. Returns how many heard it,
  * which is what the player is told.
  */
-export function alertCreatures(radius: number, seconds: number): number {
+export function alertCreatures(
+  radius: number,
+  seconds: number,
+  // Where the noise was made. Defaults to the player because almost every noise
+  // in the game is one they made — but a co-op ally springing a trap across the
+  // dungeon is a real noise in a real place, and charging it to the listener's
+  // own position would wake the creatures standing next to the wrong person.
+  x = state.pos.x,
+  z = state.pos.z,
+): number {
   let heard = 0;
   for (const m of state.monsters) {
     if (m.hp <= 0) continue;
-    if (Math.hypot(m.mesh.position.x - state.pos.x, m.mesh.position.z - state.pos.z) < radius) {
+    if (Math.hypot(m.mesh.position.x - x, m.mesh.position.z - z) < radius) {
       m.alert = seconds;
       m.repath = 0;
       heard++;

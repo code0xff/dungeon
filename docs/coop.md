@@ -118,6 +118,11 @@ Because the Pages build and the host can now be different versions of the game,
   below.
 - **Reporting gold to the host**, so the team total means something. Right now a
   co-op run's gold is only shown to the player who earned it.
+- **Claiming a chest.** Opening one is announced when it opens, not when it
+  starts, so two players who finish looting the same chest within LOOT_TIME of
+  each other both collect. The common case — one gets there first — is handled;
+  closing the race needs someone to own the chest, and the creatures need an
+  owner first.
 - **Host-side movement validation.** The host relays poses without checking
   them, so a modified client can walk through walls. It can be done — the host
   knows the seed and the level, and `dungeon.ts` is pure, so it can rebuild the
@@ -125,6 +130,22 @@ Because the Pages build and the host can now be different versions of the game,
 - **Damage and death.** Creatures are simulated separately on every client, so
   the ally you see fighting a zombie is fighting a different copy of it. This is
   the next real piece and the one that decides how much of the mode works.
+## The dungeon
+
+Chests, the key, the map and the floor traps are kept in step by events, not by
+state: everyone generated the same dungeon from the same seed, so both sides
+already know what chest 3 holds and where trap 7 is. An event is two numbers and
+the receiver looks the rest up locally.
+
+Who gets what follows from the mode. Gold and pack items go to the player who
+opened the chest — they took the risk of standing still. The key and the map do
+not: there is one portal, so one key opens it for everyone, and a map only one
+player could read would have two people in the same corridor disagreeing about
+whether they know where they are.
+
+Noises carry their own position. A creaking lid or a sprung trap wakes the
+creatures standing near *it*, not near whoever is listening.
+
 ## The bodies
 
 Other players are drawn as a Mixamo knight — sword and shield, the same kit the

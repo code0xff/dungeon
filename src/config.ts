@@ -667,6 +667,14 @@ export const TRAP_DMG = 10;
  * game because it is the only one you make by accident.
  */
 export const TRAP_ALERT_RADIUS = 24;
+/**
+ * Seconds the jaws take to snap shut. Long enough to see, short enough not to
+ * be an event of its own.
+ *
+ * It lived in loop.ts until an ally's trap had to spring on someone else's
+ * screen too, and two modules sharing a number is what config.ts is for.
+ */
+export const TRAP_SPRING_TIME = 0.35;
 export const TRAP_ALERT_TIME = 12;
 /**
  * Fraction of chests that are trapped.

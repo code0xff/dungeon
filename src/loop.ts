@@ -13,6 +13,7 @@ import {
   SWAY_DAMP, TYPES,
   LUNGE_HIT_GLOW, LUNGE_HIT_KICK, LUNGE_HIT_LIGHT, LUNGE_HIT_TIME, LUNGE_WINDOW, SWING_IMPACT,
   SWING_SPEED, SWING_WINDUP, TURN_RATE, WALK_CLIP_SPEED, WALK_TIMESCALE_RANGE, WALL_H,
+  TRAP_SPRING_TIME,
 } from './config';
 import { playerHurt, releaseQueuedAttack, resolveSwing, springTrap, staggerPush } from './combat';
 import { findPath } from './dungeon';
@@ -20,6 +21,7 @@ import { edgeTurn, keys, moveInput } from './input';
 import { finishDrink, openChest } from './loot';
 import { setTrapJaws } from './props';
 import { sendOwnPose, updateRemotes } from './net/remote';
+import { tellTrapSprung } from './net/worldsync';
 import {
   DUST, camera, dustGeo, flashLight, gearBob, handShield, MUSKET_REST, musket,
   SHIELD_GUARD, SHIELD_REST,
@@ -614,12 +616,12 @@ function updateTraps(dt: number): void {
     if (dx * dx + dz * dz > TRAP_RADIUS * TRAP_RADIUS) continue;
     t.sprung = true;
     t.springT = TRAP_SPRING_TIME;
+    // Told before the damage resolves: springTrap() can kill, and a party that
+    // never hears about the trap that killed someone is left wondering.
+    tellTrapSprung(state.traps.indexOf(t));
     showMsg(springTrap());
   }
 }
-
-/** Seconds the collapse takes. Long enough to see, short enough not to be an event. */
-const TRAP_SPRING_TIME = 0.35;
 
 // ================= Chests =================
 function updateChests(dt: number, playerMoving: boolean): void {
