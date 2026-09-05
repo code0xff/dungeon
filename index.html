@@ -256,7 +256,12 @@
   .tbtn span { opacity:.72; }
   .tbtn:active { transform:scale(.94); filter:brightness(1.25); }
 
-  #atkBtn { right:calc(24px + env(safe-area-inset-right)); width:88px; height:88px;
+  /* The thumb cluster. Attack sits in the corner; guard is directly above it and
+     dodge directly inboard, so the three things needed in a hurry are one short
+     reach apart instead of one being a stack away. Everything shrank to make
+     room for that without pushing the item column into the move stick, which is
+     at left:24px and 114px wide. */
+  #atkBtn { right:calc(24px + env(safe-area-inset-right)); width:74px; height:74px;
             bottom:calc(30px + env(safe-area-inset-bottom));
             border:1px solid rgba(184,74,66,.55); color:#e8cfc6;
             background:radial-gradient(circle at 50% 32%, rgba(150,48,44,.62), rgba(74,22,20,.5) 72%);
@@ -269,47 +274,46 @@
   #atkBtn.armed { transition:none; border-color:rgba(255,64,48,.95);
                   box-shadow:0 6px 22px rgba(0,0,0,.5), 0 0 16px rgba(255,40,25,.6),
                              inset 0 1px 0 rgba(255,150,130,.3); }
-  /* Smaller than attack and centred over it: opening a chest is a deliberate
+  /* Above the guard rather than beside attack: opening a chest is a deliberate
      act you have already stopped moving for, not something the thumb has to
-     find in a hurry. */
-  #lootBtn { right:calc(36px + env(safe-area-inset-right)); width:64px; height:64px;
-             bottom:calc(132px + env(safe-area-inset-bottom)); font-size:9.5px;
+     find in a hurry, so it gives up the closest slot to the guard. */
+  #lootBtn { right:calc(32px + env(safe-area-inset-right)); width:56px; height:56px;
+             bottom:calc(178px + env(safe-area-inset-bottom)); font-size:9px;
              border:1px solid rgba(212,178,90,.55); color:#efdca6;
              background:radial-gradient(circle at 50% 32%, rgba(150,118,44,.55), rgba(64,50,18,.5) 72%);
              box-shadow:0 6px 22px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,230,160,.16); }
-  /* The inner column is ordered by how fast the hand has to reach it: dodge is a
-     reflex, so it sits level with attack one thumb-width inboard, and the rest
-     stacks upward where nothing is needed in a hurry. It stacks rather than
+  /* Stacked above the dodge in the same column, ordered by how fast the hand has
+     to reach them — nothing here is needed in a hurry. It stacks rather than
      reaching further left because on a portrait phone that row runs into the
-     move stick, which is at left:24px and 114px wide. */
-  #potBtn, #lampBtn, #whetBtn, #wpnBtn { right:calc(134px + env(safe-area-inset-right)); width:52px; height:52px;
+     move stick. */
+  #potBtn, #lampBtn, #whetBtn, #wpnBtn { right:calc(114px + env(safe-area-inset-right)); width:46px; height:46px;
                       border:1px solid rgba(201,192,174,.4); color:#c9c0ae;
                       background:radial-gradient(circle at 50% 32%, rgba(70,66,58,.62), rgba(28,26,22,.5) 72%);
                       box-shadow:0 5px 18px rgba(0,0,0,.45); }
-  #wpnBtn { bottom:calc(120px + env(safe-area-inset-bottom)); }
-  #potBtn { bottom:calc(182px + env(safe-area-inset-bottom)); }
-  #lampBtn { bottom:calc(244px + env(safe-area-inset-bottom)); }
-  /* Fourth and topmost, at 306px + 52px tall. That is 358px above the bottom
-     edge, which still clears the middle of the shortest phone this runs on
-     (iPhone SE, 667px) — and it is only ever on screen while a whetstone is
-     actually carried and the sword is in hand. */
-  #whetBtn { bottom:calc(306px + env(safe-area-inset-bottom)); }
-  /* Beside the attack button on the far side of dodge: the guard is the other
-     thing the thumb reaches for in a hurry, and it must not be a stack away. */
-  #guardBtn { right:calc(36px + env(safe-area-inset-right)); bottom:calc(210px + env(safe-area-inset-bottom));
-              width:60px; height:60px; font-size:9.5px;
+  #wpnBtn { bottom:calc(100px + env(safe-area-inset-bottom)); }
+  #potBtn { bottom:calc(154px + env(safe-area-inset-bottom)); }
+  #lampBtn { bottom:calc(208px + env(safe-area-inset-bottom)); }
+  /* Fourth and topmost, at 262px + 46px tall — 308px above the bottom edge,
+     comfortably clear of the middle of the shortest phone this runs on (iPhone
+     SE, 667px), and it is only ever on screen while a whetstone is carried and
+     the sword is in hand. */
+  #whetBtn { bottom:calc(262px + env(safe-area-inset-bottom)); }
+  /* Directly above attack. Guarding is a reflex like dodging, so it sits one
+     short reach from where the thumb already rests rather than up a stack. */
+  #guardBtn { right:calc(31px + env(safe-area-inset-right)); bottom:calc(112px + env(safe-area-inset-bottom));
+              width:60px; height:60px; font-size:9px;
               border:1px solid rgba(140,170,210,.5); color:#c3d6ee;
               background:radial-gradient(circle at 50% 32%, rgba(46,74,116,.6), rgba(18,28,44,.5) 72%);
               box-shadow:0 5px 18px rgba(0,0,0,.45); }
   #guardBtn.on { border-color:rgba(190,215,245,.95); background:radial-gradient(circle at 50% 32%, rgba(76,116,170,.8), rgba(28,44,68,.6) 72%); }
-  #guardBtn .ico { width:21px; height:21px; }
-  #dashBtn { right:calc(128px + env(safe-area-inset-right)); bottom:calc(40px + env(safe-area-inset-bottom));
-             width:68px; height:68px; border:1px solid rgba(140,170,210,.5); color:#c3d6ee;
+  #guardBtn .ico { width:19px; height:19px; }
+  #dashBtn { right:calc(108px + env(safe-area-inset-right)); bottom:calc(34px + env(safe-area-inset-bottom));
+             width:58px; height:58px; border:1px solid rgba(140,170,210,.5); color:#c3d6ee;
              background:radial-gradient(circle at 50% 32%, rgba(46,74,116,.6), rgba(18,28,44,.5) 72%);
              box-shadow:0 5px 18px rgba(0,0,0,.45); }
-  #dashBtn .ico { width:22px; height:22px; }
-  #lootBtn .ico { width:21px; height:21px; }
-  #potBtn .ico, #lampBtn .ico, #whetBtn .ico, #wpnBtn .ico { width:20px; height:20px; }
+  #dashBtn .ico { width:19px; height:19px; }
+  #lootBtn .ico { width:18px; height:18px; }
+  #potBtn .ico, #lampBtn .ico, #whetBtn .ico, #wpnBtn .ico { width:18px; height:18px; }
   #potBtn .count, #lampBtn .count, #whetBtn .count { opacity:.9; font-size:11px; }
   #wpnBtn { font-size:9.5px; }
   #crosshair { position:fixed; left:50%; top:50%; width:6px; height:6px; margin:-3px 0 0 -3px; border-radius:50%; background:rgba(201,192,174,.7); z-index:10; display:none; pointer-events:none; }
