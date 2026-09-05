@@ -204,8 +204,12 @@ function swingCurve(t: number): number {
 function updateWeapons(dt: number): void {
   state.atkTimer = Math.max(0, state.atkTimer - dt);
   if (state.atkQueue > 0) {
-    state.atkQueue = Math.max(0, state.atkQueue - dt);
-    if (state.atkTimer <= 0 && state.atkQueue > 0) releaseQueuedAttack();
+    // Released before the queue is decremented. ATTACK_BUFFER equals ATTACK_CD,
+    // so two presses inside one frame gave both timers the same value and they
+    // reached zero together — and testing the queue after the subtraction threw
+    // the swing away on exactly the frame it should have fired.
+    if (state.atkTimer <= 0) releaseQueuedAttack();
+    else state.atkQueue = Math.max(0, state.atkQueue - dt);
   }
 
   // ---- Sword swing ----

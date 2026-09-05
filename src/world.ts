@@ -295,7 +295,9 @@ function scatterProps(): void {
   for (let z = 1; z < state.gh - 1; z++) {
     for (let x = 1; x < state.gw - 1; x++) {
       // Leave the start and exit cells clear.
-      if (state.maze[z][x] !== 0 || (x === 1 && z === 1) || (x === state.exitCell.x && z === state.exitCell.z)) continue;
+      // Claimed cells hold traps, chests and creatures. A barrel dropped over a
+      // trap hides the one thing the player is supposed to see coming.
+      if (state.maze[z][x] !== 0 || claimed.has(cellKey(x, z))) continue;
       const p = rollProp();
       if (!p) continue;
       p.object.position.set(
@@ -393,6 +395,11 @@ export function buildWorld(): void {
   // A potion left half-drunk when the run ended must not leave its bar on screen.
   state.drinkT = -1;
   drinkBarEl.style.display = 'none';
+  // Cleared with the rest of the run. updateChests() rewrites it every frame,
+  // but E and the loot button are read before the next frame — so starting a new
+  // dungeon while stood beside a chest left the old one lootable for a moment,
+  // paying out its gold or springing its trap in a world it no longer exists in.
+  state.nearChest = null;
   state.lanternT = progress.lanternT;
   state.lanternWarned = false;
   state.hasMap = false;

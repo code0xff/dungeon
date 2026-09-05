@@ -110,6 +110,10 @@ guideCloseBtn.addEventListener('click', back);
 guideBtn.addEventListener('click', toggleMenu);
 
 addEventListener('keydown', (e) => {
+  // Auto-repeat would toggle the panel on every repeat, so holding the key made
+  // the menu flicker open and shut and left the pause state wherever the release
+  // happened to land.
+  if (e.repeat) return;
   if (e.code === `Key${GUIDE_KEY}`) {
     toggleMenu();
     return;
