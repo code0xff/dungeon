@@ -13,6 +13,7 @@ import {
   flashLight, muzzleFlash, portal, portalCore, portalLight, scene, setLampLit, setPortalOpen,
   SMOKE_REST_Y, smoke, world,
 } from './scene';
+import { random, setSeed, mixSeed, shuffle } from './rng';
 import { state } from './state';
 import { ceilTex, floorTex, wallTex } from './textures';
 import type { CreatureKey, GridCell, Monster } from './types';
@@ -41,7 +42,7 @@ export function collides(wx: number, wz: number, r = PLAYER_R): boolean {
 
 /** Random number in [min, max]. */
 function rand([min, max]: readonly [number, number]): number {
-  return min + Math.random() * (max - min);
+  return min + random() * (max - min);
 }
 
 /** A floor cell at least minDist from the start (1,1). Falls back to the far corner. */
@@ -70,8 +71,8 @@ function usable(x: number, z: number, minDist: number): boolean {
  */
 function randomFloorCell(minDist: number): GridCell {
   for (let t = 0; t < 400; t++) {
-    const x = 1 + ((Math.random() * (state.gw - 2)) | 0);
-    const z = 1 + ((Math.random() * (state.gh - 2)) | 0);
+    const x = 1 + ((random() * (state.gw - 2)) | 0);
+    const z = 1 + ((random() * (state.gh - 2)) | 0);
     if (!usable(x, z, minDist)) continue;
     claimed.add(cellKey(x, z));
     return [x, z];
@@ -123,12 +124,12 @@ function buildGeometry(): void {
   const q = new THREE.Quaternion(), sc = new THREE.Vector3(), pv = new THREE.Vector3();
   wallCells.forEach(([x, z], i) => {
     // Jitter height and brightness a little so the tiling stops reading as tiling.
-    const sy = 1 + Math.random() * 0.06;
+    const sy = 1 + random() * 0.06;
     pv.set(x * CELL, (WALL_H * sy) / 2 - 0.01, z * CELL);
     sc.set(1, sy, 1);
     m4.compose(pv, q, sc);
     wall.setMatrixAt(i, m4);
-    col.setHSL(0.6, 0.05, 0.6 + Math.random() * 0.4);
+    col.setHSL(0.6, 0.05, 0.6 + random() * 0.4);
     wall.setColorAt(i, col);
   });
   if (wall.instanceColor) wall.instanceColor.needsUpdate = true;
@@ -218,7 +219,7 @@ function spawnOne(key: CreatureKey): void {
   // Start each idle at a different point too, or the horde breathes in unison.
   if (sp.playback) {
     const idle = clipDuration(sp.playback, 'idle') ?? 0;
-    setAnim(sp.playback, 'idle', { fade: 0, startAt: Math.random() * idle });
+    setAnim(sp.playback, 'idle', { fade: 0, startAt: random() * idle });
   }
   scene.add(sp.mesh);
   const m: Monster = {
@@ -241,9 +242,9 @@ function spawnOne(key: CreatureKey): void {
     moving: false,
     groundSpeed: 0,
     speedMul: rand(SPEED_VARIANCE),
-    anim: Math.random() * 6,
-    bobSeed: Math.random() * 10,
-    groanT: t.groan[0] + Math.random() * (t.groan[1] - t.groan[0]),
+    anim: random() * 6,
+    bobSeed: random() * 10,
+    groanT: t.groan[0] + random() * (t.groan[1] - t.groan[0]),
     dead: false,
     deadT: 0,
   };
@@ -257,13 +258,13 @@ function spawnChests(scale: number): void {
   const count = Math.max(CHEST_ITEMS.length, Math.round(CHEST_COUNT * scale));
   for (let i = 0; i < count; i++) {
     const [gx, gz] = randomFloorCell(4);
-    const c = createChest(20 + ((Math.random() * 60) | 0), Math.random() < CHEST_TRAP_FRAC);
-    c.mesh.position.set(gx * CELL + (Math.random() - 0.5) * 1.2, 0, gz * CELL + (Math.random() - 0.5) * 1.2);
-    c.mesh.rotation.y = Math.random() * Math.PI * 2;
+    const c = createChest(20 + ((random() * 60) | 0), random() < CHEST_TRAP_FRAC);
+    c.mesh.position.set(gx * CELL + (random() - 0.5) * 1.2, 0, gz * CELL + (random() - 0.5) * 1.2);
+    c.mesh.rotation.y = random() * Math.PI * 2;
     scene.add(c.mesh);
     state.chests.push({ ...c, item: null });
   }
-  const order = state.chests.map((_, i) => i).sort(() => Math.random() - 0.5);
+  const order = shuffle(state.chests.map((_, i) => i));
   CHEST_ITEMS.forEach((it, i) => {
     state.chests[order[i]].item = it;
   });
@@ -283,9 +284,9 @@ function placeTraps(scale: number): void {
     const { group: mesh, jaws } = makeTrap();
     // Anywhere in the cell, walls included — see TRAP_JITTER. A trap always near
     // the middle made hugging a wall a blanket answer.
-    const jx = (Math.random() * 2 - 1) * TRAP_JITTER, jz = (Math.random() * 2 - 1) * TRAP_JITTER;
+    const jx = (random() * 2 - 1) * TRAP_JITTER, jz = (random() * 2 - 1) * TRAP_JITTER;
     mesh.position.set(gx * CELL + jx, 0, gz * CELL + jz);
-    mesh.rotation.y = Math.random() * Math.PI * 2;
+    mesh.rotation.y = random() * Math.PI * 2;
     scene.add(mesh);
     state.traps.push({ mesh, jaws, sprung: false, springT: 0 });
   }
@@ -301,9 +302,9 @@ function scatterProps(): void {
       const p = rollProp();
       if (!p) continue;
       p.object.position.set(
-        x * CELL + (Math.random() - 0.5) * 2.2,
+        x * CELL + (random() - 0.5) * 2.2,
         p.object.position.y,
-        z * CELL + (Math.random() - 0.5) * 2.2,
+        z * CELL + (random() - 0.5) * 2.2,
       );
       scene.add(p.object);
       state.props.push(p);
@@ -314,13 +315,13 @@ function scatterProps(): void {
 function placeSconces(): void {
   let placed = 0, tries = 0;
   while (placed < 5 && tries++ < 300) {
-    const x = 1 + ((Math.random() * (state.gw - 2)) | 0);
-    const z = 1 + ((Math.random() * (state.gh - 2)) | 0);
+    const x = 1 + ((random() * (state.gw - 2)) | 0);
+    const z = 1 + ((random() * (state.gh - 2)) | 0);
     if (state.maze[z][x] !== 0 || Math.hypot(x - 1, z - 1) < 3) continue;
     // Only cells with a wall to mount on.
     const dirs = ([[1, 0], [-1, 0], [0, 1], [0, -1]] as const).filter(([dx, dz]) => state.maze[z + dz][x + dx] === 1);
     if (!dirs.length) continue;
-    const [dx, dz] = dirs[(Math.random() * dirs.length) | 0];
+    const [dx, dz] = dirs[(random() * dirs.length) | 0];
     const s = makeSconce();
     s.group.position.set(x * CELL + dx * (CELL / 2 - 0.14), 2.25, z * CELL + dz * (CELL / 2 - 0.14));
     scene.add(s.group);
@@ -332,6 +333,17 @@ function placeSconces(): void {
 /** Build a fresh dungeon and reset the run. Restart calls this too. */
 export function buildWorld(): void {
   clearWorld();
+
+  // Seeded before anything is placed, so this stage's layout is a pure function
+  // of (run seed, stage). Reloading the page mid-run rebuilds the same dungeon
+  // rather than rerolling one, which is the point: an extraction game where a
+  // bad map can be refreshed away is not asking anything of the player.
+  //
+  // The run seed lives in progress.ts and is redrawn on death and on New game,
+  // so a new run is a new dungeon — it is only fixed for as long as the run is.
+  const seed = mixSeed(progress.seed, progress.stage);
+  setSeed(seed);
+  console.log(`[world] seed ${progress.seed} stage ${progress.stage} -> ${seed}`);
 
   // The dungeon grows with the stage and is not always square, so its size has
   // to be settled before anything that indexes the grid runs.

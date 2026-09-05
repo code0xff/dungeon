@@ -1,5 +1,5 @@
 import { loadAssets } from './assets';
-import { loadProgress } from './progress';
+import { loadProgress, setRunSeed } from './progress';
 import { el } from './dom';
 import { animate } from './loop';
 import { buildWorld } from './world';
@@ -11,6 +11,19 @@ import './menu';
 
 // Restore the bank and any carried gear before the first world is built.
 loadProgress();
+
+// ?seed=12345 pins the run seed, so a dungeon can be reproduced exactly — for a
+// bug report, for testing, and eventually for two players sharing a world. It is
+// applied after loadProgress() precisely so it wins over the saved seed, and it
+// leaves the stage alone: the same seed on stage 3 is a different dungeon.
+const seedParam = new URLSearchParams(location.search).get('seed');
+if (seedParam !== null) {
+  const n = Number(seedParam);
+  // Rejecting rather than defaulting to 0: a typo that silently produced a
+  // valid-but-different dungeon would be worse than being told it was ignored.
+  if (Number.isFinite(n)) setRunSeed(n);
+  else console.warn(`[world] ignoring ?seed=${seedParam} — not a number`);
+}
 
 // Production only: a caching worker in dev would serve stale modules and make
 // HMR lie about what is running.

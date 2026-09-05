@@ -25,6 +25,25 @@ real model loaded or the fallback took over, and — for models — the scale it
 normalised to and where its tip landed. Most "why does it look wrong" questions
 are answered there before you open a screenshot.
 
+## Reproducing a dungeon
+
+Every dungeon is a pure function of `(progress.seed, progress.stage)`. Pin the
+seed on the URL to get the same one back:
+
+```
+http://localhost:5847/?seed=12345
+```
+
+The layout, spawns, chest contents, traps, props and sconces all come from that
+seed; textures, audio, dust and torch flicker deliberately do not, so a dungeon
+looks slightly different run to run while being the same dungeon to walk. The
+console prints `[world] seed <run> stage <n> -> <world>` on every build.
+
+This is what makes a bug report reproducible — quote the seed and the stage —
+and it is the first piece of multiplayer: a host can send a number instead of a
+map. Note that the stage is *not* pinned by the parameter, so `?seed=12345` on
+stage 3 is not the stage 1 dungeon.
+
 ## Exercising both paths
 
 Any change to a loader must be tried with the asset **and without it**:

@@ -1,6 +1,7 @@
 import {
   MAZE_ASPECT, MAZE_CELLS_PEAK, MAZE_CELLS_START, REF_FLOOR_CELLS, ROOM_COUNT, SPAWN_PEAK_STAGE,
 } from './config';
+import { random } from './rng';
 import type { GridCell, Maze } from './types';
 
 /**
@@ -20,10 +21,10 @@ export function dungeonSize(stage: number): { gw: number; gh: number } {
   const t = Math.min(Math.max(stage, 1), SPAWN_PEAK_STAGE);
   const cells = MAZE_CELLS_START
     + (MAZE_CELLS_PEAK - MAZE_CELLS_START) * ((t - 1) / (SPAWN_PEAK_STAGE - 1));
-  const k = Math.sqrt(MAZE_ASPECT + Math.random() * (1 - MAZE_ASPECT));
+  const k = Math.sqrt(MAZE_ASPECT + random() * (1 - MAZE_ASPECT));
   const long = Math.max(4, Math.round(cells / k)), short = Math.max(4, Math.round(cells * k));
   // Which way round it is stretched, so dungeons are not all wide or all tall.
-  const [cw, ch] = Math.random() < 0.5 ? [long, short] : [short, long];
+  const [cw, ch] = random() < 0.5 ? [long, short] : [short, long];
   return { gw: cw * 2 + 1, gh: ch * 2 + 1 };
 }
 
@@ -53,7 +54,7 @@ export function generateDungeon(gw: number, gh: number): Maze {
       stack.pop();
       continue;
     }
-    const [nx, nz, wx, wz] = opts[(Math.random() * opts.length) | 0];
+    const [nx, nz, wx, wz] = opts[(random() * opts.length) | 0];
     g[wz][wx] = 0;
     g[nz][nx] = 0;
     stack.push([nx, nz]);
@@ -62,9 +63,9 @@ export function generateDungeon(gw: number, gh: number): Maze {
   // Carve the rooms, in proportion to how much dungeon there is to carve them in.
   const rooms = Math.max(2, Math.round((ROOM_COUNT * ((gw - 1) / 2) * ((gh - 1) / 2) * 2) / REF_FLOOR_CELLS));
   for (let i = 0; i < rooms; i++) {
-    const w = 3 + 2 * ((Math.random() * 2) | 0), h = 3 + 2 * ((Math.random() * 2) | 0);
-    const x0 = 1 + 2 * ((Math.random() * ((gw - w - 2) / 2)) | 0);
-    const z0 = 1 + 2 * ((Math.random() * ((gh - h - 2) / 2)) | 0);
+    const w = 3 + 2 * ((random() * 2) | 0), h = 3 + 2 * ((random() * 2) | 0);
+    const x0 = 1 + 2 * ((random() * ((gw - w - 2) / 2)) | 0);
+    const z0 = 1 + 2 * ((random() * ((gh - h - 2) / 2)) | 0);
     for (let z = z0; z < z0 + h && z < gh - 1; z++) {
       for (let x = x0; x < x0 + w && x < gw - 1; x++) g[z][x] = 0;
     }
