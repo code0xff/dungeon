@@ -46,7 +46,7 @@ const TOUCH: readonly (readonly [string, string])[] = [
   ['Guard / parry', 'Hold the blue shield button above attack; tap it as the blow lands to parry'],
   ['Lunge', `Dodge with the stick pushed forward; attack while the button glows for ${LUNGE_DMG}x damage`],
   ['Open chest', 'Appears when you are near one'],
-  ['Potion / lantern / whetstone', 'The small buttons above the swap, when you carry one'],
+  ['Potion / lantern / whetstone', 'The small row above the stick, when you carry one'],
 ];
 
 function rows(pairs: readonly (readonly [string, string])[], cls: string): HTMLElement {

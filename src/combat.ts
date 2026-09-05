@@ -233,13 +233,11 @@ export function resolveSwing(): void {
     if (m.hp <= 0) lines.push(`${m.type.name} killed +${killMonster(m)} G`);
   }
 
-  // Named once, the first time it lands in a run. A bonus the player cannot see
-  // is a bonus they will never repeat on purpose; after that the kill speaks for
-  // itself and repeating the rate every swing would be noise.
-  if (landed && !state.lungeShown) {
-    state.lungeShown = true;
-    lines.push(`Lunge — ${LUNGE_DMG}x damage. A sharp blade kills a zombie outright`);
-  }
+  // The lunge deliberately says nothing here. It used to name the multiplier the
+  // first time it landed, but the message card is sized for a phone: a two-line
+  // explanation covered most of the screen at the exact moment the player needed
+  // to see what they had just hit. The blade lighting up is the cue, the kill is
+  // the confirmation, and the guide carries the number.
 
   if (!state.swordWarned && state.swordDur <= SWORD_WARN_AT) {
     state.swordWarned = true;
