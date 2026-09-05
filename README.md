@@ -417,3 +417,21 @@ in `assets/fonts/` next to the woff2 files they cover.
   `castShadow` on the player's light turns them on, but there are a lot of walls, so check
   mobile performance.
 - **Better props** — barrels, skulls, chains — from the Poly Haven Models tab.
+
+---
+
+## Licence
+
+The **source code** is under the [Business Source License 1.1](LICENSE). In
+short: use it, read it, fork it, host it — just not for money. It converts
+automatically to **Apache 2.0 on 2030-09-05**, after which that restriction is
+gone for good.
+
+The **assets are not covered by it.** The Poly Haven textures, weapons and props
+are CC0; the fonts are SIL OFL 1.1; the creature models are baked from Mixamo and
+cannot be redistributed or sublicensed at all. See
+[THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) — if you fork this, bring your
+own creatures.
+
+BSL is not an OSI-approved open source licence, so GitHub will file this
+repository under "Other" until the change date.
