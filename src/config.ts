@@ -17,6 +17,59 @@ export const CREATURE_ASSETS: Record<CreatureKey, CreatureAsset> = {
   // WhiteClown. Its walk slot holds a sprint, not a walk — see TYPES.lunatic.
   lunatic: { dir: 'creatures/lunatic', height: 1.78 },
 };
+/**
+ * The other players' body: a Mixamo knight, idle/walk/attack/death like a
+ * creature, because that is the animation vocabulary the loader already speaks.
+ *
+ * 1.75m against the player's own EYE_H of 1.6 — a body whose eyes sit about
+ * where the camera does. Sizing it to EYE_H instead would have made everyone
+ * else a head shorter than themselves.
+ *
+ * It is not in CREATURE_ASSETS on purpose: nothing spawns it, it has no hp and
+ * no AI, and putting it there would demand a spawn rate and a CreatureType for
+ * something the dungeon never places.
+ */
+export const PLAYER_KEY = 'knight';
+export const PLAYER_ASSET = { dir: 'creatures/knight', height: 1.75 };
+
+/**
+ * How fast a remote body chases the pose that was reported for it, per second.
+ *
+ * This is a lag against a lie either way: the body is always somewhere the other
+ * player has already left. Too low and an ally rounds a corner a metre behind
+ * where they really are; too high and the body twitches on every packet.
+ * 14 settles a snapshot in about 70ms, just over one tick at TICK_HZ, so a
+ * missed packet is smoothed rather than seen.
+ */
+export const REMOTE_LERP = 14;
+/**
+ * Seconds of silence before a remote body is removed.
+ *
+ * Bodies vanish on silence rather than on a message because the message is the
+ * thing most likely to go missing. Comfortably more than one tick, so a single
+ * dropped packet does not make an ally blink out and back.
+ */
+export const REMOTE_FADE = 2.5;
+/**
+ * One colour per player, in roster order.
+ *
+ * Told apart at a glance in a corridor lit the colour of fire, which is why
+ * none of these are orange or red — the torchlight would eat them, and red is
+ * the blood the game already uses for damage.
+ */
+export const REMOTE_TINTS = [0x4a86d8, 0x4fae72, 0xb47ad0, 0x4fb3ae];
+/**
+ * How hard the tint is pushed into the body, as emissive intensity.
+ *
+ * Found by looking at it, and both ends were wrong. At 0.35 the knight is a
+ * flat coloured silhouette with none of its armour left — a shape where a
+ * person should be. At 0 it is nearly invisible: dark plate in a dungeon lit
+ * the colour of rust reads as another shadow, which is worse than a creature.
+ * 0.12 keeps the plate and the trim legible and still says which ally it is
+ * from down a corridor.
+ */
+export const REMOTE_TINT = 0.07;
+
 export const WALL_TEX_DIR = 'textures/wall';
 export const FLOOR_TEX_DIR = 'textures/floor';
 export const CLIP_NAMES = ['idle', 'walk', 'attack', 'death'] as const;

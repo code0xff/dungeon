@@ -13,6 +13,7 @@ import {
   flashLight, muzzleFlash, portal, portalCore, portalLight, scene, setLampLit, setPortalOpen,
   SMOKE_REST_Y, smoke, world,
 } from './scene';
+import { clearRemotes } from './net/remote';
 import { coop, coopKit, runLevel } from './net/session';
 import { random, setSeed, mixSeed, shuffle } from './rng';
 import { state } from './state';
@@ -92,6 +93,9 @@ function randomFloorCell(minDist: number): GridCell {
 let guideTimer: ReturnType<typeof setTimeout> | null = null;
 
 function clearWorld(): void {
+  // The allies of the last dungeon are not the allies of this one, and a body
+  // left behind would stand in the new maze until the fade timer noticed.
+  clearRemotes();
   for (const m of [world.wall, world.floor, world.ceil]) {
     if (!m) continue;
     scene.remove(m);

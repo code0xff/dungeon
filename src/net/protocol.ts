@@ -92,7 +92,41 @@ export interface CLeftRun {
   t: 'leftRun';
 }
 
-export type ClientMsg = CJoin | CLevel | CStart | CLeftRun;
+/**
+ * Where this player is, sent TICK_HZ times a second while in a dungeon.
+ *
+ * Short field names because this is the only message that repeats: at 4 players
+ * and 20Hz it is sent 80 times a second and relayed 320, and `x` instead of
+ * `positionX` is most of the difference between a readable JSON protocol and a
+ * wasteful one.
+ *
+ * There is no timestamp. The receiver interpolates between the last two
+ * snapshots it actually got, so a clock it cannot trust buys nothing — see
+ * remote.ts.
+ */
+export interface CPose {
+  t: 'p';
+  /** World position. y is not sent: everyone walks the same flat floor. */
+  x: number;
+  z: number;
+  /** Facing, radians. */
+  r: number;
+  /** What the body is doing — one of the ANIM_* values. */
+  a: number;
+}
+
+export type ClientMsg = CJoin | CLevel | CStart | CLeftRun | CPose;
+
+/**
+ * What a remote body is doing, as one number.
+ *
+ * A string would cost more than the pose it decorates, and an enum of four
+ * states is the whole animation vocabulary the loader has.
+ */
+export const ANIM_IDLE = 0;
+export const ANIM_WALK = 1;
+export const ANIM_ATTACK = 2;
+export const ANIM_DEAD = 3;
 
 // ---- Host to client ----
 
@@ -142,7 +176,31 @@ export interface SStart {
   runId: number;
 }
 
-export type ServerMsg = SWelcome | SReject | SLobby | SStart;
+/** One other player, as it appears in a snapshot. */
+export interface PoseRow {
+  id: number;
+  x: number;
+  z: number;
+  r: number;
+  a: number;
+}
+
+/**
+ * Everyone else in your dungeon, TICK_HZ times a second.
+ *
+ * Sent per run rather than broadcast: two dungeons can be going at once, and a
+ * player in one has no business seeing bodies from the other.
+ *
+ * A player who has sent no pose yet is simply absent from the list, which is
+ * also how a body disappears when someone dies or leaves — there is no separate
+ * "remove" message to lose.
+ */
+export interface SSnap {
+  t: 'snap';
+  p: PoseRow[];
+}
+
+export type ServerMsg = SWelcome | SReject | SLobby | SStart | SSnap;
 
 /**
  * Parses a message off the wire.

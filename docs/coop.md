@@ -116,11 +116,26 @@ Because the Pages build and the host can now be different versions of the game,
   client bundle never sees; the alternative was hand-writing RFC 6455 framing,
   which is not a good use of anyone's time. It serves the built game too — see
   below.
-- **Remote players.** Nothing is sent about where anyone is yet, so a co-op run
-  is currently the same dungeon walked alone. This is the next piece.
 - **Reporting gold to the host**, so the team total means something. Right now a
   co-op run's gold is only shown to the player who earned it.
-- **A player avatar.** Other players are drawn as the existing lunatic mesh,
-  tinted, until the netcode is proven worth an asset. The creature pipeline
-  already has the right shape (rigged GLB per clip) and the budget has ~7.5MB
-  spare, so adding a proper one later is not a rewrite.
+- **Host-side movement validation.** The host relays poses without checking
+  them, so a modified client can walk through walls. It can be done — the host
+  knows the seed and the level, and `dungeon.ts` is pure, so it can rebuild the
+  same maze and clamp — but it is not done.
+- **Damage and death.** Creatures are simulated separately on every client, so
+  the ally you see fighting a zombie is fighting a different copy of it. This is
+  the next real piece and the one that decides how much of the mode works.
+## The bodies
+
+Other players are drawn as a Mixamo knight — sword and shield, the same kit the
+player carries — through the same loader the creatures use, and the same
+fallback rule: without the file you get a coloured capsule and co-op still
+works.
+
+Each is tinted by an emissive at REMOTE_TINT, which both says which ally it is
+and lifts them off a dark wall. The value was found by looking: hard enough and
+the knight is a flat coloured silhouette with no armour left, none at all and
+dark plate in a dungeon lit the colour of rust is just another shadow.
+
+Bodies are drawn and nothing else — no collision, no damage, no AI. A remote
+body is a picture of a decision made on another machine.

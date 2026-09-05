@@ -3,12 +3,14 @@ import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import {
-  CLIP_NAMES, CREATURE_ASSETS, ENV_INTENSITY, FLOOR_TEX_DIR, PROP_ASSETS, WALL_TEX_DIR,
+  CLIP_NAMES, CREATURE_ASSETS, ENV_INTENSITY, FLOOR_TEX_DIR, PLAYER_ASSET, PLAYER_KEY,
+  PROP_ASSETS, WALL_TEX_DIR,
   WEAPON_ASSETS,
 } from './config';
 import { MAKERS } from './creatures';
 import { envMap, equipShield, equipWeaponModel } from './scene';
 import type {
+  CreatureAsset,
   ClipName, Clips, CreatureKey, CreatureRig, CreatureTemplate, MonsterPlayback, PBRMaps, WeaponAsset, WeaponKind,
 } from './types';
 
@@ -41,7 +43,15 @@ const gltfLoader = new GLTFLoader();
 const texLoader = new THREE.TextureLoader();
 
 /** Only creatures that loaded end up here. A missing key falls back to the procedural model. */
-const templates: Partial<Record<CreatureKey, CreatureTemplate>> = {};
+/**
+ * Loaded model + clips, by asset key.
+ *
+ * Keyed by string rather than CreatureKey because the player avatar goes through
+ * the same loader and is deliberately not a creature: it has no spawn rate, no
+ * hp and no AI, and adding it to CreatureKey would demand entries in SPAWN and
+ * TYPES for something that never spawns.
+ */
+const templates: Partial<Record<string, CreatureTemplate>> = {};
 const pbr: { wall: PBRMaps | null; floor: PBRMaps | null } = { wall: null, floor: null };
 /** Loaded prop models. A null here means props.ts builds the primitive instead. */
 const props: { chest: THREE.Object3D | null } = { chest: null };
@@ -389,9 +399,8 @@ function fitToHeight(root: THREE.Object3D, height: number): void {
   root.position.y = -measure(root).minY;
 }
 
-/** Loads one creature into `templates`, returning the line for the [assets] log. */
-async function loadCreature(key: CreatureKey): Promise<string> {
-  const cfg = CREATURE_ASSETS[key];
+/** Loads one rigged model into `templates`, returning the line for the [assets] log. */
+async function loadCreature(key: string, cfg: CreatureAsset): Promise<string> {
   const base = await tryLoadModel(`${cfg.dir}/idle`);
   if (!base) return `${key}: file missing → primitive model`;
 
@@ -457,8 +466,14 @@ export async function loadAssets(onProgress: (msg: string) => void): Promise<voi
   // In declaration order, because a creature may borrow an earlier one's skin.
   for (const key of Object.keys(CREATURE_ASSETS) as CreatureKey[]) {
     onProgress(`Loading creature: ${key}`);
-    log.push(await loadCreature(key));
+    log.push(await loadCreature(key, CREATURE_ASSETS[key]));
   }
+
+  // The other players' bodies. Same loader, same fallback rule: without the file
+  // co-op still works and remote players are drawn as the primitive in
+  // makeRemoteBody(), so a missing download costs fidelity and not the mode.
+  onProgress('Loading player model');
+  log.push(await loadCreature(PLAYER_KEY, PLAYER_ASSET));
 
   onProgress('Loading weapons');
   for (const kind of Object.keys(WEAPON_ASSETS) as WeaponKind[]) log.push(await loadWeapon(kind));
@@ -476,6 +491,17 @@ export async function loadAssets(onProgress: (msg: string) => void): Promise<voi
   console.log('[assets]\n' + log.join('\n'));
 }
 
+/**
+ * The other players' model, or null when the file is missing.
+ *
+ * Separate from spawnCreature() because there is no primitive maker for it in
+ * MAKERS — the fallback body lives in remote.ts, next to the only thing that
+ * draws one.
+ */
+export function spawnPlayerModel(): SpawnedCreature | null {
+  return templates[PLAYER_KEY] ? spawnFromTemplate(PLAYER_KEY) : null;
+}
+
 export interface SpawnedCreature {
   mesh: THREE.Group;
   playback: MonsterPlayback | null;
@@ -484,11 +510,17 @@ export interface SpawnedCreature {
 
 /** Clones the external model when there is one, otherwise builds the procedural box model. */
 export function spawnCreature(key: CreatureKey): SpawnedCreature {
-  const t = templates[key];
-  if (!t) {
+  if (!templates[key]) {
     const { mesh, rig } = MAKERS[key]();
     return { mesh, playback: null, rig };
   }
+  return spawnFromTemplate(key);
+}
+
+/** Clones a loaded template. The caller has already checked there is one. */
+function spawnFromTemplate(key: string): SpawnedCreature {
+  // Non-null: both callers test templates[key] first.
+  const t = templates[key]!;
   const wrap = new THREE.Group();
   const model = cloneSkinned(t.root);
   // Clone the materials so the hit flash is per creature.
