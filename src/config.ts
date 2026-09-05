@@ -30,8 +30,18 @@ export const CLIP_NAMES = ['idle', 'walk', 'attack', 'death'] as const;
  */
 export const PROP_ASSETS = {
   chest: { url: 'props/chest.glb', height: 0.62, lidNode: 'treasure_chest_lid' },
-  /** Held in the left hand. Without the file nothing is drawn — see loadLantern(). */
-  lantern: { url: 'props/lantern.glb', height: 0.29 },
+  /**
+   * Held in the left hand. Without the file nothing is drawn and the guard still
+   * works — see loadShield().
+   *
+   * This replaced a lantern that used to be held here. The lantern was pure
+   * decoration: `playerLight` is a point light on the player, and setLampLit()
+   * only ever toggled the mesh's visibility, so the model conveyed nothing the
+   * light radius and the HUD timer did not already say. It never dimmed or
+   * guttered as the fuel ran down. Trading it for something the hand can
+   * actually use is a straight gain.
+   */
+  shield: { url: 'weapons/shield.glb', height: 0.53 },
 } as const;
 
 /**
@@ -261,6 +271,8 @@ export const CHEST_ITEMS: readonly ItemKind[] = [
 export const POTION_KEY = '3';
 export const LANTERN_KEY = '4';
 export const WHETSTONE_KEY = '5';
+/** Holds the shield up. The right mouse button does the same. */
+export const GUARD_KEY = 'F';
 /** Opens the controls panel, and closes it again. */
 export const GUIDE_KEY = 'H';
 /** Mutes and unmutes everything. */
@@ -298,6 +310,61 @@ export const POTION_DRINK = 0.9;
  * Past about -1.6 the lid clears vertical and looks detached rather than open.
  */
 export const CHEST_LID_OPEN = -1.5;
+// ================= Guard =================
+/**
+ * How wide the shield covers, as the cosine of the angle off where the player is
+ * looking. 0.35 is about 70 degrees each way.
+ *
+ * Front only, deliberately. Creatures crowd and push past each other now, so a
+ * guard that covered every direction would answer being surrounded — and that is
+ * the dodge's job. The two are meant to solve different halves of the same
+ * problem: the guard handles what you are looking at, the dodge handles what you
+ * are not.
+ */
+export const GUARD_ARC = 0.35;
+/** Movement speed while the shield is up, as a fraction of SPEED. */
+export const GUARD_SLOW = 0.55;
+/** How fast the shield comes up and down, in units of 1/second. */
+export const GUARD_RAISE = 11;
+/** Fraction of a blocked hit that still gets through, by creature weight. */
+export const GUARD_LEAK = 0;
+/**
+ * How much of a brute's blow the shield does *not* stop.
+ *
+ * A brute swings for 32 — nearly a third of MAX_HP — and stopping that dead
+ * would make the shield the answer to the one creature that is supposed to be
+ * frightening. At 0.35 a guarded brute still takes 11 off you, so blocking is
+ * survivable and standing there is not a plan.
+ */
+export const GUARD_LEAK_HEAVY = 0.35;
+
+// ================= Parry =================
+/**
+ * Seconds after raising the shield in which a blow is parried rather than
+ * merely blocked.
+ *
+ * Timed on the *press*, not the hold. A guard held up permanently has to be
+ * safe-but-worthless or there is no decision in it; the reward has to cost a
+ * moment of judgement. The telegraphs are long enough to read — measured from
+ * startAttack() to the hit landing: brute 905ms, zombie 703ms, lunatic 521ms —
+ * so 0.35 is generous against the brute and demanding against the lunatic, which
+ * is the right way round. The heavy hitter is the one worth learning.
+ */
+export const PARRY_WINDOW = 0.35;
+/**
+ * Seconds a parried creature is staggered: interrupted, rocked back, and unable
+ * to move or swing.
+ *
+ * Long enough to land the counter the parry opens. LUNGE_WINDOW is 0.5 and a
+ * swing takes SWING_IMPACT / SWING_SPEED = 0.2s to land, so this covers the
+ * whole exchange with room to spare.
+ */
+export const STAGGER_TIME = 0.8;
+/** How far back a staggered creature rocks, in radians. Eases back over STAGGER_TIME. */
+export const STAGGER_LEAN = 0.52;
+/** How far it is knocked back, in metres. */
+export const STAGGER_PUSH = 0.9;
+
 export const ATTACK_RANGE = 2.3;
 export const ATTACK_CD = 0.45;
 /**

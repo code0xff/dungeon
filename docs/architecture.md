@@ -327,6 +327,38 @@ only answer was to leave early — a resource problem with one legal move is not
 decision. It is deliberately *worse* gold-for-durability than the counter
 repair: the premium buys the ability to spend it at the bottom.
 
+## Guard and parry
+
+The shield covers `GUARD_ARC` in front and nothing behind, so `playerHurt()`
+takes the attacker as an argument — a blow has to know where it came from. Traps
+pass nothing and are therefore unblockable, which is right: a bear trap goes off
+under your feet.
+
+The guard and the dodge deliberately solve different halves of one problem.
+Creatures crowd and push past each other, so a guard that covered every direction
+would answer being surrounded, and that is the dodge's job. The guard handles
+what you are looking at.
+
+**Parrying is timed on the press, not the hold.** A shield held up permanently
+has to be safe and worthless or there is no decision in it. `PARRY_WINDOW` opens
+when the guard goes up; a blow taken inside it costs nothing, staggers the
+attacker, and sets `state.lungeT` — reusing the lunge window whole, so the glow,
+the impact light, the camera kick and the 5.52x hit all come for free and the
+player has nothing new to read. A parry is the defensive route to the opening the
+forward dodge already opens.
+
+Missing the timing still blocks. In a dungeon this dark, with three creatures on
+you, a mistimed parry that got you hit would make it a coin flip; costing only
+the reward makes it cheap to attempt.
+
+**There is no stagger clip** — the creatures ship idle, walk, attack and death
+and nothing else — so it is built from the root transform: the attack is cut, the
+body leans back and is pushed away over `STAGGER_TIME`, easing out on the square
+so it snaps and settles rather than returning like a door. The mesh's
+`rotation.order` is set to `'YXZ'` at spawn for this: `turnToward()` writes
+`rotation.y` every frame, and under the default XYZ order the lean would be about
+the world axis, tilting a side-on creature sideways instead of backwards.
+
 **The lunge** is the one place attack timing matters. An attack pressed within
 `LUNGE_WINDOW` of a *forward* dodge does `LUNGE_DMG`x damage. 5.52 is set so a
 lunge kills a 4hp zombie for the top half of the blade's life: damage is

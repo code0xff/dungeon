@@ -1,4 +1,6 @@
-import { GUIDE_KEY, LANTERN_KEY, LUNGE_DMG, POTION_KEY, SOUND_KEY, WHETSTONE_KEY } from './config';
+import {
+  GUARD_KEY, GUIDE_KEY, LANTERN_KEY, LUNGE_DMG, POTION_KEY, SOUND_KEY, WHETSTONE_KEY,
+} from './config';
 import { el } from './dom';
 
 /**
@@ -24,6 +26,8 @@ const KEYS: readonly (readonly [string, string])[] = [
   ['Lunge', `Dodge forward and the blade lights up. Attack while it is lit for ${LUNGE_DMG}x damage — a sharp sword kills a zombie outright`],
   ['Look', 'Move the mouse — click to lock it, Esc to release'],
   ['Attack / fire', 'Click or Space'],
+  ['Guard', `Hold the right mouse button, or ${GUARD_KEY}`],
+  ['Parry', 'Raise the guard as the blow lands — no damage, and it opens the same window a lunge does'],
   ['Open chest', 'E'],
   ['Swap weapon', 'Q — or 1 for the sword, 2 for the musket'],
   ['Drink a potion', `${POTION_KEY} — takes a moment to go down`],
@@ -39,6 +43,7 @@ const TOUCH: readonly (readonly [string, string])[] = [
   ['Look', 'Drag anywhere on the right'],
   ['Attack / fire', 'The red button'],
   ['Dodge', 'The blue button beside it'],
+  ['Guard / parry', 'Hold the shield button; tap it as the blow lands to parry'],
   ['Lunge', `Dodge with the stick pushed forward; attack while the button glows for ${LUNGE_DMG}x damage`],
   ['Open chest', 'Appears when you are near one'],
   ['Potion / lantern / whetstone', 'The small buttons above the swap, when you carry one'],

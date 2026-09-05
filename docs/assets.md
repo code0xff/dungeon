@@ -29,7 +29,7 @@ hands you the same bytes under two names.
 
 | | Mixamo | Poly Haven |
 |---|---|---|
-| What | creature models and animations | textures, weapons, props |
+| What | creature models and animations | textures, weapons, shield, props |
 | Account | Adobe, free | none |
 | Sources kept | `raw/`, git-ignored | none — refetch from the API |
 | Command | `npm run optimize-assets` | `npm run fetch-assets` |

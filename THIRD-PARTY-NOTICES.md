@@ -21,7 +21,7 @@ every one of them from the ids in its `PICKS` table.
 | `assets/weapons/sword.glb` | `wooden_handle_saber` |
 | `assets/weapons/musket.glb` | `bolt_action_rifle_7_62` |
 | `assets/props/chest.glb` | `treasure_chest` |
-| `assets/props/lantern.glb` | `Lantern_01` |
+| `assets/weapons/shield.glb` | `kite_shield` |
 
 <https://polyhaven.com> · <https://creativecommons.org/publicdomain/zero/1.0/>
 

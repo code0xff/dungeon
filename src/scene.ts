@@ -169,36 +169,47 @@ sword.position.copy(SWORD_REST.pos);
 sword.rotation.copy(SWORD_REST.rot);
 gearBob.add(sword);
 
-// ---- Lantern (left hand, shown while it has fuel) ----
+// ---- Shield (left hand) ----
 /**
- * Empty until loadLantern() fills it. There is deliberately no primitive
- * fallback: the cones this replaced read as a paper triangle held against the
- * player's cheek, and an unlit hand with a working light is better than that.
- */
-export const handLamp = new THREE.Group();
-/**
- * Where it hangs at rest. Deliberately low and far left, so the bottom-left
- * corner of the frame cuts it: centred in clear air it read as an object
- * floating beside the player's head, because there is no hand or arm to hold it.
- * The weapons get away with the same trick only because their grips run off the
- * bottom of the screen, and the edge implies the hand.
+ * Empty until loadShield() fills it. There is deliberately no primitive
+ * fallback: a bare box in the corner of the frame is worse than an empty hand,
+ * and the guard works whether or not anything is drawn.
  *
- * How much of it the crop takes depends on the viewport: three keeps the vertical
- * fov fixed and widens horizontally, so a narrow portrait phone pushes the lamp
- * off screen entirely. That is the right outcome there — the move stick sits in
- * that same corner — but it does mean this position cannot be tuned by looking at
- * one window size.
+ * This hand used to hold a lantern. The lantern was decoration and nothing else
+ * — `playerLight` is a point light on the player, `setLampLit()` only toggled the
+ * mesh's visibility, and the model never dimmed or guttered as the fuel ran down.
+ * It told the player nothing the light radius and the HUD timer did not already
+ * say, while occupying the one hand that could hold something useful.
  */
-export const LAMP_REST = { pos: new THREE.Vector3(-0.40, -0.48, -0.52), rot: new THREE.Euler(0.10, 0.62, 0.06) };
-handLamp.position.copy(LAMP_REST.pos);
-handLamp.rotation.copy(LAMP_REST.rot);
-handLamp.scale.setScalar(0.9);
-handLamp.visible = false;
-camera.add(handLamp);
+export const handShield = new THREE.Group();
+/**
+ * Lowered and raised poses.
+ *
+ * At rest it hangs low and edge-on at the left, cut by the corner of the frame,
+ * for the same reason the lantern did: centred in clear air an object with no arm
+ * behind it reads as floating beside the player's head. The weapons get away with
+ * it because their grips run off the bottom of the screen and the edge implies a
+ * hand.
+ *
+ * Raised, it comes up and turns its face toward the camera to cover the lower
+ * left. It deliberately stops short of the crosshair line and the right half,
+ * where the sword is: a guard that blinded the player would be a worse cost than
+ * the one it is supposed to have, and you have to be able to see what you are
+ * about to parry.
+ *
+ * Both were tuned by eye at the size the shield is actually drawn. The first
+ * pass put it at PROP_ASSETS.shield.height 0.86 and it filled half the frame
+ * like a wall a hand's width from the face.
+ */
+export const SHIELD_REST = { pos: new THREE.Vector3(-0.40, -0.46, -0.54), rot: new THREE.Euler(0.30, 1.10, 0.30) };
+export const SHIELD_GUARD = { pos: new THREE.Vector3(-0.245, -0.255, -0.60), rot: new THREE.Euler(0.05, 0.40, -0.06) };
+handShield.position.copy(SHIELD_REST.pos);
+handShield.rotation.copy(SHIELD_REST.rot);
+camera.add(handShield);
 
-/** Puts the loaded lantern model in the player's left hand. */
-export function equipLantern(model: THREE.Object3D): void {
-  handLamp.add(model);
+/** Puts the loaded shield model in the player's left hand. */
+export function equipShield(model: THREE.Object3D): void {
+  handShield.add(model);
   model.traverse((o) => {
     o.layers.set(1);
     if ((o as THREE.Mesh).isMesh) (o as THREE.Mesh).frustumCulled = false;
@@ -209,12 +220,14 @@ export function equipLantern(model: THREE.Object3D): void {
  * Switches the player's light between unlit and lantern-lit, and hands back the
  * base intensity for the caller to store. It returns rather than writing to
  * state because scene.ts sits below state in the module layering.
+ *
+ * There is no longer a lamp mesh to show or hide — the light, the fog and the
+ * HUD countdown are the whole of it.
  */
 export function setLampLit(lit: boolean): number {
   const l = lit ? LIGHT_LIT : LIGHT_DIM;
   playerLight.distance = l.distance;
   fog.density = l.fog;
-  handLamp.visible = lit;
   return l.intensity;
 }
 

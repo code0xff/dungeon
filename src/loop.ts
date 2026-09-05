@@ -5,7 +5,8 @@ import {
   ATTACK_IMPACT, ATTACK_IMPACT_REACH, CELL, CHEST_LID_OPEN, CREATURE_DRAW_DISTANCE,
   DASH_ROLL, DASH_SPEED, DASH_TIME, EYE_H, GROUND_SPEED_SMOOTH,
   FALLBACK_ATTACK_TIME, GEAR_BOB, GEAR_BOB_ROLL, LAMP_SWAY, LAMP_SWAY_LAG,
-  CREATURE_PUSH, LANTERN_WARN, LOOT_TIME, MUSKET_RELOAD, PLAYER_R, PORTAL_RADIUS, POTION_DRINK,
+  CREATURE_PUSH, GUARD_RAISE, GUARD_SLOW, LANTERN_WARN, LOOT_TIME, MUSKET_RELOAD, PLAYER_R,
+  PORTAL_RADIUS, POTION_DRINK, STAGGER_LEAN, STAGGER_TIME,
   SPEED,
   TRAP_RADIUS,
   STRIDE_RATE,
@@ -13,13 +14,14 @@ import {
   LUNGE_HIT_GLOW, LUNGE_HIT_KICK, LUNGE_HIT_LIGHT, LUNGE_HIT_TIME, LUNGE_WINDOW, SWING_IMPACT,
   SWING_SPEED, SWING_WINDUP, TURN_RATE, WALK_CLIP_SPEED, WALK_TIMESCALE_RANGE, WALL_H,
 } from './config';
-import { playerHurt, releaseQueuedAttack, resolveSwing, springTrap } from './combat';
+import { playerHurt, releaseQueuedAttack, resolveSwing, springTrap, staggerPush } from './combat';
 import { findPath } from './dungeon';
 import { edgeTurn, keys, moveInput } from './input';
 import { finishDrink, openChest } from './loot';
 import { setTrapJaws } from './props';
 import {
-  DUST, camera, dustGeo, flashLight, gearBob, handLamp, LAMP_REST, MUSKET_REST, musket,
+  DUST, camera, dustGeo, flashLight, gearBob, handShield, MUSKET_REST, musket,
+  SHIELD_GUARD, SHIELD_REST,
   muzzleFlash, portal, portalCore, renderFrame, scene, setBladeGlow, setLampLit, SMOKE_REST_Y,
   smoke, sword, SWORD_REST, playerLight,
 } from './scene';
@@ -117,6 +119,7 @@ function updatePlayer(dt: number, now: number): boolean {
   // Runs from the moment the dodge starts, so it overlaps DASH_TIME: swinging
   // mid-dodge is the cleanest lunge there is, and should not have to wait.
   state.lungeT = Math.max(0, state.lungeT - dt);
+  state.parryT = Math.max(0, state.parryT - dt);
 
   // Moving each axis separately is what lets the player slide along a wall.
   //
@@ -156,9 +159,12 @@ function updatePlayer(dt: number, now: number): boolean {
     // Normalise so diagonals are not faster, but leave small stick inputs alone.
     f /= Math.max(len, 1);
     s /= Math.max(len, 1);
+    // Braced behind a shield you shuffle rather than walk. This is most of what
+    // the guard costs — it is why holding it up crossing a room is not free.
+    const sp = SPEED * (state.guarding ? GUARD_SLOW : 1);
     step(
-      (Math.sin(state.yaw) * f - Math.cos(state.yaw) * s) * SPEED * dt,
-      (Math.cos(state.yaw) * f + Math.sin(state.yaw) * s) * SPEED * dt,
+      (Math.sin(state.yaw) * f - Math.cos(state.yaw) * s) * sp * dt,
+      (Math.cos(state.yaw) * f + Math.sin(state.yaw) * s) * sp * dt,
     );
   }
   state.pos.y = EYE_H + (moving ? Math.sin(now * 0.012) * 0.045 : 0);
@@ -314,11 +320,39 @@ function updateMonsters(dt: number, now: number): number {
     const t = m.type;
     m.atkCd = Math.max(0, m.atkCd - dt);
 
+
     const dx = state.pos.x - m.mesh.position.x, dz = state.pos.z - m.mesh.position.z;
     const dist = Math.hypot(dx, dz);
     nearest = Math.min(nearest, dist);
     // Drawing only, not thinking — see CREATURE_DRAW_DISTANCE.
     m.mesh.visible = dist < CREATURE_DRAW_DISTANCE;
+
+    // ---- Staggered by a parry ----
+    //
+    // Built from the root transform because the creatures have no stagger clip.
+    // The lean is about the mesh's own X after yaw — rotation.order is 'YXZ' for
+    // exactly this — so it rocks backwards whichever way the creature is facing.
+    // It eases out on the square, so the body snaps back and settles rather than
+    // returning at a constant rate like a door closing.
+    if (m.staggerT > 0) {
+      m.staggerT = Math.max(0, m.staggerT - dt);
+      const k = m.staggerT / STAGGER_TIME;
+      m.mesh.rotation.x = -STAGGER_LEAN * k * k;
+      const push = staggerPush(m, dt);
+      const nx = m.mesh.position.x + m.staggerX * push;
+      const nz = m.mesh.position.z + m.staggerZ * push;
+      // Per axis, like everything else that moves a creature, so being knocked
+      // back cannot shove one through a wall.
+      if (!collides(nx, m.mesh.position.z, t.clearance)) m.mesh.position.x = nx;
+      if (!collides(m.mesh.position.x, nz, t.clearance)) m.mesh.position.z = nz;
+      if (m.playback) animLoaded(m, m.playback, dt);
+      else if (m.rig) animProcedural(m, m.rig, dt, now);
+      // It still turns to face you as it recovers, so the counter lands on its
+      // front and it is visibly still coming.
+      m.mesh.rotation.y = turnToward(m.mesh.rotation.y, Math.atan2(dx, dz), TURN_RATE * dt);
+      continue;
+    }
+    m.mesh.rotation.x = 0;
 
     // ---- Attack animation in progress ----
     const attacking = m.attackT > 0;
@@ -329,7 +363,7 @@ function updateMonsters(dt: number, now: number): number {
         if (m.pendingHit <= 0) {
           m.pendingHit = null;
           // The player must still be in reach when the arm lands — back away and it whiffs.
-          if (dist < t.reach * ATTACK_IMPACT_REACH) playerHurt(t.dmg);
+          if (dist < t.reach * ATTACK_IMPACT_REACH) playerHurt(t.dmg, m);
         }
       }
     }
@@ -670,13 +704,25 @@ function updateHeldGear(dt: number, now: number, moving: boolean): void {
   gearBob.rotation.z = Math.sin(t) * swayT * GEAR_BOB_ROLL;
   gearBob.rotation.x = Math.abs(Math.sin(t)) * swayT * GEAR_BOB_ROLL * 0.4;
 
-  // ---- Lantern: hung from the other hand ----
-  if (!handLamp.visible) return;
-  const a = swayT * LAMP_SWAY;
-  handLamp.rotation.z = LAMP_REST.rot.z + Math.sin(t - LAMP_SWAY_LAG) * a;
-  handLamp.rotation.x = LAMP_REST.rot.x + Math.sin(t * 2 - LAMP_SWAY_LAG) * a * 0.35;
-  handLamp.position.x = LAMP_REST.pos.x + Math.sin(t - LAMP_SWAY_LAG) * a * 0.09;
-  handLamp.position.y = LAMP_REST.pos.y + Math.abs(Math.sin(t)) * a * 0.12;
+  // ---- Shield: hung from the other hand, or up ----
+  //
+  // The raise is smoothed rather than snapped so the shield reads as being
+  // lifted. The sway is scaled by how far down it is: a shield hanging at the
+  // side swings like the lantern that used to hang here, and a shield braced in
+  // front of you does not.
+  state.guardT += ((state.guarding ? 1 : 0) - state.guardT) * Math.min(1, dt * GUARD_RAISE);
+  const g = state.guardT * state.guardT * (3 - 2 * state.guardT);
+  handShield.position.lerpVectors(SHIELD_REST.pos, SHIELD_GUARD.pos, g);
+  handShield.rotation.set(
+    SHIELD_REST.rot.x + (SHIELD_GUARD.rot.x - SHIELD_REST.rot.x) * g,
+    SHIELD_REST.rot.y + (SHIELD_GUARD.rot.y - SHIELD_REST.rot.y) * g,
+    SHIELD_REST.rot.z + (SHIELD_GUARD.rot.z - SHIELD_REST.rot.z) * g,
+  );
+  const a = swayT * LAMP_SWAY * (1 - g);
+  handShield.rotation.z += Math.sin(t - LAMP_SWAY_LAG) * a;
+  handShield.rotation.x += Math.sin(t * 2 - LAMP_SWAY_LAG) * a * 0.35;
+  handShield.position.x += Math.sin(t - LAMP_SWAY_LAG) * a * 0.09;
+  handShield.position.y += Math.abs(Math.sin(t)) * a * 0.12;
 }
 
 function updateAmbience(dt: number, now: number): void {

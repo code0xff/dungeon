@@ -208,6 +208,10 @@ function spawnOne(key: CreatureKey): void {
   const [gx, gz] = randomFloorCell(6);
   const sp = spawnCreature(key);
   sp.mesh.position.set(gx * CELL, 0, gz * CELL);
+  // Yaw first, so the stagger lean rocks the creature backwards along its own
+  // facing rather than along the world X axis — turnToward() writes rotation.y
+  // every frame, and the default XYZ order would tilt a side-on creature sideways.
+  sp.mesh.rotation.order = 'YXZ';
   // Vary the size per creature so the crowd stops looking like clones.
   const scale = rand(SCALE_VARIANCE);
   sp.mesh.scale.setScalar(scale);
@@ -228,6 +232,9 @@ function spawnOne(key: CreatureKey): void {
     attackT: 0,
     pendingHit: null,
     hurtT: 0,
+    staggerT: 0,
+    staggerX: 0,
+    staggerZ: 0,
     alert: 0,
     repath: 0,
     step: null,
@@ -371,6 +378,10 @@ export function buildWorld(): void {
   state.dashCd = 0;
   state.dashSide = 0;
   state.lungeT = 0;
+  state.guarding = false;
+  state.guardT = 0;
+  state.parryT = 0;
+  state.parryShown = false;
   state.swingLunge = false;
   state.lungeShown = false;
   state.lungeHitT = 0;

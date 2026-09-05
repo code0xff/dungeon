@@ -44,10 +44,11 @@ const PICKS = {
     // Ten chests are in the dungeon at once and the source is 68k triangles, so
     // this one is decimated hard; at torchlight range the loss does not show.
     chest: { id: 'treasure_chest', dir: 'props', texture: 512, simplify: 0.2 },
-    // Held in the left hand. Poly Haven has no medieval torch, and a lantern
-    // with fuel suits a light source that burns down anyway. Decimated less
-    // hard than the chest because it is held close to the camera.
-    lantern: { id: 'Lantern_01', dir: 'props', texture: 512, simplify: 0.4 },
+    // Held in the left hand. Poly Haven's only shield, and a kite shield is the
+    // right shape for it — tall enough to read as cover from a first-person view
+    // where only its inner face is ever seen. Held close to the camera, so it is
+    // decimated lightly.
+    shield: { id: 'kite_shield', dir: 'weapons', texture: 512, simplify: 0.5 },
   },
 };
 

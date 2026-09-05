@@ -143,6 +143,16 @@ export interface Monster {
   pendingHit: number | null;
   /** Seconds of hit flash left. */
   hurtT: number;
+  /**
+   * Seconds left of being staggered by a parry: interrupted, rocked back and
+   * unable to move or swing. There is no stagger clip — the creatures ship idle,
+   * walk, attack and death only — so this drives a root lean and a knockback
+   * instead.
+   */
+  staggerT: number;
+  /** Knockback direction locked in when the stagger started, as a unit vector. */
+  staggerX: number;
+  staggerZ: number;
   /** Seconds left of alertness from a gunshot. Above 0 it chases from beyond aggro range. */
   alert: number;
   /** Seconds until the path is recomputed. */
