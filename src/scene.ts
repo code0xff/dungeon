@@ -191,11 +191,15 @@ export const handShield = new THREE.Group();
  * it because their grips run off the bottom of the screen and the edge implies a
  * hand.
  *
- * Raised, it comes up and turns its face toward the camera to cover the lower
- * left. It deliberately stops short of the crosshair line and the right half,
- * where the sword is: a guard that blinded the player would be a worse cost than
- * the one it is supposed to have, and you have to be able to see what you are
- * about to parry.
+ * Raised, it is braced low and close rather than held out at arm's length. That
+ * is what puts the broad top of a kite shield across the view and drops the
+ * tapered point below the frame, which is the half of it that actually reads as
+ * cover — held higher, the same shield showed mostly its narrow end.
+ *
+ * It deliberately stops short of the crosshair line and the right half, where
+ * the sword is: a guard that blinded the player would be a worse cost than the
+ * one it is supposed to have, and you have to be able to see what you are about
+ * to parry.
  *
  * Both were tuned by eye at the size the shield is actually drawn, and the
  * distance is what buys the size. The first pass held it 0.44m from the camera,
@@ -206,8 +210,8 @@ export const handShield = new THREE.Group();
  *
  * Poly Haven has no round shield or buckler; kite_shield is its only one.
  */
-export const SHIELD_REST = { pos: new THREE.Vector3(-0.44, -0.52, -0.60), rot: new THREE.Euler(0.30, 1.10, 0.30) };
-export const SHIELD_GUARD = { pos: new THREE.Vector3(-0.23, -0.30, -0.70), rot: new THREE.Euler(0.05, 0.40, -0.06) };
+export const SHIELD_REST = { pos: new THREE.Vector3(-0.46, -0.63, -0.60), rot: new THREE.Euler(0.30, 1.10, 0.30) };
+export const SHIELD_GUARD = { pos: new THREE.Vector3(-0.22, -0.46, -0.58), rot: new THREE.Euler(0.05, 0.30, -0.05) };
 handShield.position.copy(SHIELD_REST.pos);
 handShield.rotation.copy(SHIELD_REST.rot);
 camera.add(handShield);
