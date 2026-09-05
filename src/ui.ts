@@ -3,8 +3,10 @@ import {
 } from './config';
 import { context2d, el, firstChild, queryChild } from './dom';
 import { bankRun, loseRun, progress } from './progress';
+import { flashLight } from './scene';
 import { openShop } from './shop';
 import { state } from './state';
+import { finishDrink } from './loot';
 
 // ---- Frequently used elements ----
 export const hpbarEl = el('hpbar');
@@ -205,7 +207,17 @@ export function endRun(extracted: boolean): void {
   // Creatures also land more than one hit per frame, so this guards the double
   // loseRun() that came with that.
   if (state.gameOver) return;
+  // Walking out with a potion halfway down still gets the health: it was spent
+  // at the first sip, and the run ending is not a reason to keep the payment and
+  // withhold the goods. Dying mid-drink still loses it, which is the risk the
+  // upfront spend is for.
+  //
+  // Before `gameOver` is set, because finishDrink() refuses to heal a corpse —
+  // which is right, and is exactly why this cannot wait until after the flag.
+  if (extracted && state.drinkT >= 0) finishDrink();
   state.gameOver = true;
+  state.drinkT = -1;
+  drinkBarEl.style.display = 'none';
   cancelLoot();
   // The frame loop stops here, and anything mid-animation stops with it. The
   // shield would stay frozen half-raised behind the panel, and a creature
@@ -214,6 +226,11 @@ export function endRun(extracted: boolean): void {
   state.guardHeld = 0;
   state.parryT = 0;
   state.guardT = 0;
+  // The lunge impact drives flashLight and the camera kick, and the kick is read
+  // outside the paused/dead gate — so a lunge landed in the last moment left the
+  // view tilted and a light burning behind the panel.
+  state.lungeHitT = 0;
+  flashLight.intensity = 0;
   for (const m of state.monsters) {
     m.staggerT = 0;
     m.mesh.rotation.x = 0;

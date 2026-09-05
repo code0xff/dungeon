@@ -91,6 +91,10 @@ export function fireMusket(): void {
   state.loaded = false;
   state.ammo--;
   state.recoilT = 0;
+  // The impact and the muzzle flash drive one light between them. Swapping to
+  // the musket mid-impact and firing left it lit at the wrong place, so the shot
+  // simply ends the impact rather than queueing behind it.
+  state.lungeHitT = 0;
   state.flashT = 0.09;
   muzzleFlash.visible = true;
   smoke.material.opacity = 0.55;
@@ -277,6 +281,10 @@ export function springTrap(): string {
  * Returns how the hit resolved, so the caller can react to a parry.
  */
 export function playerHurt(dmg: number, from?: Monster): 'hit' | 'blocked' | 'parried' {
+  // updateMonsters() can end the run part way through a frame, and updateTraps()
+  // still runs after it — so a trap could fire on a corpse, wake the dungeon and
+  // put its message over the death screen.
+  if (state.gameOver) return 'hit';
   let outcome: 'hit' | 'blocked' | 'parried' = 'hit';
   if (from && state.guarding) {
     const dx = from.mesh.position.x - state.pos.x, dz = from.mesh.position.z - state.pos.z;
