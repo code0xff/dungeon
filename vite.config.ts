@@ -43,6 +43,12 @@ export default defineConfig({
   // The cost is that runtime URLs drop the leading 'assets/' — 'creatures/zombie/idle.fbx'.
   publicDir: 'assets',
   // host: true binds 0.0.0.0, so a phone or tablet on the same network can connect.
-  server: { host: true, open: false },
+  //
+  // The port is pinned off vite's 5173 because that is every vite project's
+  // default, so a second one running collides and silently walks up to 5174 —
+  // and then the phone on the network is pointed at whichever project won the
+  // race. strictPort makes that a startup error instead of a quiet reassignment,
+  // which is the whole point: an address printed once should stay true.
+  server: { host: true, open: false, port: 5847, strictPort: true },
   build: { outDir: 'dist', target: 'es2022' },
 });
