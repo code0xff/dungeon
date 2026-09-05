@@ -197,12 +197,17 @@ export const handShield = new THREE.Group();
  * the one it is supposed to have, and you have to be able to see what you are
  * about to parry.
  *
- * Both were tuned by eye at the size the shield is actually drawn. The first
- * pass put it at PROP_ASSETS.shield.height 0.86 and it filled half the frame
- * like a wall a hand's width from the face.
+ * Both were tuned by eye at the size the shield is actually drawn, and the
+ * distance is what buys the size. The first pass held it 0.44m from the camera,
+ * where a 0.86m shield filled half the frame like a wall a hand's width from the
+ * face; the fix then was to shrink it, which left something that read as a
+ * buckler rather than cover. Pushing the raised pose out to 0.70m instead lets it
+ * be 0.82m tall — a real kite shield — while covering no more of the view.
+ *
+ * Poly Haven has no round shield or buckler; kite_shield is its only one.
  */
-export const SHIELD_REST = { pos: new THREE.Vector3(-0.40, -0.46, -0.54), rot: new THREE.Euler(0.30, 1.10, 0.30) };
-export const SHIELD_GUARD = { pos: new THREE.Vector3(-0.245, -0.255, -0.60), rot: new THREE.Euler(0.05, 0.40, -0.06) };
+export const SHIELD_REST = { pos: new THREE.Vector3(-0.44, -0.52, -0.60), rot: new THREE.Euler(0.30, 1.10, 0.30) };
+export const SHIELD_GUARD = { pos: new THREE.Vector3(-0.23, -0.30, -0.70), rot: new THREE.Euler(0.05, 0.40, -0.06) };
 handShield.position.copy(SHIELD_REST.pos);
 handShield.rotation.copy(SHIELD_REST.rot);
 camera.add(handShield);

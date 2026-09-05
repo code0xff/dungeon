@@ -41,7 +41,7 @@ export const PROP_ASSETS = {
    * guttered as the fuel ran down. Trading it for something the hand can
    * actually use is a straight gain.
    */
-  shield: { url: 'weapons/shield.glb', height: 0.53 },
+  shield: { url: 'weapons/shield.glb', height: 0.82 },
 } as const;
 
 /**
