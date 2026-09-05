@@ -282,22 +282,26 @@
              border:1px solid rgba(212,178,90,.55); color:#efdca6;
              background:radial-gradient(circle at 50% 32%, rgba(150,118,44,.55), rgba(64,50,18,.5) 72%);
              box-shadow:0 6px 22px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,230,160,.16); }
-  /* Stacked above the dodge in the same column, ordered by how fast the hand has
-     to reach them — nothing here is needed in a hurry. It stacks rather than
-     reaching further left because on a portrait phone that row runs into the
-     move stick. */
-  #potBtn, #lampBtn, #whetBtn, #wpnBtn { right:calc(114px + env(safe-area-inset-right)); width:46px; height:46px;
+  /* A row rather than a column, ordered right to left by how fast the hand has
+     to reach it: potion, lantern, whetstone, then the weapon swap. Nothing here
+     is needed in a hurry, which is what lets it sit inboard of the thumb cluster.
+     
+     It runs at bottom:158px for one reason — the move stick is at left:24px and
+     114px tall, so it occupies 24-138px up from the bottom edge. Sitting above
+     that is what lets the row reach left across the screen without landing on
+     the stick, which is why the old layout had to stack instead. */
+  #potBtn, #lampBtn, #whetBtn, #wpnBtn { bottom:calc(158px + env(safe-area-inset-bottom));
+                      width:46px; height:46px;
                       border:1px solid rgba(201,192,174,.4); color:#c9c0ae;
                       background:radial-gradient(circle at 50% 32%, rgba(70,66,58,.62), rgba(28,26,22,.5) 72%);
                       box-shadow:0 5px 18px rgba(0,0,0,.45); }
-  #wpnBtn { bottom:calc(100px + env(safe-area-inset-bottom)); }
-  #potBtn { bottom:calc(154px + env(safe-area-inset-bottom)); }
-  #lampBtn { bottom:calc(208px + env(safe-area-inset-bottom)); }
-  /* Fourth and topmost, at 262px + 46px tall — 308px above the bottom edge,
-     comfortably clear of the middle of the shortest phone this runs on (iPhone
-     SE, 667px), and it is only ever on screen while a whetstone is carried and
-     the sword is in hand. */
-  #whetBtn { bottom:calc(262px + env(safe-area-inset-bottom)); }
+  #potBtn { right:calc(100px + env(safe-area-inset-right)); }
+  #lampBtn { right:calc(154px + env(safe-area-inset-right)); }
+  #whetBtn { right:calc(208px + env(safe-area-inset-right)); }
+  /* Furthest out, at 262px + 46px = 308px from the right edge. On the narrowest
+     phone this targets that is still 52px in from the left, and it clears the
+     move stick by height rather than by width. */
+  #wpnBtn { right:calc(262px + env(safe-area-inset-right)); }
   /* Directly above attack. Guarding is a reflex like dodging, so it sits one
      short reach from where the thumb already rests rather than up a stack. */
   #guardBtn { right:calc(31px + env(safe-area-inset-right)); bottom:calc(112px + env(safe-area-inset-bottom));

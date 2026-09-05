@@ -386,7 +386,6 @@ export function buildWorld(): void {
   state.parryCd = 0;
   state.parryShown = false;
   state.swingLunge = false;
-  state.lungeShown = false;
   state.lungeHitT = 0;
   state.swordDur = progress.swordDur;
   state.swordWarned = false;
