@@ -85,6 +85,8 @@ export const state = {
    * while this is running is parried rather than merely blocked.
    */
   parryT: 0,
+  /** Seconds until a guard press can open a parry window again. See PARRY_CD. */
+  parryCd: 0,
   /** Whether the parry has been explained once this run. */
   parryShown: false,
 

@@ -120,6 +120,7 @@ function updatePlayer(dt: number, now: number): boolean {
   // mid-dodge is the cleanest lunge there is, and should not have to wait.
   state.lungeT = Math.max(0, state.lungeT - dt);
   state.parryT = Math.max(0, state.parryT - dt);
+  state.parryCd = Math.max(0, state.parryCd - dt);
 
   // Moving each axis separately is what lets the player slide along a wall.
   //
@@ -336,6 +337,11 @@ function updateMonsters(dt: number, now: number): number {
     // returning at a constant rate like a door closing.
     if (m.staggerT > 0) {
       m.staggerT = Math.max(0, m.staggerT - dt);
+      // Kept running through the stagger. They live below the `continue`, so a
+      // parried creature was otherwise staying alerted — and holding its groan —
+      // for however long it spent rocked back.
+      m.alert = Math.max(0, m.alert - dt);
+      m.groanT -= dt;
       const k = m.staggerT / STAGGER_TIME;
       m.mesh.rotation.x = -STAGGER_LEAN * k * k;
       const push = staggerPush(m, dt);

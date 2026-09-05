@@ -352,6 +352,19 @@ export const GUARD_LEAK_HEAVY = 0.35;
  */
 export const PARRY_WINDOW = 0.35;
 /**
+ * Seconds after a guard press before another press can open a parry window.
+ *
+ * Without this the timing is free: `guardDown()` sets the window on every press,
+ * so tapping the button at 10Hz keeps a 0.35s window permanently open and every
+ * blow that lands is parried. That is not a hard exploit to find — it is what
+ * mashing does — and it would have quietly deleted the one mechanic in the game
+ * that asks for timing.
+ *
+ * Longer than PARRY_WINDOW, so the windows cannot overlap however fast the press
+ * is repeated. Tapping still guards; it just does not keep re-arming the parry.
+ */
+export const PARRY_CD = 0.55;
+/**
  * Seconds a parried creature is staggered: interrupted, rocked back, and unable
  * to move or swing.
  *
