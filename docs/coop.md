@@ -79,17 +79,45 @@ Seeded worldgen (`src/rng.ts`). A dungeon is a pure function of
 `(seed, level)`, so the host sends two numbers instead of a map. See
 `docs/testing.md` for the `?seed=` parameter.
 
+## Where players connect
+
+**Only the host runs a server.** Nobody else installs or starts anything. What
+changes between setups is which address a player opens, and the reason is one
+browser rule: an `https://` page may not open a plain `ws://` socket. The
+GitHub Pages build is HTTPS and a home machine has no certificate, so the two
+cannot be combined.
+
+| Setup | What a player opens | What the host runs |
+|---|---|---|
+| Same network | `http://<host-lan-ip>:5848`, read out by the host | `npm run host` |
+| Over the internet | the GitHub Pages build, plus the server address | `npm run host` and a tunnel |
+
+A tunnel (ngrok, Cloudflare Tunnel, Tailscale Funnel) hands out an `https://`
+address, and `wss://` to that address is allowed from an HTTPS page. So the
+deployed build *is* usable for co-op — it just cannot reach an uncertificated
+machine directly, and no amount of client code changes that.
+
+Two consequences for the client:
+
+- **The server address is never compiled in.** It defaults to wherever the page
+  was served from, which makes the LAN case a single URL with nothing to type,
+  and it can be overridden — a `?server=` parameter and a field in the lobby —
+  which is what makes the Pages build work against a tunnel.
+- **The scheme follows the page.** An HTTPS page uses `wss://`, an HTTP page
+  uses `ws://`. Guessing wrong fails with a console error a player will never
+  find.
+
+Because the Pages build and the host can now be different versions of the game,
+`PROTOCOL_VERSION` is doing real work rather than guarding a theoretical case.
+
 ## What is missing
 
 - **The server.** Node, `ws`, in-memory, no database. It is a dependency the
   client bundle never sees; the alternative was hand-writing RFC 6455 framing,
   which is not a good use of anyone's time. It serves the built game too — see
   below.
-- **The transport problem.** The GitHub Pages build is HTTPS, and a browser will
-  not open `ws://` to a home machine from an HTTPS page. So the host serves the
-  game *and* the socket from the same process over plain HTTP on the LAN, and
-  players load the page from the host. Over the internet this needs a tunnel;
-  that is a friends-only story and it is fine.
+- **The lobby UI**, including the field that says where the server is. See
+  "Where players connect" below — the address must never be compiled in.
 - **A player avatar.** Other players are drawn as the existing lunatic mesh,
   tinted, until the netcode is proven worth an asset. The creature pipeline
   already has the right shape (rigged GLB per clip) and the budget has ~7.5MB
