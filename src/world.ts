@@ -9,7 +9,10 @@ import { dungeonSize, generateDungeon } from './dungeon';
 import { createChest, makeSconce, makeTrap, rollProp } from './props';
 import { clipDuration, setAnim } from './assets';
 import { progress } from './progress';
-import { portal, portalCore, portalLight, scene, setLampLit, setPortalOpen, world } from './scene';
+import {
+  flashLight, muzzleFlash, portal, portalCore, portalLight, scene, setLampLit, setPortalOpen,
+  SMOKE_REST_Y, smoke, world,
+} from './scene';
 import { state } from './state';
 import { ceilTex, floorTex, wallTex } from './textures';
 import type { CreatureKey, GridCell, Monster } from './types';
@@ -395,6 +398,25 @@ export function buildWorld(): void {
   state.loaded = true;
   state.reloadT = -1;
   state.recoilT = -1;
+  // The muzzle flash, its light and its smoke are driven by updateWeapons(),
+  // which does not run once the run is over — so firing and dying inside the
+  // same 0.09s froze all of them mid-fade and carried them into the next
+  // dungeon. recoilT was already reset here; the rest was missed.
+  //
+  // The light and the smoke's height have to be put back **by hand**, and that
+  // is the part that is easy to get wrong: both are only ever restored inside
+  // the `flashT > 0` and `opacity > 0` branches of the loop. Zeroing the timer
+  // and the opacity without them leaves a bright light following the player for
+  // the whole next run, and a smoke puff hanging permanently above the muzzle.
+  //
+  // flashLight is shared with the lunge impact, whose lungeHitT is zeroed just
+  // above — so this covers dying mid-lunge as well, which stranded the light on
+  // before any of this existed.
+  state.flashT = 0;
+  muzzleFlash.visible = false;
+  flashLight.intensity = 0;
+  smoke.material.opacity = 0;
+  smoke.position.y = SMOKE_REST_Y;
   wpnBtn.classList.add('show');
   setWeapon('sword');
 
