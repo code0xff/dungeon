@@ -32,6 +32,7 @@ export const potBtn = el('potBtn');
 export const lampBtn = el('lampBtn');
 export const whetBtn = el('whetBtn');
 export const dashBtn = el('dashBtn');
+export const guardBtn = el('guardBtn');
 export const atkBtn = el('atkBtn');
 export const guideBtn = el('guideBtn');
 export const guideCloseBtn = el('guideClose');
@@ -77,6 +78,7 @@ export function updateHUD(): void {
   );
   atkLabel.textContent = attackLabel();
   dashBtn.classList.add('show');
+  guardBtn.classList.add('show');
   potBtn.classList.toggle('show', state.potions > 0);
   lampBtn.classList.toggle('show', state.lanterns > 0);
   // Only while the sword is in hand: a whetstone does nothing for the musket,

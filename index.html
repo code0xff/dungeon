@@ -294,6 +294,15 @@
      (iPhone SE, 667px) — and it is only ever on screen while a whetstone is
      actually carried and the sword is in hand. */
   #whetBtn { bottom:calc(306px + env(safe-area-inset-bottom)); }
+  /* Beside the attack button on the far side of dodge: the guard is the other
+     thing the thumb reaches for in a hurry, and it must not be a stack away. */
+  #guardBtn { right:calc(36px + env(safe-area-inset-right)); bottom:calc(210px + env(safe-area-inset-bottom));
+              width:60px; height:60px; font-size:9.5px;
+              border:1px solid rgba(140,170,210,.5); color:#c3d6ee;
+              background:radial-gradient(circle at 50% 32%, rgba(46,74,116,.6), rgba(18,28,44,.5) 72%);
+              box-shadow:0 5px 18px rgba(0,0,0,.45); }
+  #guardBtn.on { border-color:rgba(190,215,245,.95); background:radial-gradient(circle at 50% 32%, rgba(76,116,170,.8), rgba(28,44,68,.6) 72%); }
+  #guardBtn .ico { width:21px; height:21px; }
   #dashBtn { right:calc(128px + env(safe-area-inset-right)); bottom:calc(40px + env(safe-area-inset-bottom));
              width:68px; height:68px; border:1px solid rgba(140,170,210,.5); color:#c3d6ee;
              background:radial-gradient(circle at 50% 32%, rgba(46,74,116,.6), rgba(18,28,44,.5) 72%);
@@ -328,7 +337,7 @@
     .stick { display:block }
     #atkBtn { display:flex } #lootBtn.show { display:flex } #wpnBtn.show { display:flex }
     #potBtn.show { display:flex } #lampBtn.show { display:flex } #whetBtn.show { display:flex }
-    #dashBtn.show { display:flex }
+    #dashBtn.show { display:flex } #guardBtn.show { display:flex }
     #prompt, #lockHint { display:none!important }
     .guideKeyboard { display:none }
     .guideTouch { display:block }
@@ -389,6 +398,10 @@
   <symbol id="i-potion" viewBox="0 0 24 24">
     <path d="M10 2.8h4M12 2.8v4.6l4.4 8.6a3.4 3.4 0 0 1-3 5H10.6a3.4 3.4 0 0 1-3-5L12 7.4"/>
     <path d="M8.6 14.6h6.8"/>
+  </symbol>
+  <symbol id="i-guard" viewBox="0 0 24 24">
+    <path d="M12 2.6 20 5.4v6.1c0 4.6-3.2 8-8 9.9-4.8-1.9-8-5.3-8-9.9V5.4z"/>
+    <path d="M12 7.4v8.4M8.4 11.1h7.2"/>
   </symbol>
   <symbol id="i-dash" viewBox="0 0 24 24">
     <path d="M2.5 8.5h9M2.5 12h13M2.5 15.5h9"/>
@@ -476,6 +489,7 @@
 <div id="lampBtn" class="tbtn"><svg class="ico"><use href="#i-lamp"/></svg><span class="count">0</span></div>
 <div id="whetBtn" class="tbtn"><svg class="ico"><use href="#i-whet"/></svg><span class="count">0</span></div>
 <div id="dashBtn" class="tbtn"><svg class="ico"><use href="#i-dash"/></svg><span>Dodge</span></div>
+<div id="guardBtn" class="tbtn"><svg class="ico"><use href="#i-guard"/></svg><span>Guard</span></div>
 
 <div id="overlay">
   <h1 id="ovTitle"></h1>

@@ -115,6 +115,8 @@ rules, with the detail in [docs/](docs/). `CLAUDE.md` is a symlink to it.
 | Lunge | dodge *forward*, then attack while the blade glows — 5.52x damage |
 | Look | move the mouse (click to lock the cursor, `Esc` to release) |
 | Attack / fire | click or `Space` |
+| Guard | hold right mouse, or `F` — covers the front only |
+| Parry | raise the guard *as the blow lands* |
 | Open chest | `E` |
 | Swap weapon | `Q` |
 | Drink potion / light lantern / sharpen sword | `3` / `4` / `5` — a potion takes a moment to go down |
@@ -144,6 +146,21 @@ ruined one in nine. It never stops working entirely, because a weapon that does
 would strand you with no way back to the exit. A **whetstone** from a chest or
 the shop grinds 45 points back, spent with `5` — the only repair available while
 you are still down there.
+
+**Guarding** covers a 70-degree arc in front and nothing behind, slows you to
+just over half speed, and stops you swinging. A brute still puts a third of its
+blow through it. Holding it up is safe and buys nothing.
+
+**Parrying** is the same button, timed: raise the shield as the blow lands and it
+costs nothing, staggers whatever swung — interrupted, rocked back, knocked away —
+and opens the same window a lunge does. The telegraphs are long enough to read:
+905ms for a brute, 703ms for a zombie, 521ms for a lunatic, so the heavy hitter
+is the one worth learning and the fast one is still better dodged. Miss the
+timing and you simply block, which makes trying it cheap.
+
+The left hand used to hold a lantern. It was decoration — the light is a point
+light on the player, and the model never dimmed or guttered as the fuel ran down,
+so it said nothing the light radius and the HUD countdown did not.
 
 **A forward dodge into an attack is a lunge**, worth 5.52x damage on that one
 swing — enough to kill a zombie outright for the top half of the blade's life,

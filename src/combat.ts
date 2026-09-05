@@ -1,8 +1,9 @@
 import { clipDuration, setAnim } from './assets';
-import { sfxHit, sfxLunge, sfxShot, sfxSwing, sfxTrap } from './audio';
+import { sfxHit, sfxLunge, sfxParry, sfxShot, sfxSwing, sfxTrap } from './audio';
 import {
-  ATTACK_BUFFER, ATTACK_CD, ATTACK_RANGE, CORPSE_LINGER, LUNGE_DMG, MUSKET_DMG, MUSKET_RANGE,
-  LUNGE_HIT_LIGHT, LUNGE_HIT_TIME, REWARD_SPREAD,
+  ATTACK_BUFFER, ATTACK_CD, ATTACK_RANGE, CORPSE_LINGER, GUARD_ARC, GUARD_LEAK, GUARD_LEAK_HEAVY,
+  LUNGE_DMG, LUNGE_WINDOW, MUSKET_DMG, MUSKET_RANGE,
+  LUNGE_HIT_LIGHT, LUNGE_HIT_TIME, REWARD_SPREAD, STAGGER_PUSH, STAGGER_TIME,
   TRAP_ALERT_RADIUS, TRAP_ALERT_TIME, TRAP_DMG,
   SHOT_ALERT_RADIUS, SHOT_ALERT_TIME,
   SWORD_ARC, SWORD_CLEAVE, SWORD_DMG_WORN, SWORD_DUR_MAX, SWORD_WARN_AT, SWORD_WEAR,
@@ -39,6 +40,10 @@ function facing(): [fx: number, fz: number] {
  */
 export function killMonster(m: Monster): number {
   m.hp = 0;
+  // A creature killed mid-stagger would otherwise keep its lean through the
+  // whole death animation, since the stagger block returns early for the dead.
+  m.staggerT = 0;
+  m.mesh.rotation.x = 0;
   const spread = m.type.reward * REWARD_SPREAD;
   const gold = Math.max(1, Math.round(m.type.reward - spread + Math.random() * spread * 2));
   state.runGold += gold;
@@ -139,6 +144,9 @@ function startSwing(lunge: boolean): void {
 
 export function tryAttack(): void {
   if (state.gameOver) return;
+  // Both hands are busy behind a shield. This is the other half of what the
+  // guard costs — a parry drops it for you precisely so the counter can land.
+  if (state.guarding) return;
   if (state.weapon === 'musket') {
     fireMusket();
     return;
@@ -255,7 +263,56 @@ export function springTrap(): string {
   return heard > 0 ? `The trap springs — ${heard} heard it` : 'The trap springs';
 }
 
-export function playerHurt(dmg: number): void {
+/**
+ * Damage to the player, optionally from a known attacker.
+ *
+ * `from` is what makes the shield mean anything: a guard covers GUARD_ARC in
+ * front and nothing behind, so the blow has to know where it came from. Traps
+ * pass nothing and are therefore unblockable, which is right — a bear trap goes
+ * off under your feet, not into your shield.
+ *
+ * Returns how the hit resolved, so the caller can react to a parry.
+ */
+export function playerHurt(dmg: number, from?: Monster): 'hit' | 'blocked' | 'parried' {
+  let outcome: 'hit' | 'blocked' | 'parried' = 'hit';
+  if (from && state.guarding) {
+    const dx = from.mesh.position.x - state.pos.x, dz = from.mesh.position.z - state.pos.z;
+    const d = Math.hypot(dx, dz) || 1;
+    const [fx, fz] = facing();
+    if ((dx * fx + dz * fz) / d > GUARD_ARC) {
+      // Timed on the press, not the hold: a shield held up forever is safe and
+      // worthless, and the reward has to cost a moment of judgement.
+      if (state.parryT > 0) {
+        outcome = 'parried';
+        dmg = 0;
+        staggerCreature(from, dx / d, dz / d);
+        // Reuses the lunge window whole — glow, impact light, camera kick, the
+        // 5.52x hit and the one-time explanation. A parry is the defensive route
+        // to the same opening the forward dodge already opens, so it teaches the
+        // player nothing new to read.
+        state.lungeT = LUNGE_WINDOW;
+        state.guarding = false;
+        state.parryT = 0;
+        sfxParry();
+        // Named once, the first time it lands. The blade lighting up is the same
+        // signal the dodge already teaches, so this only has to say what opened it.
+        if (!state.parryShown) {
+          state.parryShown = true;
+          showMsg('Parried — strike now, while the blade is lit');
+        }
+      } else {
+        outcome = 'blocked';
+        // A brute swings for nearly a third of MAX_HP. Stopping that dead would
+        // make the shield the answer to the one creature meant to be frightening.
+        dmg *= from.type.hp >= 9 ? GUARD_LEAK_HEAVY : GUARD_LEAK;
+      }
+    }
+  }
+  if (dmg <= 0 && outcome !== 'hit') {
+    if (outcome === 'blocked') sfxHit(true);
+    updateHUD();
+    return outcome;
+  }
   state.hp -= dmg;
   sfxHit(true);
   if (state.looting) {
@@ -265,4 +322,29 @@ export function playerHurt(dmg: number): void {
   flashHurt();
   updateHUD();
   if (state.hp <= 0) endRun(false);
+  return outcome;
 }
+
+/**
+ * Rocks a creature back out of its swing.
+ *
+ * There is no stagger clip — the creatures ship idle, walk, attack and death and
+ * nothing else — so this is built from the root transform instead: the attack is
+ * cut, the body leans away along its own facing, and it is pushed back over the
+ * same window. loop.ts drives the lean and the push; this only sets it up.
+ */
+export function staggerCreature(m: Monster, awayX: number, awayZ: number): void {
+  m.staggerT = STAGGER_TIME;
+  m.staggerX = awayX;
+  m.staggerZ = awayZ;
+  m.attackT = 0;
+  m.pendingHit = null;
+  // Cannot immediately swing again on recovering, or the stagger buys nothing.
+  m.atkCd = Math.max(m.atkCd, STAGGER_TIME + m.type.atkCd * 0.5);
+  m.hurtT = 0.18;
+  if (m.playback) setAnim(m.playback, 'idle', { force: true, fade: 0.06 });
+}
+
+/** How far a staggered creature has been pushed by now, as a fraction of STAGGER_PUSH. */
+export const staggerPush = (m: Monster, dt: number): number =>
+  (STAGGER_PUSH / STAGGER_TIME) * dt * (m.staggerT / STAGGER_TIME) * 2;

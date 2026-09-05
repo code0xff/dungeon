@@ -270,6 +270,47 @@ export function sfxLunge(): void {
   o.stop(t + 0.32);
 }
 
+/**
+ * A parry: the bright ring of a blow turned on a shield rim.
+ *
+ * Deliberately the only *pleasant* sound in the game. Everything else here is a
+ * thud, a groan or a bang — this is the one that says you did something right,
+ * and it has to be recognisable through a fight without looking at the screen.
+ * Two partials a fifth apart give it a struck-metal ring rather than a beep.
+ */
+export function sfxParry(): void {
+  if (!audio) return;
+  const { ctx, master, noiseBuf } = audio;
+  const t = ctx.currentTime;
+  for (const [f, amp] of [[1180, 0.3], [1770, 0.18]] as const) {
+    const o = ctx.createOscillator();
+    o.type = 'triangle';
+    o.frequency.setValueAtTime(f, t);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(amp, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.9);
+    o.connect(g);
+    g.connect(master);
+    o.start(t);
+    o.stop(t + 1);
+  }
+  // The scrape of the blow sliding off, under the ring.
+  const s = ctx.createBufferSource();
+  s.buffer = noiseBuf;
+  const bp = ctx.createBiquadFilter();
+  bp.type = 'bandpass';
+  bp.Q.value = 2.2;
+  bp.frequency.setValueAtTime(3200, t);
+  bp.frequency.exponentialRampToValueAtTime(1100, t + 0.1);
+  const sg = ctx.createGain();
+  env(sg, t, 0.004, 0.42, 0.13);
+  s.connect(bp);
+  bp.connect(sg);
+  sg.connect(master);
+  s.start(t);
+  s.stop(t + 0.16);
+}
+
 /** low=true is the duller thud of the player taking the hit. */
 export function sfxHit(low: boolean): void {
   if (!audio) return;

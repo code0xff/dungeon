@@ -75,6 +75,19 @@ export const state = {
    */
   lungeHitT: 0,
 
+  // ---- Guard ----
+  /** Whether the shield is being held up. */
+  guarding: false,
+  /** Raise progress, 0 down to 1 up. Smoothed, so the shield is seen to move. */
+  guardT: 0,
+  /**
+   * Seconds left of the parry window opened by raising the shield. A hit taken
+   * while this is running is parried rather than merely blocked.
+   */
+  parryT: 0,
+  /** Whether the parry has been explained once this run. */
+  parryShown: false,
+
   // ---- Dodge ----
   /** Seconds of dodge left; -1 when not dodging. */
   dashT: -1,

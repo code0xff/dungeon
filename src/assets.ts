@@ -7,7 +7,7 @@ import {
   WEAPON_ASSETS,
 } from './config';
 import { MAKERS } from './creatures';
-import { envMap, equipLantern, equipWeaponModel } from './scene';
+import { envMap, equipShield, equipWeaponModel } from './scene';
 import type {
   ClipName, Clips, CreatureKey, CreatureRig, CreatureTemplate, MonsterPlayback, PBRMaps, WeaponAsset, WeaponKind,
 } from './types';
@@ -332,40 +332,30 @@ async function loadChest(): Promise<string> {
 }
 
 /**
- * Loads the lantern into the player's left hand, scaled to PROP_ASSETS.lantern.height
- * and stood on its own base so the hand position in scene.ts means the same thing
- * whatever model is swapped in. No fallback: the primitive it replaced looked worse
- * than an empty hand, and the light works either way.
+ * Loads the shield into the player's left hand, scaled to PROP_ASSETS.shield.height.
+ *
+ * Only the inner face is ever seen — the shield is held edge-on until raised and
+ * then turned toward whatever is swinging — so the outward boss and paintwork
+ * are wasted geometry here. It is decimated hard for that reason.
  */
-async function loadLantern(): Promise<string> {
-  const cfg = PROP_ASSETS.lantern;
+async function loadShield(): Promise<string> {
+  const cfg = PROP_ASSETS.shield;
   let gltf;
   try {
     gltf = await gltfLoader.loadAsync(versioned(cfg.url));
   } catch {
-    return 'lantern: file missing → nothing drawn in hand (the light still works)';
+    return 'shield: file missing → nothing drawn in hand (the guard still works)';
   }
   const root = gltf.scene;
   const box = new THREE.Box3().setFromObject(root);
   root.scale.multiplyScalar(cfg.height / (box.max.y - box.min.y));
-  root.position.y = -new THREE.Box3().setFromObject(root).min.y;
-
-  // The player's light sits at their centre, not inside the lantern, so without
-  // this the thing lighting the dungeon reads as a cold lump of brass.
-  root.traverse((o) => {
-    if (!isMesh(o)) return;
-    for (const m of materialsOf(o)) {
-      if (!/glass/i.test(m.name)) continue;
-      const s = m as THREE.MeshStandardMaterial;
-      s.emissive = new THREE.Color(0xffa542);
-      s.emissiveIntensity = 1.6;
-      s.transparent = true;
-      s.opacity = 0.85;
-    }
-  });
+  // Centred on its own bounds, so the rest and guard poses can be written
+  // against the grip rather than against wherever the exporter left the origin.
+  const c = new THREE.Box3().setFromObject(root).getCenter(new THREE.Vector3());
+  root.position.sub(c);
   applyEnvMap(root);
-  equipLantern(root);
-  return `lantern: loaded (scale x${root.scale.x.toFixed(2)})`;
+  equipShield(root);
+  return `shield: loaded (scale x${root.scale.x.toFixed(2)})`;
 }
 
 /**
@@ -475,7 +465,7 @@ export async function loadAssets(onProgress: (msg: string) => void): Promise<voi
 
   onProgress('Loading props');
   log.push(await loadChest());
-  log.push(await loadLantern());
+  log.push(await loadShield());
 
   onProgress('Loading textures');
   pbr.wall = await loadPBR(WALL_TEX_DIR, 1.5);

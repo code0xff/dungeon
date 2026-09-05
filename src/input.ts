@@ -1,6 +1,7 @@
 import { initAudio, isMuted, setMuted, sfxDash } from './audio';
 import {
-  DASH_CD, LANTERN_KEY, LUNGE_AIM, LUNGE_WINDOW, POTION_KEY, SOUND_KEY, WHETSTONE_KEY,
+  DASH_CD, GUARD_KEY, LANTERN_KEY, LUNGE_AIM, LUNGE_WINDOW, PARRY_WINDOW, POTION_KEY, SOUND_KEY,
+  WHETSTONE_KEY,
 } from './config';
 import { el, queryChild } from './dom';
 import { canvasEl } from './scene';
@@ -8,7 +9,7 @@ import { state } from './state';
 import { tryAttack } from './combat';
 import { startLoot, useLantern, usePotion, useWhetstone } from './loot';
 import {
-  atkBtn, dashBtn, lampBtn, lockHintEl, lootBtn, potBtn, showMsg,
+  atkBtn, dashBtn, guardBtn, lampBtn, lockHintEl, lootBtn, potBtn, showMsg,
   soundBtn, whetBtn, wpnBtn,
 } from './ui';
 import { setWeapon, toggleWeapon } from './weapons';
@@ -80,6 +81,8 @@ addEventListener('keydown', (e) => {
     tryAttack();
   }
   if (e.code === 'KeyE') startLoot();
+  // A keyboard alternative, for anyone who would rather not hold a mouse button.
+  if (e.code === `Key${GUARD_KEY}`) guardDown();
   if (e.code === `Key${SOUND_KEY}`) toggleSound();
   // Shift, not a direction key of its own: the dodge goes where you are already
   // going, so it adds a finger rather than a decision.
@@ -95,6 +98,7 @@ addEventListener('keydown', (e) => {
 });
 addEventListener('keyup', (e) => {
   keys[e.code] = false;
+  if (e.code === `Key${GUARD_KEY}`) guardUp();
 });
 
 // ================= Mouse =================
@@ -149,8 +153,31 @@ document.addEventListener('pointerlockerror', () => {
   lockHintEl.style.display = 'none';
 });
 
+/**
+ * Raises the shield and opens the parry window.
+ *
+ * The window is on the *press*. A guard held up permanently has to be safe and
+ * worthless or there is no decision in it — timing is what the reward costs.
+ */
+export function guardDown(): void {
+  if (state.gameOver || state.guarding) return;
+  state.guarding = true;
+  state.parryT = PARRY_WINDOW;
+}
+
+export function guardUp(): void {
+  state.guarding = false;
+  state.parryT = 0;
+}
+
 canvasEl.addEventListener('pointerdown', (e) => {
   if (e.pointerType === 'touch') return;
+  // Right button guards. Attacking is the left button, so the two hands are the
+  // two buttons and neither has to be a modifier of the other.
+  if (e.button === 2) {
+    if (pointerLock.locked) guardDown();
+    return;
+  }
   if (pointerLock.locked) {
     tryAttack();
     return;
@@ -167,6 +194,17 @@ canvasEl.addEventListener('pointerdown', (e) => {
   }
   // Where lock is unavailable, a click is an attack.
   tryAttack();
+});
+
+addEventListener('pointerup', (e) => {
+  if (e.button === 2) guardUp();
+});
+// Without this the browser menu eats the release, and the shield sticks up.
+canvasEl.addEventListener('contextmenu', (e) => e.preventDefault());
+// Losing the lock (Esc, alt-tab) must drop the guard too, or it stays raised
+// with no key held down to release it.
+document.addEventListener('pointerlockchange', () => {
+  if (!document.pointerLockElement) guardUp();
 });
 
 canvasEl.addEventListener('pointerenter', (e) => {
@@ -229,6 +267,23 @@ function resetStick(): void {
   moveVec.y = 0;
   knob.style.left = '28%';
   knob.style.top = '28%';
+}
+
+// Held, not tapped, so it is wired on its own rather than through the tap table.
+guardBtn.addEventListener('touchstart', (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  initAudio();
+  if (!touchIsForGame()) return;
+  guardDown();
+  guardBtn.classList.add('on');
+}, { passive: false });
+for (const ev of ['touchend', 'touchcancel'] as const) {
+  guardBtn.addEventListener(ev, (e) => {
+    e.preventDefault();
+    guardUp();
+    guardBtn.classList.remove('on');
+  }, { passive: false });
 }
 
 const touchButtons = [
