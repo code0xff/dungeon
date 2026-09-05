@@ -9,6 +9,8 @@ import {
   SWORD_ARC, SWORD_CLEAVE, SWORD_DMG_WORN, SWORD_DUR_MAX, SWORD_WARN_AT, SWORD_WEAR,
 } from './config';
 import { flashLight, muzzleFlash, scene, smoke } from './scene';
+import { isAuthority } from './net/client';
+import { announceKill, reportHit } from './net/mobsync';
 import { state } from './state';
 import type { Monster } from './types';
 import { cancelLoot, flashHurt, endRun, showMsg, updateHUD } from './ui';
@@ -38,16 +40,23 @@ function facing(): [fx: number, fz: number] {
  * kill — a caller that formatted `m.type.reward` into the message would show a
  * different number from the one the HUD just added.
  */
-export function killMonster(m: Monster): number {
+export function killMonster(m: Monster, opts: { pay?: boolean; gold?: number } = {}): number {
   m.hp = 0;
   // A creature killed mid-stagger would otherwise keep its lean through the
   // whole death animation, since the stagger block returns early for the dead.
   m.staggerT = 0;
   m.mesh.rotation.x = 0;
+  // The roll can be handed in rather than made here. In co-op the creature dies
+  // on the authority's machine and the amount travels with the announcement, so
+  // rolling again on each client would pay four different sums for one kill.
   const spread = m.type.reward * REWARD_SPREAD;
-  const gold = Math.max(1, Math.round(m.type.reward - spread + Math.random() * spread * 2));
-  state.runGold += gold;
-  updateHUD();
+  const gold = opts.gold ?? Math.max(1, Math.round(m.type.reward - spread + Math.random() * spread * 2));
+  // And paying is optional, because a kill is not always yours: the authority
+  // resolves everyone's hits, and the gold belongs to whoever swung.
+  if (opts.pay !== false) {
+    state.runGold += gold;
+    updateHUD();
+  }
   // With a death clip, play it out and leave the corpse a moment. Without one, remove at once.
   if (m.playback?.clips.death) {
     m.dead = true;
@@ -130,10 +139,22 @@ export function fireMusket(): void {
     }
   }
   if (best) {
-    best.hp -= MUSKET_DMG;
     best.hurtT = 0.25;
     sfxHit(false);
-    if (best.hp <= 0) showMsg(`${best.type.name} shot +${killMonster(best)} G`);
+    // The flash and the sound are drawn regardless — a shot that looked like it
+    // missed while the ball was in flight to the authority would feel broken.
+    // The hp is not: whether it died is not this client's to decide unless it
+    // is the one simulating.
+    if (isAuthority()) {
+      best.hp -= MUSKET_DMG;
+      if (best.hp <= 0) {
+        const g = killMonster(best);
+        announceKill(state.monsters.indexOf(best), g);
+        showMsg(`${best.type.name} shot +${g} G`);
+      }
+    } else {
+      reportHit(state.monsters.indexOf(best), MUSKET_DMG);
+    }
   }
 
   // The report carries a long way.
@@ -234,12 +255,24 @@ export function resolveSwing(): void {
   // because the explanation below fired a frame's worth of logic later.
   const lines: string[] = [];
   for (const { m } of inArc.slice(0, SWORD_CLEAVE)) {
-    m.hp -= dmg;
     m.hurtT = 0.18;
-    // Charged per creature cut, so a cleave that catches two costs two.
+    // Charged per creature cut, so a cleave that catches two costs two. Charged
+    // whoever is simulating, because the blade was swung either way.
     state.swordDur = Math.max(0, state.swordDur - SWORD_WEAR);
     sfxHit(false);
-    if (m.hp <= 0) lines.push(`${m.type.name} killed +${killMonster(m)} G`);
+    if (isAuthority()) {
+      m.hp -= dmg;
+      if (m.hp <= 0) {
+        const g = killMonster(m);
+        announceKill(state.monsters.indexOf(m), g);
+        lines.push(`${m.type.name} killed +${g} G`);
+      }
+    } else {
+      // Reported, not applied. The hit feedback above is already on screen; the
+      // hp comes back in the next snapshot and the kill in its own message, so
+      // a creature the authority disagrees about never dies twice or pays twice.
+      reportHit(state.monsters.indexOf(m), dmg);
+    }
   }
 
   // The lunge deliberately says nothing here. It used to name the multiplier the

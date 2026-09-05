@@ -13,6 +13,7 @@ import {
   flashLight, muzzleFlash, portal, portalCore, portalLight, scene, setLampLit, setPortalOpen,
   SMOKE_REST_Y, smoke, world,
 } from './scene';
+import { clearMobSync } from './net/mobsync';
 import { clearRemotes } from './net/remote';
 import { coop, coopKit, runLevel } from './net/session';
 import { random, setSeed, mixSeed, shuffle } from './rng';
@@ -96,6 +97,9 @@ function clearWorld(): void {
   // The allies of the last dungeon are not the allies of this one, and a body
   // left behind would stand in the new maze until the fade timer noticed.
   clearRemotes();
+  // Same for the creature targets: they index the old dungeon's monster array,
+  // and the next one is a different set of creatures at the same indices.
+  clearMobSync();
   for (const m of [world.wall, world.floor, world.ceil]) {
     if (!m) continue;
     scene.remove(m);

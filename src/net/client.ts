@@ -1,6 +1,6 @@
 import { PROTOCOL_VERSION, parseMsg } from './protocol';
 import { coop } from './session';
-import type { ClientMsg, LobbyPlayer, PoseRow, ServerMsg, WorldEvent } from './protocol';
+import type { ClientMsg, LobbyPlayer, MobRow, PoseRow, ServerMsg, WorldEvent } from './protocol';
 
 /**
  * The client half of the co-op socket: connect, join, and hand messages up.
@@ -58,6 +58,34 @@ let onSnap: ((rows: PoseRow[]) => void) | null = null;
 
 export function onNetSnap(fn: (rows: PoseRow[]) => void): void {
   onSnap = fn;
+}
+
+/** Called with the authority's creature snapshot. */
+let onMobs: ((rows: MobRow[]) => void) | null = null;
+
+export function onNetMobs(fn: (rows: MobRow[]) => void): void {
+  onMobs = fn;
+}
+
+/** Called on the authority when somebody else reports a hit. */
+let onRemoteHit: ((i: number, d: number, by: number) => void) | null = null;
+
+export function onNetRemoteHit(fn: (i: number, d: number, by: number) => void): void {
+  onRemoteHit = fn;
+}
+
+/** Called when the authority says a creature died. */
+let onKill: ((i: number, by: number, gold: number) => void) | null = null;
+
+export function onNetKill(fn: (i: number, by: number, gold: number) => void): void {
+  onKill = fn;
+}
+
+/** Called when the authority says a creature swung at somebody. */
+let onMobHit: ((i: number, p: number, d: number) => void) | null = null;
+
+export function onNetMobHit(fn: (i: number, p: number, d: number) => void): void {
+  onMobHit = fn;
 }
 
 /** Called when another player changed the dungeon. */
@@ -197,6 +225,18 @@ export function connect(server: string, name: string): void {
       case 'e':
         onEvent?.(msg.k, msg.i, msg.by);
         break;
+      case 'm':
+        if (Array.isArray(msg.m)) onMobs?.(msg.m);
+        break;
+      case 'h':
+        onRemoteHit?.(msg.i, msg.d, msg.by);
+        break;
+      case 'k':
+        onKill?.(msg.i, msg.by, msg.gold);
+        break;
+      case 'x':
+        onMobHit?.(msg.i, msg.p, msg.d);
+        break;
       case 'start':
         net.phase = 'run';
         net.level = msg.level;
@@ -233,6 +273,40 @@ export function connect(server: string, name: string): void {
   ws.addEventListener('error', () => {});
 }
 
+/**
+ * Whether this client is the one simulating the creatures.
+ *
+ * The authority is the lowest player id still in your dungeon — derived, never
+ * announced. There is no election message to lose, and when somebody leaves,
+ * every remaining client recomputes the same answer from the same roster in the
+ * same instant.
+ *
+ * Solo is always the authority, which is what makes the whole creature loop one
+ * code path instead of two: single player is simply a party of one.
+ *
+ * It lives here rather than in session.ts because session.ts must not import
+ * this module: client.ts already reads `coop`, and the two importing each other
+ * is a cycle that works right up until one of them needs a value at module
+ * evaluation time.
+ *
+ * The handover is not seamless and cannot be. The client taking over has been
+ * drawing creatures from snapshots, so its own copies are wherever the last
+ * packet left them — the party will see the creatures jump once. That is worth
+ * more than the alternative, which is ending everyone's run because one person
+ * closed a tab.
+ */
+export function isAuthority(): boolean {
+  if (!coop.active) return true;
+  let lowest = Infinity;
+  for (const p of net.players) {
+    if (p.inRun && p.runId === net.runId && p.id < lowest) lowest = p.id;
+  }
+  // Nobody in the roster yet — the first snapshot has not arrived. Simulating
+  // is the safe default: creatures carrying on beats creatures standing still.
+  return lowest === Infinity || lowest === net.id;
+}
+
+
 /** Host only; ignored by the server otherwise. */
 export function setLevel(level: number): void {
   send({ t: 'level', level });
@@ -241,6 +315,26 @@ export function setLevel(level: number): void {
 /** Host only; ignored by the server otherwise. */
 export function startRun(): void {
   send({ t: 'start' });
+}
+
+/** The authority's creature snapshot. */
+export function sendMobs(m: MobRow[]): void {
+  send({ t: 'm', m });
+}
+
+/** A hit this client landed, for the authority to make true. */
+export function sendHit(i: number, d: number): void {
+  send({ t: 'h', i, d });
+}
+
+/** The authority announcing a kill: which creature, who swung, what it paid. */
+export function sendKill(i: number, by: number, gold: number): void {
+  send({ t: 'k', i, by, gold });
+}
+
+/** The authority announcing that a creature swung at a player. */
+export function sendMobHit(i: number, p: number, d: number): void {
+  send({ t: 'x', i, p, d });
 }
 
 /** Tells the rest of the run what this player just did to the dungeon. */

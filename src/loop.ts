@@ -20,7 +20,9 @@ import { findPath } from './dungeon';
 import { edgeTurn, keys, moveInput } from './input';
 import { finishDrink, openChest } from './loot';
 import { setTrapJaws } from './props';
-import { sendOwnPose, updateRemotes } from './net/remote';
+import { nearestPlayer, sendOwnPose, updateRemotes } from './net/remote';
+import { followMobs, publishMobs, reportMobHit } from './net/mobsync';
+import { isAuthority } from './net/client';
 import { tellTrapSprung } from './net/worldsync';
 import {
   DUST, camera, dustGeo, flashLight, gearBob, handShield, MUSKET_REST, musket,
@@ -309,9 +311,9 @@ function updateWeapons(dt: number): void {
 /** Returns the distance to the nearest living creature, which paces the heartbeat. */
 function updateMonsters(dt: number, now: number): number {
   let nearest = 99;
-  const pgx = Math.round(state.pos.x / CELL), pgz = Math.round(state.pos.z / CELL);
 
-  for (const m of state.monsters) {
+  for (let mi = 0; mi < state.monsters.length; mi++) {
+    const m = state.monsters[mi];
     if (m.hp <= 0) {
       // Let the death animation play out, then take it off the scene.
       if (m.dead) {
@@ -329,11 +331,22 @@ function updateMonsters(dt: number, now: number): number {
     m.atkCd = Math.max(0, m.atkCd - dt);
 
 
-    const dx = state.pos.x - m.mesh.position.x, dz = state.pos.z - m.mesh.position.z;
-    const dist = Math.hypot(dx, dz);
-    nearest = Math.min(nearest, dist);
+    // Who this creature is dealing with: the nearest player, not necessarily
+    // this one. In solo that is always the local player and this costs a
+    // subtraction; in co-op, without it the entire dungeon converges on whoever
+    // happens to be simulating while everyone else walks an empty maze.
+    const tgt = nearestPlayer(m.mesh.position.x, m.mesh.position.z);
+    const dx = tgt.x - m.mesh.position.x, dz = tgt.z - m.mesh.position.z;
+    const dist = tgt.dist;
+    const pgx = Math.round(tgt.x / CELL), pgz = Math.round(tgt.z / CELL);
+
+    // Measured against *this* player, whatever the creature is chasing: it paces
+    // the heartbeat and decides whether the creature is worth drawing, and both
+    // of those are about what is near the person at the keyboard.
+    const mine = Math.hypot(state.pos.x - m.mesh.position.x, state.pos.z - m.mesh.position.z);
+    nearest = Math.min(nearest, mine);
     // Drawing only, not thinking — see CREATURE_DRAW_DISTANCE.
-    m.mesh.visible = dist < CREATURE_DRAW_DISTANCE;
+    m.mesh.visible = mine < CREATURE_DRAW_DISTANCE;
 
     // ---- Staggered by a parry ----
     //
@@ -376,7 +389,14 @@ function updateMonsters(dt: number, now: number): number {
         if (m.pendingHit <= 0) {
           m.pendingHit = null;
           // The player must still be in reach when the arm lands — back away and it whiffs.
-          if (dist < t.reach * ATTACK_IMPACT_REACH) playerHurt(t.dmg, m);
+          //
+              // Resolved here only when it is this player. Against an ally the
+              // damage is *sent*, not applied: whether it was blocked or parried
+              // is decided on the machine holding that shield. See mobsync.ts.
+          if (dist < t.reach * ATTACK_IMPACT_REACH) {
+            if (tgt.id === 0) playerHurt(t.dmg, m);
+            else reportMobHit(mi, tgt.id, t.dmg);
+          }
         }
       }
     }
@@ -384,7 +404,8 @@ function updateMonsters(dt: number, now: number): number {
     m.groanT -= dt;
     if (m.groanT <= 0) {
       m.groanT = t.groan[0] + Math.random() * (t.groan[1] - t.groan[0]);
-      if (dist < 13) sfxCreature(t.voice, Math.max(0.15, 1 - dist / 13));
+      // Heard by distance from the listener, not from whoever it is chasing.
+      if (mine < 13) sfxCreature(t.voice, Math.max(0.15, 1 - mine / 13));
     }
     if (m.alert > 0) m.alert -= dt;
 
@@ -397,8 +418,8 @@ function updateMonsters(dt: number, now: number): number {
         // Close in, walk straight at the player; further out, follow the first BFS step.
         let tx: number, tz: number;
         if (dist < CELL * 1.4) {
-          tx = state.pos.x;
-          tz = state.pos.z;
+          tx = tgt.x;
+          tz = tgt.z;
         } else {
           m.repath -= dt;
           if (m.repath <= 0 || !m.step) {
@@ -453,6 +474,23 @@ function updateMonsters(dt: number, now: number): number {
     else if (m.rig) animProcedural(m, m.rig, dt, now);
   }
   separateMonsters(dt);
+  return nearest;
+}
+
+/**
+ * The creature pass for clients that are not simulating.
+ *
+ * followMobs() moves the bodies from the wire; the animation is driven here,
+ * with the same two calls the real pass uses, because a creature sliding along
+ * in a frozen pose is the exact bug this project has already fixed once.
+ */
+function followMonsters(dt: number, now: number): number {
+  const nearest = followMobs(dt);
+  for (const m of state.monsters) {
+    if (m.hp <= 0 && !m.dead) continue;
+    if (m.playback) animLoaded(m, m.playback, dt);
+    else if (m.rig) animProcedural(m, m.rig, dt, now);
+  }
   return nearest;
 }
 
@@ -808,7 +846,11 @@ export function animate(): void {
     updateWeapons(dt);
     updateLantern(dt);
     updateDrink(dt);
-    const nearest = updateMonsters(dt, now);
+    // One dungeon, one simulation. Everyone else draws what they are told —
+    // two clients running the same AI drift apart within seconds, and then two
+    // players are swinging at a zombie that is metres apart on their screens.
+    const nearest = isAuthority() ? updateMonsters(dt, now) : followMonsters(dt, now);
+    publishMobs(dt);
     updateChests(dt, moving);
     updateTraps(dt);
     updateHeldGear(dt, now, moving);

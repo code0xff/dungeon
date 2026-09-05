@@ -127,9 +127,8 @@ Because the Pages build and the host can now be different versions of the game,
   them, so a modified client can walk through walls. It can be done — the host
   knows the seed and the level, and `dungeon.ts` is pure, so it can rebuild the
   same maze and clamp — but it is not done.
-- **Damage and death.** Creatures are simulated separately on every client, so
-  the ally you see fighting a zombie is fighting a different copy of it. This is
-  the next real piece and the one that decides how much of the mode works.
+- **The team total.** Gold is still only counted on the machine that earned it;
+  nothing adds it up at the end.
 ## The dungeon
 
 Chests, the key, the map and the floor traps are kept in step by events, not by
@@ -145,6 +144,45 @@ whether they know where they are.
 
 Noises carry their own position. A creaking lid or a sprung trap wakes the
 creatures standing near *it*, not near whoever is listening.
+
+## The creatures
+
+One client in each dungeon simulates them and everyone else draws what they are
+told. Two clients running the same AI from the same seed drift apart within
+seconds — they see different players in different places — and then you and your
+ally are swinging at a zombie that is metres apart on your two screens.
+
+**The authority is the lowest player id still in your run, derived and never
+announced.** There is no election message to lose, and when somebody leaves,
+every remaining client recomputes the same answer from the same roster in the
+same instant. Solo is a party of one and is always the authority, which is what
+keeps this one code path instead of two.
+
+The handover is not seamless and cannot be. The client taking over has been
+drawing creatures from snapshots, so its copies are wherever the last packet
+left them: the party sees the creatures jump, once. That is the price of not
+ending everyone's run because one person closed a tab.
+
+**Creatures chase the nearest player, not the one simulating them.** Without
+that the whole dungeon converges on the authority while everyone else walks an
+empty maze.
+
+**Hits are drawn immediately and applied remotely.** A swing flashes the
+creature, plays the sound and wears the blade on the spot, because waiting a
+round trip to show a hit makes every swing feel broken. The hp is not touched:
+the report goes to the authority, and the corrected hp comes back in the next
+snapshot. A kill is announced by the authority with the roll already made — four
+clients rolling REWARD_SPREAD for one corpse would show four different numbers —
+and the gold is paid to whoever swung, not to whoever is simulating.
+
+**A creature's blow is sent, not applied.** The authority says which creature
+hit which player for how much; whether it was blocked or parried is decided on
+the machine holding that shield. This is where the reason for co-op over PvP
+actually gets spent.
+
+**The host trims the snapshot per recipient.** It already holds everyone's pose,
+so it drops creatures further than MOB_INTEREST from each player — at level 15
+there are over a hundred and most are nowhere near anybody.
 
 ## The bodies
 

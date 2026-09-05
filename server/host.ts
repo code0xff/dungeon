@@ -23,12 +23,12 @@ import { WebSocketServer, type WebSocket } from 'ws';
 import {
   COOP_PORT, MAX_PLAYERS, NAME_MAX, PROTOCOL_VERSION, TICK_HZ,
   parseMsg,
-  type ClientMsg, type LobbyPlayer, type PoseRow, type ServerMsg,
+  type ClientMsg, type LobbyPlayer, type MobRow, type PoseRow, type ServerMsg,
 } from '../src/net/protocol.ts';
 // The level cap is a game tunable, so it is read from config.ts rather than
 // duplicated here — a server that clamped to a different number than the client
 // offers would be a bug nobody notices until someone picks the top of the dial.
-import { COOP_MAX_LEVEL } from '../src/config.ts';
+import { COOP_MAX_LEVEL, MOB_INTEREST } from '../src/config.ts';
 
 const ROOT = resolve(import.meta.dirname, '..', 'dist');
 
@@ -126,7 +126,7 @@ function anyInRun(): boolean {
 
 function roster(): LobbyPlayer[] {
   return [...players.values()].map((p) => ({
-    id: p.id, name: p.name, host: p.host, inRun: p.inRun,
+    id: p.id, name: p.name, host: p.host, inRun: p.inRun, runId: p.runId,
   }));
 }
 
@@ -209,6 +209,57 @@ wss.on('connection', (sock: WebSocket) => {
       return;
     }
 
+    // The creatures, from whoever is simulating them. Relayed rather than
+    // stored: this arrives 20 times a second and the only thing the host does
+    // with it is trim it per recipient, which it can do from the poses it
+    // already holds.
+    //
+    // Not checked against who the authority is. Every client derives that from
+    // the same roster, so a client sending this when it is not the authority is
+    // a client that has been modified — and the cost is that its own party sees
+    // odd creatures, which is the shape of every other trust decision here.
+    if (msg.t === 'm') {
+      if (!me.inRun || !Array.isArray(msg.m)) return;
+      for (const p of players.values()) {
+        if (p.runId !== me.runId || p.id === me.id) continue;
+        // Trimmed to what this player could plausibly care about. At level 15
+        // there are over a hundred creatures and most of them are nowhere near
+        // anybody; sending them all is bandwidth spent on things nobody can see.
+        const near = p.pose
+          ? msg.m.filter((row: MobRow) => {
+            const dx = row.x - p.pose!.x, dz = row.z - p.pose!.z;
+            return dx * dx + dz * dz < MOB_INTEREST * MOB_INTEREST;
+          })
+          : msg.m;
+        if (near.length) send(p.sock, { t: 'm', m: near });
+      }
+      return;
+    }
+
+    // A hit landed by someone who is not simulating. Forwarded to the whole run
+    // rather than addressed: the authority is derived, not registered, so the
+    // host does not know which of them it is — and the others drop it.
+    if (msg.t === 'h') {
+      if (!me.inRun) return;
+      for (const p of players.values()) {
+        if (p.runId === me.runId && p.id !== me.id) send(p.sock, { t: 'h', i: msg.i, d: msg.d, by: me.id });
+      }
+      return;
+    }
+
+    // The authority announcing a kill, or a creature's blow landing on someone.
+    // Both are relayed to the run for the same reason the hit reports are: the
+    // authority is derived by each client, not registered here, so the host has
+    // no idea which of them is entitled to say it — and the ones it does not
+    // concern drop it.
+    if (msg.t === 'k' || msg.t === 'x') {
+      if (!me.inRun) return;
+      for (const p of players.values()) {
+        if (p.runId === me.runId && p.id !== me.id) send(p.sock, msg);
+      }
+      return;
+    }
+
     // Something happened to the dungeon. Relayed untouched and unvalidated: the
     // host has no dungeon of its own to check an index against, and a bad index
     // costs the receiver a lookup that finds nothing.
@@ -263,7 +314,7 @@ wss.on('connection', (sock: WebSocket) => {
     }
         const start: ServerMsg = {
           t: 'start', seed: roll, level, runId,
-          players: group.map((p) => ({ id: p.id, name: p.name, host: p.host, inRun: true })),
+          players: group.map((p) => ({ id: p.id, name: p.name, host: p.host, inRun: true, runId })),
         };
         // Sent only to the group. Broadcasting it would drag players out of the
         // dungeon they are still in and into a fresh one.

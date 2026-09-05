@@ -65,10 +65,32 @@ export const REMOTE_TINTS = [0x4a86d8, 0x4fae72, 0xb47ad0, 0x4fb3ae];
  * flat coloured silhouette with none of its armour left — a shape where a
  * person should be. At 0 it is nearly invisible: dark plate in a dungeon lit
  * the colour of rust reads as another shadow, which is worse than a creature.
- * 0.12 keeps the plate and the trim legible and still says which ally it is
- * from down a corridor.
+ * 0.07 keeps the plate, the trim and the shield legible and still says which
+ * ally it is from down a corridor. 0.12 was the first value that looked right
+ * on the blue tint and was clearly too much on the green one — the lighter
+ * colours wash the armour out sooner.
  */
 export const REMOTE_TINT = 0.07;
+
+/**
+ * Metres. A creature further than this from a player is not sent to them.
+ *
+ * At level 15 a dungeon holds over a hundred creatures and most are nowhere
+ * near anybody, so sending them all is bandwidth spent on things nobody can
+ * see. Comfortably past what the torchlight reaches, because a creature has to
+ * already be moving correctly by the time it comes into view — arriving at the
+ * edge of the light and snapping into place is worse than not being drawn.
+ */
+export const MOB_INTEREST = 34;
+/**
+ * How fast a creature chases the position the authority reported for it.
+ *
+ * Faster than REMOTE_LERP, and deliberately. An ally drifting a few
+ * centimetres behind where they really are costs nothing; a creature you are
+ * swinging at is the one thing on screen where being slightly wrong about where
+ * something is decides whether the swing lands.
+ */
+export const MOB_LERP = 20;
 
 export const WALL_TEX_DIR = 'textures/wall';
 export const FLOOR_TEX_DIR = 'textures/floor';

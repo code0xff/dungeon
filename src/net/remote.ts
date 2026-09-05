@@ -200,6 +200,28 @@ export function updateRemotes(dt: number): void {
   }
 }
 
+/**
+ * The player nearest to a point, counting this one and every ally.
+ *
+ * The creatures use it to pick who to chase. Without it the whole dungeon
+ * converges on whoever happens to be simulating, and three of the four players
+ * walk through an empty maze while the fourth is eaten.
+ *
+ * Returns id 0 for this player, because ids only exist in co-op and the callers
+ * only need to know whether the target is somebody else.
+ */
+export function nearestPlayer(x: number, z: number): { id: number; x: number; z: number; dist: number } {
+  let best = { id: 0, x: state.pos.x, z: state.pos.z, dist: Math.hypot(state.pos.x - x, state.pos.z - z) };
+  for (const rem of remotes.values()) {
+    // A dead ally is not a target. Their body is still drawn until their client
+    // leaves the run, and creatures queueing around a corpse is not the game.
+    if (rem.anim === ANIM_DEAD) continue;
+    const d = Math.hypot(rem.x - x, rem.z - z);
+    if (d < best.dist) best = { id: rem.id, x: rem.x, z: rem.z, dist: d };
+  }
+  return best;
+}
+
 /** What this player's body is doing, for the others to draw. */
 function ownAnim(moving: boolean): number {
   if (state.gameOver) return ANIM_DEAD;
