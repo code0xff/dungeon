@@ -381,6 +381,7 @@ export function buildWorld(): void {
   state.guarding = false;
   state.guardT = 0;
   state.parryT = 0;
+  state.parryCd = 0;
   state.parryShown = false;
   state.swingLunge = false;
   state.lungeShown = false;

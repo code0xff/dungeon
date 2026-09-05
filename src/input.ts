@@ -1,6 +1,7 @@
 import { initAudio, isMuted, setMuted, sfxDash } from './audio';
 import {
-  DASH_CD, GUARD_KEY, LANTERN_KEY, LUNGE_AIM, LUNGE_WINDOW, PARRY_WINDOW, POTION_KEY, SOUND_KEY,
+  DASH_CD, GUARD_KEY, LANTERN_KEY, LUNGE_AIM, LUNGE_WINDOW, PARRY_CD, PARRY_WINDOW, POTION_KEY,
+  SOUND_KEY,
   WHETSTONE_KEY,
 } from './config';
 import { el, queryChild } from './dom';
@@ -162,7 +163,13 @@ document.addEventListener('pointerlockerror', () => {
 export function guardDown(): void {
   if (state.gameOver || state.guarding) return;
   state.guarding = true;
-  state.parryT = PARRY_WINDOW;
+  // The window only opens if one has not just been opened. Without the cooldown
+  // the timing is free — tapping the button keeps a window permanently open and
+  // every blow is parried. See PARRY_CD.
+  if (state.parryCd <= 0) {
+    state.parryT = PARRY_WINDOW;
+    state.parryCd = PARRY_CD;
+  }
 }
 
 export function guardUp(): void {
