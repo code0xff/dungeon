@@ -43,7 +43,7 @@ const TOUCH: readonly (readonly [string, string])[] = [
   ['Look', 'Drag anywhere on the right'],
   ['Attack / fire', 'The red button'],
   ['Dodge', 'The blue button beside it'],
-  ['Guard / parry', 'Hold the shield button; tap it as the blow lands to parry'],
+  ['Guard / parry', 'Hold the blue shield button above attack; tap it as the blow lands to parry'],
   ['Lunge', `Dodge with the stick pushed forward; attack while the button glows for ${LUNGE_DMG}x damage`],
   ['Open chest', 'Appears when you are near one'],
   ['Potion / lantern / whetstone', 'The small buttons above the swap, when you carry one'],
