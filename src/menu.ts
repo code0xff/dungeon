@@ -3,6 +3,7 @@ import { el } from './dom';
 import { closeGuidePanel, openGuidePanel } from './guide';
 import { progress, resetProgress } from './progress';
 import { closeLobbyPanel, leaveLobby, openLobbyPanel } from './net/lobby';
+import { coop } from './net/session';
 import { closeShop } from './shop';
 import { state } from './state';
 import { guideBtn, guideCloseBtn, overlayEl } from './ui';
@@ -31,11 +32,23 @@ const guideItem = el('menuGuide');
 const newBtn = el('menuNew');
 const coopItem = el('menuCoop');
 const coopCloseBtn = el('coopClose');
+const coopPanelEl = el('coop');
 
 /** Whether New game has been clicked once and is waiting for confirmation. */
 let armed = false;
 let guideOpen = false;
-let coopOpen = false;
+
+/**
+ * Read from the panel rather than tracked alongside it.
+ *
+ * A second boolean went out of sync the moment anything but this module opened
+ * or closed the panel — and two things do: the lobby closes it on the host's
+ * start, and the end-of-run screen reopens it. Whichever one moved without
+ * telling the menu left Escape and the menu key acting on the wrong screen.
+ */
+function coopOpen(): boolean {
+  return coopPanelEl.style.display === 'flex';
+}
 
 function disarm(): void {
   armed = false;
@@ -44,13 +57,12 @@ function disarm(): void {
 }
 
 export function isMenuOpen(): boolean {
-  return menuEl.style.display === 'flex' || guideOpen || coopOpen;
+  return menuEl.style.display === 'flex' || guideOpen || coopOpen();
 }
 
 export function openMenu(): void {
   disarm();
   guideOpen = false;
-  coopOpen = false;
   closeGuidePanel();
   closeLobbyPanel();
   // Not while the end-of-run overlay is up: the loop is already stopped there,
@@ -58,14 +70,23 @@ export function openMenu(): void {
   if (!state.gameOver) state.paused = true;
   // Reading needs the cursor back; the click that re-locks it is harmless.
   if (document.pointerLockElement) document.exitPointerLock();
-  statusEl.textContent = `Stage ${progress.stage}  ·  Bank ${progress.bankGold} G`;
+  // New game wipes the solo bank and rebuilds the world. In a co-op run that is
+  // destroying a save this run has nothing to do with, and then starting a
+  // dungeon the host never announced — so it is not offered here at all.
+  // Hidden rather than disabled: a greyed button invites a second click.
+  newBtn.style.display = coop.active ? 'none' : 'block';
+  statusEl.textContent = coop.active
+    ? `Co-op  ·  level ${coop.level}`
+    : `Stage ${progress.stage}  ·  Bank ${progress.bankGold} G`;
+  el('menuNote').textContent = coop.active
+    ? 'A co-op run banks nothing and changes nothing you have saved.'
+    : 'A new game wipes the bank and starts again at stage 1.';
   menuEl.style.display = 'flex';
 }
 
 export function closeMenu(): void {
   disarm();
   guideOpen = false;
-  coopOpen = false;
   closeGuidePanel();
   closeLobbyPanel();
   menuEl.style.display = 'none';
@@ -85,8 +106,7 @@ function back(): void {
     menuEl.style.display = 'flex';
     return;
   }
-  if (coopOpen) {
-    coopOpen = false;
+  if (coopOpen()) {
     // Back out of the lobby drops the connection rather than hiding it. A
     // socket left open behind a closed panel is a player the host still counts
     // against the four, and nobody can see they are there.
@@ -101,7 +121,6 @@ resumeBtn.addEventListener('click', closeMenu);
 
 coopItem.addEventListener('click', () => {
   disarm();
-  coopOpen = true;
   menuEl.style.display = 'none';
   openLobbyPanel();
 });

@@ -51,10 +51,22 @@ const MIME: Record<string, string> = {
 
 function serve(req: IncomingMessage, res: ServerResponse): void {
   const url = new URL(req.url ?? '/', 'http://localhost');
+  // decodeURIComponent throws URIError on a malformed escape — `GET /%zz` is
+  // enough — and this is the request callback, so an uncaught throw here does
+  // not return a 500, it terminates the process and every run inside it. One
+  // stray link or port scanner on the network would end the session.
+  let decoded: string;
+  try {
+    decoded = decodeURIComponent(url.pathname);
+  } catch {
+    res.writeHead(400, { 'content-type': 'text/plain' });
+    res.end('Bad request');
+    return;
+  }
   // normalize() collapses '..' before it is joined, so a request for
   // /../../.ssh/id_rsa cannot escape dist/. This host listens on 0.0.0.0 on
   // someone's home network — everyone on that network can reach it.
-  const rel = normalize(decodeURIComponent(url.pathname)).replace(/^(\.\.[/\\])+/, '');
+  const rel = normalize(decoded).replace(/^(\.\.[/\\])+/, '');
   let path = join(ROOT, rel);
   if (existsSync(path) && statSync(path).isDirectory()) path = join(path, 'index.html');
 
