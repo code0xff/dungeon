@@ -19,6 +19,7 @@ import { findPath } from './dungeon';
 import { edgeTurn, keys, moveInput } from './input';
 import { finishDrink, openChest } from './loot';
 import { setTrapJaws } from './props';
+import { sendOwnPose, updateRemotes } from './net/remote';
 import {
   DUST, camera, dustGeo, flashLight, gearBob, handShield, MUSKET_REST, musket,
   SHIELD_GUARD, SHIELD_REST,
@@ -799,6 +800,9 @@ export function animate(): void {
 
   if (!state.gameOver && !state.paused) {
     const moving = updatePlayer(dt, now);
+    // Sent before anything else this frame so allies see where the player
+    // actually is, not where they were after a death or an extraction resolved.
+    sendOwnPose(dt, moving);
     updateWeapons(dt);
     updateLantern(dt);
     updateDrink(dt);
@@ -825,6 +829,11 @@ export function animate(): void {
     state.atPortal = atPortal;
     if (state.hasMap) drawMinimap();
   }
+
+  // Outside the paused/gameOver block: allies keep walking while this player
+  // reads the menu or sits on a death screen, and freezing their bodies would
+  // make a live dungeon look like it had crashed.
+  updateRemotes(dt);
 
   camera.position.copy(state.pos);
   // A sideways dodge rolls the view into it and back out. Straight dodges do not

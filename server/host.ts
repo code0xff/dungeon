@@ -21,9 +21,9 @@ import { extname, join, normalize, resolve } from 'node:path';
 import { networkInterfaces } from 'node:os';
 import { WebSocketServer, type WebSocket } from 'ws';
 import {
-  COOP_PORT, MAX_PLAYERS, NAME_MAX, PROTOCOL_VERSION,
+  COOP_PORT, MAX_PLAYERS, NAME_MAX, PROTOCOL_VERSION, TICK_HZ,
   parseMsg,
-  type ClientMsg, type LobbyPlayer, type ServerMsg,
+  type ClientMsg, type LobbyPlayer, type PoseRow, type ServerMsg,
 } from '../src/net/protocol.ts';
 // The level cap is a game tunable, so it is read from config.ts rather than
 // duplicated here — a server that clamped to a different number than the client
@@ -87,6 +87,10 @@ interface Player {
   sock: WebSocket;
   host: boolean;
   inRun: boolean;
+  /** Which dungeon they are in. 0 when they are in the lobby. */
+  runId: number;
+  /** Their last pose, or null until they send one. */
+  pose: PoseRow | null;
 }
 
 const players = new Map<number, Player>();
@@ -179,7 +183,7 @@ wss.on('connection', (sock: WebSocket) => {
         return;
       }
       const id = nextId++;
-      me = { id, name: cleanName(msg.name, id), sock, host: false, inRun: false };
+      me = { id, name: cleanName(msg.name, id), sock, host: false, inRun: false, runId: 0, pose: null };
       players.set(id, me);
       recomputeHost();
       send(sock, { t: 'welcome', id, host: me.host });
@@ -196,8 +200,23 @@ wss.on('connection', (sock: WebSocket) => {
     if (msg.t === 'leftRun') {
       if (!me.inRun) return;
       me.inRun = false;
+      me.runId = 0;
+      // Dropped with the run, so a body does not stay standing in a dungeon its
+      // player has already left.
+      me.pose = null;
       recomputeHost();
       broadcastLobby();
+      return;
+    }
+
+    // The hot path: 20 a second per player. Kept above the host gate and
+    // deliberately silent — a pose from someone in the lobby is not an error
+    // worth logging 20 times a second, it is a message in flight from a run
+    // that has just ended.
+    if (msg.t === 'p') {
+      if (!me.inRun) return;
+      if (!Number.isFinite(msg.x) || !Number.isFinite(msg.z) || !Number.isFinite(msg.r)) return;
+      me.pose = { id: me.id, x: msg.x, z: msg.z, r: msg.r, a: (msg.a | 0) & 3 };
       return;
     }
 
@@ -221,7 +240,11 @@ wss.on('connection', (sock: WebSocket) => {
         if (group.length === 0) return;
         const roll = (Math.random() * 0xffffffff) >>> 0;
         const runId = nextRunId++;
-        for (const p of group) p.inRun = true;
+        for (const p of group) {
+      p.inRun = true;
+      p.runId = runId;
+      p.pose = null;
+    }
         const start: ServerMsg = {
           t: 'start', seed: roll, level, runId,
           players: group.map((p) => ({ id: p.id, name: p.name, host: p.host, inRun: true })),
@@ -242,6 +265,8 @@ wss.on('connection', (sock: WebSocket) => {
   sock.on('close', () => {
     if (!me) return;
     players.delete(me.id);
+    // Nothing else to clean up: the next snapshot is built from who is in the
+    // map, so the body stops being sent the moment the player is gone.
     console.log(`[coop] ${me.name} left (${players.size}/${MAX_PLAYERS})`);
     recomputeHost();
     broadcastLobby();
@@ -254,6 +279,40 @@ wss.on('connection', (sock: WebSocket) => {
     console.warn('[coop] socket error', err.message);
   });
 });
+
+/**
+ * Snapshots, one per dungeon.
+ *
+ * A single interval rather than a timer per player: at 4 players it is the same
+ * work and it guarantees everyone in a run sees the same tick, so two clients
+ * can never be interpolating between different pairs of snapshots.
+ *
+ * Only players in the *same* run are gathered. Runs overlap by design, and a
+ * body from someone else's dungeon appearing in yours would be a ghost walking
+ * through your walls.
+ */
+setInterval(() => {
+  const byRun = new Map<number, Player[]>();
+  for (const p of players.values()) {
+    if (!p.inRun) continue;
+    const list = byRun.get(p.runId);
+    if (list) list.push(p);
+    else byRun.set(p.runId, [p]);
+  }
+  for (const group of byRun.values()) {
+    // Alone in a dungeon there is nothing to say, and this is the common case
+    // for a solo host testing — no reason to send 20 empty frames a second.
+    if (group.length < 2) continue;
+    const poses = group.map((p) => p.pose).filter((x): x is PoseRow => x !== null);
+    if (!poses.length) continue;
+    for (const p of group) {
+      // Everyone else's, not their own: a client that received its own pose
+      // back would have to filter it out anyway, and one round trip late.
+      const others = poses.filter((row) => row.id !== p.id);
+      if (others.length) send(p.sock, { t: 'snap', p: others });
+    }
+  }
+}, 1000 / TICK_HZ);
 
 const http = createServer(serve);
 http.on('upgrade', (req, socket, head) => {

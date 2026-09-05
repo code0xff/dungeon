@@ -1,6 +1,6 @@
 import { PROTOCOL_VERSION, parseMsg } from './protocol';
 import { coop } from './session';
-import type { ClientMsg, LobbyPlayer, ServerMsg } from './protocol';
+import type { ClientMsg, LobbyPlayer, PoseRow, ServerMsg } from './protocol';
 
 /**
  * The client half of the co-op socket: connect, join, and hand messages up.
@@ -34,21 +34,34 @@ export const net: NetState = {
 
 let sock: WebSocket | null = null;
 
-/** Called whenever anything above changes, so the panel can redraw. */
-let onChange: (() => void) | null = null;
+/**
+ * Called whenever anything above changes.
+ *
+ * A list, not a single slot: the lobby panel redraws itself and remote.ts drops
+ * bodies whose player has left, and with one slot whichever registered second
+ * would have silently replaced the first.
+ */
+const changeListeners: (() => void)[] = [];
 /** Called on the host's go, with the seed and level to build from. */
 let onStart: ((seed: number, level: number, players: LobbyPlayer[]) => void) | null = null;
 
 export function onNetChange(fn: () => void): void {
-  onChange = fn;
+  changeListeners.push(fn);
 }
 
 export function onNetStart(fn: (seed: number, level: number, players: LobbyPlayer[]) => void): void {
   onStart = fn;
 }
 
+/** Called on every snapshot with everyone else's poses. */
+let onSnap: ((rows: PoseRow[]) => void) | null = null;
+
+export function onNetSnap(fn: (rows: PoseRow[]) => void): void {
+  onSnap = fn;
+}
+
 function changed(): void {
-  onChange?.();
+  for (const fn of changeListeners) fn();
 }
 
 /**
@@ -168,6 +181,12 @@ export function connect(server: string, name: string): void {
         changed();
         break;
       }
+      case 'snap':
+        // Not routed through changed(): this arrives 20 times a second and
+        // redrawing the lobby panel on each one would be the most expensive
+        // thing in the mode.
+        if (Array.isArray(msg.p)) onSnap?.(msg.p);
+        break;
       case 'start':
         net.phase = 'run';
         net.level = msg.level;
@@ -212,6 +231,11 @@ export function setLevel(level: number): void {
 /** Host only; ignored by the server otherwise. */
 export function startRun(): void {
   send({ t: 'start' });
+}
+
+/** This player's pose, sent while in a run. */
+export function sendPose(x: number, z: number, r: number, a: number): void {
+  send({ t: 'p', x, z, r, a });
 }
 
 /**
