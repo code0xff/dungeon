@@ -5,6 +5,8 @@ import { context2d, el, firstChild, queryChild } from './dom';
 import { bankRun, loseRun, progress } from './progress';
 import { flashLight } from './scene';
 import { openShop } from './shop';
+import { leftRun } from './net/client';
+import { coop } from './net/session';
 import { state } from './state';
 import { finishDrink } from './loot';
 
@@ -52,8 +54,16 @@ const mctx = context2d(minimapEl);
 export function updateHUD(): void {
   hpbarEl.style.width = Math.max(0, state.hp) + '%';
   goldEl.textContent = String(state.runGold);
-  bankEl.textContent = `Bank: ${progress.bankGold} G`;
-  stageEl.textContent = `Stage ${progress.stage}`;
+  // The bank is a solo idea. Showing it during co-op — where the run banks
+  // nothing and starts from nothing — would say the opposite of what the mode
+  // does, so it is replaced by the party rather than left sitting at 0 G.
+  if (coop.active) {
+    stageEl.textContent = `Level ${coop.level}`;
+    bankEl.textContent = 'Co-op';
+  } else {
+    stageEl.textContent = `Stage ${progress.stage}`;
+    bankEl.textContent = `Bank: ${progress.bankGold} G`;
+  }
 
   const items: string[] = [];
   if (state.lanternT > 0) {
@@ -240,6 +250,35 @@ export function endRun(extracted: boolean): void {
 
   const title = el('ovTitle');
   const desc = el('ovDesc');
+
+  // Co-op banks nothing and loses nothing, so it must not go anywhere near
+  // bankRun() or loseRun() — those advance the stage and wipe the carried gear
+  // of a solo save this run was never part of. The party's gold is reported to
+  // the host instead; see docs/coop.md.
+  if (coop.active) {
+    // Told to the host straight away, not when the player gets round to
+    // clicking through the overlay: until this lands the lobby believes they
+    // are still underground and will not offer anyone another run.
+    leftRun();
+    title.textContent = extracted ? 'Extracted' : 'Killed';
+    title.className = extracted ? 'win' : 'dead';
+    desc.textContent = extracted
+      ? `Out with ${state.runGold} G for the party.`
+      : `You died with ${state.runGold} G. It stays down there.`;
+    el('ovBank').textContent = `Co-op · level ${coop.level}`;
+    // The button descends into the next stage in solo. Here there is no next
+    // stage — it goes back to the lobby, and saying "Descend" would promise a
+    // dungeon that clicking it does not open.
+    el('restart').textContent = 'Back to the lobby';
+    // No shop: there is no bank to spend and no next stage to outfit for.
+    overlayEl.style.display = 'flex';
+    updateHUD();
+    return;
+  }
+
+  // Put back after a co-op run renamed it.
+  el('restart').textContent = 'Descend';
+
   if (extracted) {
     // Captured before buildWorld() resets the run, which is why this runs here
     // and not when the player clicks through to the next stage.

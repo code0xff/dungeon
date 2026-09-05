@@ -809,6 +809,44 @@ export const SPAWN: Readonly<Record<CreatureKey, SpawnRate>> = {
  */
 export const SPAWN_PEAK_STAGE = 12;
 
+/**
+ * What a co-op player is handed at the start, per level of the host's choosing.
+ *
+ * It sits beside the spawn curve because that is what it has to keep pace with:
+ * a solo player reaching stage 8 has spent seven runs' gold in the shop, and
+ * co-op has neither a shop nor a bank. Without a ramp here, the host's level
+ * dial would scale the danger and nothing else.
+ *
+ * Deliberately below what a careful solo player would arrive with. Co-op adds
+ * three other people, and matching solo outfitting on top of that would make a
+ * level 8 party stronger than a stage 8 veteran. The caps exist because a pack
+ * of ten potions stops being supplies and becomes an extra health bar.
+ */
+export const COOP_KIT = {
+  /** One potion per this many levels. */
+  potionPerLevels: 2,
+  potionCap: 4,
+  lanternPerLevels: 3,
+  lanternCap: 3,
+  whetstonePerLevels: 3,
+  whetstoneCap: 3,
+  /** Spare rounds at level 1, matching the solo opening. */
+  ammoBase: START_AMMO,
+  /** Added per level above 1. Ammo is the one line that does not cap: the
+   *  musket's cost is the noise it makes, and that grows with the level too. */
+  ammoPerLevel: 1.5,
+};
+
+/**
+ * Highest level a co-op host can pick.
+ *
+ * Past SPAWN_PEAK_STAGE the curves flatten, so a level beyond it is only a
+ * bigger number, not a harder dungeon. A few above the peak is allowed because
+ * the kit does keep growing there; far above it would be a dial that does
+ * nothing, which is worse than not having the range.
+ */
+export const COOP_MAX_LEVEL = 15;
+
 // ---- Creature animation ----
 /** Attack duration in seconds when the external model carries no attack clip. */
 export const FALLBACK_ATTACK_TIME = 0.9;

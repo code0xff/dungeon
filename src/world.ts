@@ -13,6 +13,7 @@ import {
   flashLight, muzzleFlash, portal, portalCore, portalLight, scene, setLampLit, setPortalOpen,
   SMOKE_REST_Y, smoke, world,
 } from './scene';
+import { coop, coopKit, runLevel } from './net/session';
 import { random, setSeed, mixSeed, shuffle } from './rng';
 import { state } from './state';
 import { ceilTex, floorTex, wallTex } from './textures';
@@ -199,7 +200,7 @@ function spawnMonsters(scale: number): void {
     // At least one of each, so the mix does not lose its rarer half to rounding
     // in a small dungeon — meeting no brutes at all on stage 1 would teach the
     // wrong lesson about what is down there.
-    const count = Math.max(1, Math.round(spawnCount(key, progress.stage) * scale));
+    const count = Math.max(1, Math.round(spawnCount(key, runLevel(progress.stage)) * scale));
     for (let i = 0; i < count; i++) spawnOne(key);
   }
 }
@@ -341,13 +342,19 @@ export function buildWorld(): void {
   //
   // The run seed lives in progress.ts and is redrawn on death and on New game,
   // so a new run is a new dungeon — it is only fixed for as long as the run is.
-  const seed = mixSeed(progress.seed, progress.stage);
+  // In co-op the seed comes off the wire and is used as-is: every player has to
+  // land in the same dungeon, and mixing it with a level they all share would
+  // only be the same function applied by four machines.
+  const level = runLevel(progress.stage);
+  const seed = coop.active ? coop.seed : mixSeed(progress.seed, progress.stage);
   setSeed(seed);
-  console.log(`[world] seed ${progress.seed} stage ${progress.stage} -> ${seed}`);
+  console.log(coop.active
+    ? `[world] co-op seed ${seed} level ${level}`
+    : `[world] seed ${progress.seed} stage ${progress.stage} -> ${seed}`);
 
   // The dungeon grows with the stage and is not always square, so its size has
   // to be settled before anything that indexes the grid runs.
-  const { gw, gh } = dungeonSize(progress.stage);
+  const { gw, gh } = dungeonSize(level);
   state.gw = gw;
   state.gh = gh;
   state.maze = generateDungeon(gw, gh);
@@ -380,7 +387,10 @@ export function buildWorld(): void {
   state.pitch = 0;
   lockHintEl.style.display = pointerLock.locked || pointerLock.tried ? 'none' : 'flex';
 
-  state.hp = progress.hp;
+  // Co-op brings nothing in from the solo save — see docs/coop.md. The kit is
+  // handed out by level instead, because there is no shop between runs.
+  const kit = coop.active ? coopKit(level) : progress;
+  state.hp = kit.hp;
   state.runGold = 0;
   state.gameOver = false;
   state.atkTimer = 0;
@@ -399,7 +409,7 @@ export function buildWorld(): void {
   state.parryShown = false;
   state.swingLunge = false;
   state.lungeHitT = 0;
-  state.swordDur = progress.swordDur;
+  state.swordDur = kit.swordDur;
   state.swordWarned = false;
   // Gear carried out of the previous stage. A fresh run has none of it.
   // The map is never carried — see the note on Progress in src/progress.ts.
@@ -411,20 +421,20 @@ export function buildWorld(): void {
   // dungeon while stood beside a chest left the old one lootable for a moment,
   // paying out its gold or springing its trap in a world it no longer exists in.
   state.nearChest = null;
-  state.lanternT = progress.lanternT;
+  state.lanternT = kit.lanternT;
   state.lanternWarned = false;
   state.hasMap = false;
   // Each dungeon has its own key, so this never carries — it is the objective.
   state.hasKey = false;
   state.atPortal = false;
   setPortalOpen(false);
-  state.potions = progress.potions;
-  state.lanterns = progress.lanterns;
-  state.whetstones = progress.whetstones;
+  state.potions = kit.potions;
+  state.lanterns = kit.lanterns;
+  state.whetstones = kit.whetstones;
 
   // The sword is the default. Q swaps to the musket: one chambered round plus START_AMMO spare.
   state.hasMusket = true;
-  state.ammo = progress.ammo;
+  state.ammo = kit.ammo;
   state.loaded = true;
   state.reloadT = -1;
   state.recoilT = -1;

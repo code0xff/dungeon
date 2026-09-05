@@ -25,6 +25,10 @@ import {
   parseMsg,
   type ClientMsg, type LobbyPlayer, type ServerMsg,
 } from '../src/net/protocol.ts';
+// The level cap is a game tunable, so it is read from config.ts rather than
+// duplicated here — a server that clamped to a different number than the client
+// offers would be a bug nobody notices until someone picks the top of the dial.
+import { COOP_MAX_LEVEL } from '../src/config.ts';
 
 const ROOT = resolve(import.meta.dirname, '..', 'dist');
 
@@ -76,19 +80,32 @@ interface Player {
 const players = new Map<number, Player>();
 let nextId = 1;
 let level = 1;
-let running = false;
+let nextRunId = 1;
 
 /**
- * The host is whoever is left holding the flag, not whoever started the process.
+ * The host is the longest-waiting player **in the lobby**, recomputed on every
+ * change rather than granted once.
  *
- * If it were fixed to the first connection, the host closing their tab would
- * leave a lobby nobody can start. Promoting the oldest remaining player means
- * the process stays useful until the last person leaves.
+ * Fixing it to the first connection meant the host closing their tab left a
+ * lobby nobody could start. Keeping it on a player who has gone into a dungeon
+ * is the same bug wearing a different hat: the people who need to open the next
+ * run are the dead sitting in the lobby, and the original host may be alive
+ * inside the last one for another twenty minutes.
+ *
+ * When everybody is inside a dungeon there is no host, which is correct —
+ * there is nobody to start anything for.
  */
-function ensureHost(): void {
-  if ([...players.values()].some((p) => p.host)) return;
-  const next = [...players.values()][0];
-  if (next) next.host = true;
+function recomputeHost(): void {
+  let found = false;
+  for (const p of players.values()) {
+    p.host = !found && !p.inRun;
+    if (p.host) found = true;
+  }
+}
+
+/** True while at least one player is inside a dungeon. */
+function anyInRun(): boolean {
+  return [...players.values()].some((p) => p.inRun);
 }
 
 function roster(): LobbyPlayer[] {
@@ -108,7 +125,7 @@ function broadcast(msg: ServerMsg): void {
 }
 
 function broadcastLobby(): void {
-  broadcast({ t: 'lobby', players: roster(), level, running });
+  broadcast({ t: 'lobby', players: roster(), level, running: anyInRun() });
 }
 
 /**
@@ -150,18 +167,31 @@ wss.on('connection', (sock: WebSocket) => {
         return;
       }
       const id = nextId++;
-      me = { id, name: cleanName(msg.name, id), sock, host: players.size === 0, inRun: false };
+      me = { id, name: cleanName(msg.name, id), sock, host: false, inRun: false };
       players.set(id, me);
+      recomputeHost();
       send(sock, { t: 'welcome', id, host: me.host });
       broadcastLobby();
       console.log(`[coop] ${me.name} joined (${players.size}/${MAX_PLAYERS})`);
       return;
     }
 
-    // Everything below is for players who have joined, and all of it is for the
-    // host alone. Checking here rather than inside each branch means a new
-    // host-only message cannot be added without an authority check.
-    if (!me || !me.host) return;
+    if (!me) return;
+
+    // Leaving a run is the one thing a player says about themselves, so it is
+    // handled before the host gate below — everything past that point is an
+    // instruction about the whole lobby and belongs to the host alone.
+    if (msg.t === 'leftRun') {
+      if (!me.inRun) return;
+      me.inRun = false;
+      recomputeHost();
+      broadcastLobby();
+      return;
+    }
+
+    // Checking authority here rather than inside each branch means a new
+    // host-only message cannot be added without one.
+    if (!me.host) return;
 
     switch (msg.t) {
       case 'level':
@@ -169,16 +199,27 @@ wss.on('connection', (sock: WebSocket) => {
         // a negative or absurd one would generate a dungeon the client cannot
         // build.
         if (!Number.isFinite(msg.level)) return;
-        level = Math.min(20, Math.max(1, Math.round(msg.level)));
+        level = Math.min(COOP_MAX_LEVEL, Math.max(1, Math.round(msg.level)));
         broadcastLobby();
         break;
       case 'start': {
-        if (running) return;
+        // Everyone waiting, and nobody who is already underground: a running
+        // dungeon must not be interrupted by the dead opening the next one.
+        const group = [...players.values()].filter((p) => !p.inRun);
+        if (group.length === 0) return;
         const roll = (Math.random() * 0xffffffff) >>> 0;
-        running = true;
-        for (const p of players.values()) p.inRun = true;
-        broadcast({ t: 'start', seed: roll, level, players: roster() });
-        console.log(`[coop] run started: seed ${roll}, level ${level}, ${players.size} players`);
+        const runId = nextRunId++;
+        for (const p of group) p.inRun = true;
+        const start: ServerMsg = {
+          t: 'start', seed: roll, level, runId,
+          players: group.map((p) => ({ id: p.id, name: p.name, host: p.host, inRun: true })),
+        };
+        // Sent only to the group. Broadcasting it would drag players out of the
+        // dungeon they are still in and into a fresh one.
+        for (const p of group) send(p.sock, start);
+        recomputeHost();
+        broadcastLobby();
+        console.log(`[coop] run ${runId}: seed ${roll}, level ${level}, ${group.length} players`);
         break;
       }
       default:
@@ -190,10 +231,7 @@ wss.on('connection', (sock: WebSocket) => {
     if (!me) return;
     players.delete(me.id);
     console.log(`[coop] ${me.name} left (${players.size}/${MAX_PLAYERS})`);
-    ensureHost();
-    // The last player out ends the run, or a lobby nobody is in would stay
-    // "running" forever and refuse to start the next one.
-    if (players.size === 0) running = false;
+    recomputeHost();
     broadcastLobby();
   });
 

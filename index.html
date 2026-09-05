@@ -206,11 +206,26 @@
   .menuItem.arm { border-color:rgba(196,86,64,.75); color:#e0a08e; background:rgba(48,24,20,.9); }
   .menuStatus { font-size:13.5px; opacity:.55; font-style:italic; padding:2px 0 4px; }
 
-  #guide { position:fixed; inset:0; z-index:24; display:none; align-items:center;
+  #guide, #coop { position:fixed; inset:0; z-index:24; display:none; align-items:center;
            justify-content:flex-start; flex-direction:column;
            overflow-y:auto; overscroll-behavior:contain; touch-action:pan-y;
            background:rgba(2,3,4,.94); padding:20px; color:var(--ink); }
-  #guide > :first-child { margin-top:auto; margin-bottom:auto; }
+  #guide > :first-child, #coop > :first-child { margin-top:auto; margin-bottom:auto; }
+  /* The lobby borrows the guide's panel, rows and Back button wholesale — it is
+     the same kind of screen, and a second visual language for it would only
+     make the menu look assembled from parts. */
+  .coopField { display:flex; align-items:center; gap:12px; padding:6px 0; }
+  .coopField span { flex:0 0 132px; font-size:14.5px; }
+  .coopField input { flex:1; min-width:0; font-family:inherit; font-size:13.5px; color:var(--ink);
+                     background:rgba(6,7,9,.6); border:1px solid rgba(201,192,174,.18);
+                     border-radius:2px; padding:7px 9px; }
+  .coopField input:focus { outline:none; border-color:rgba(212,178,90,.5); }
+  .coopLevelRow { display:none; align-items:center; justify-content:center; gap:16px; margin-top:14px;
+                  font-family:var(--display); font-size:13px; letter-spacing:2px; }
+  .coopStep { width:32px; height:32px; border-radius:2px; font-size:16px; line-height:1;
+              border:1px solid rgba(201,192,174,.28); background:rgba(30,28,25,.9); color:var(--ink);
+              cursor:pointer; }
+  .coopStep:hover { border-color:rgba(212,178,90,.6); color:var(--gold); }
   .guidePanel { width:min(520px, 92vw); text-align:left;
                 border:1px solid rgba(201,192,174,.16); border-radius:3px; padding:18px 22px 20px;
                 background:linear-gradient(rgba(20,18,15,.8), rgba(8,9,11,.85));
@@ -225,11 +240,11 @@
   .guideTouch { display:none; }
   .guideNote { margin-top:14px; padding-top:12px; border-top:1px solid rgba(201,192,174,.12);
                font-size:13.5px; line-height:1.55; opacity:.6; font-style:italic; }
-  #guideClose { display:block; margin:18px auto 0; font-family:var(--display); font-size:12px;
+  #guideClose, #coopClose { display:block; margin:18px auto 0; font-family:var(--display); font-size:12px;
                 letter-spacing:2.4px; text-transform:uppercase; padding:11px 30px; border-radius:2px;
                 border:1px solid rgba(201,192,174,.28); background:rgba(30,28,25,.9); color:var(--ink);
                 cursor:pointer; font-weight:600; transition:border-color .14s, color .14s; }
-  #guideClose:hover { border-color:rgba(212,178,90,.6); color:var(--gold); }
+  #guideClose:hover, #coopClose:hover { border-color:rgba(212,178,90,.6); color:var(--gold); }
   #prompt { position:fixed; bottom:52px; left:50%; transform:translateX(-50%); color:var(--gold); font-size:15px; z-index:10; display:none;
             background:rgba(6,7,9,.7); padding:6px 14px; border-radius:6px; border:1px solid rgba(212,178,90,.3); user-select:none; pointer-events:none; }
   #prompt b { background:#d4b25a; color:#1a1207; padding:1px 7px; border-radius:4px; margin-right:6px; }
@@ -464,9 +479,32 @@
     <p class="menuStatus" id="menuStatus"></p>
     <button class="menuItem" id="menuResume">Resume</button>
     <button class="menuItem" id="menuNew">New game</button>
+    <button class="menuItem" id="menuCoop">Co-op</button>
     <button class="menuItem" id="menuGuide">Controls</button>
     <p class="guideNote" id="menuNote">A new game wipes the bank and starts again at stage 1.</p>
   </div>
+</div>
+
+<div id="coop">
+  <div class="guidePanel">
+    <div class="guideHead">Co-op</div>
+    <div id="coopForm">
+      <label class="coopField"><span>Name</span><input id="coopName" type="text" autocomplete="off" spellcheck="false"></label>
+      <label class="coopField"><span>Server</span><input id="coopServer" type="text" autocomplete="off" spellcheck="false" placeholder="this page's address"></label>
+      <button class="menuItem" id="coopConnect">Connect</button>
+    </div>
+    <div id="coopList"></div>
+    <div class="coopLevelRow" id="coopLevelRow">
+      <button class="coopStep" id="coopLevelDown">-</button>
+      <span id="coopLevel">Level 1</span>
+      <button class="coopStep" id="coopLevelUp">+</button>
+    </div>
+    <button class="menuItem" id="coopStart">Start the run</button>
+    <p class="guideNote" id="coopStatus"></p>
+    <p class="guideNote">Nothing carries in or out of a co-op run — no bank, no gear.
+      The host picks the level and everyone is outfitted for it.</p>
+  </div>
+  <button id="coopClose">Back</button>
 </div>
 
 <div id="guide">
