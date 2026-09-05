@@ -4,6 +4,7 @@ import { chestTemplate } from './assets';
 import { envMap } from './scene';
 import { ENV_INTENSITY, PROP_ASSETS, WALL_H } from './config';
 import { ironMat } from './creatures';
+import { random } from './rng';
 import { chestTex, rustTex } from './textures';
 import type { Chest, Prop, Sconce } from './types';
 
@@ -37,11 +38,11 @@ const goldGeo = (() => {
   for (let i = 0; i < 24; i++) {
     const isIngot = i % 5 === 0;
     const g = (isIngot ? ingot : coin).clone();
-    g.rotateY(Math.random() * Math.PI);
-    g.rotateX((Math.random() - 0.5) * (isIngot ? 0.3 : 0.7));
+    g.rotateY(random() * Math.PI);
+    g.rotateX((random() - 0.5) * (isIngot ? 0.3 : 0.7));
     // Heaped toward the middle so the pile has a crown rather than a flat top.
-    const t = Math.random();
-    g.translate((Math.random() - 0.5) * 0.52, t * 0.06, (Math.random() - 0.5) * 0.26 * (1 - t * 0.4));
+    const t = random();
+    g.translate((random() - 0.5) * 0.52, t * 0.06, (random() - 0.5) * 0.26 * (1 - t * 0.4));
     parts.push(g);
   }
   coin.dispose();
@@ -139,21 +140,21 @@ function makeSkull(): THREE.Group {
   const e2 = e1.clone();
   e2.position.x = 0.05;
   g.add(s, j, e1, e2);
-  g.rotation.y = Math.random() * 6.3;
+  g.rotation.y = random() * 6.3;
   return g;
 }
 
 function makeBonePile(): THREE.Group {
   const g = new THREE.Group();
-  for (let i = 0; i < 4 + ((Math.random() * 3) | 0); i++) {
-    const b = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.05, 0.35 + Math.random() * 0.4), boneMat);
-    b.position.set((Math.random() - 0.5) * 0.6, 0.03, (Math.random() - 0.5) * 0.6);
-    b.rotation.y = Math.random() * 6.3;
+  for (let i = 0; i < 4 + ((random() * 3) | 0); i++) {
+    const b = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.05, 0.35 + random() * 0.4), boneMat);
+    b.position.set((random() - 0.5) * 0.6, 0.03, (random() - 0.5) * 0.6);
+    b.rotation.y = random() * 6.3;
     g.add(b);
   }
-  if (Math.random() < 0.7) {
+  if (random() < 0.7) {
     const sk = makeSkull();
-    sk.position.set((Math.random() - 0.5) * 0.4, 0, (Math.random() - 0.5) * 0.4);
+    sk.position.set((random() - 0.5) * 0.4, 0, (random() - 0.5) * 0.4);
     g.add(sk);
   }
   return g;
@@ -161,11 +162,11 @@ function makeBonePile(): THREE.Group {
 
 function makeRubble(): THREE.Group {
   const g = new THREE.Group();
-  for (let i = 0; i < 3 + ((Math.random() * 4) | 0); i++) {
-    const s = 0.12 + Math.random() * 0.28;
+  for (let i = 0; i < 3 + ((random() * 4) | 0); i++) {
+    const s = 0.12 + random() * 0.28;
     const r = new THREE.Mesh(new THREE.BoxGeometry(s, s * 0.6, s * 0.8), stoneMat);
-    r.position.set((Math.random() - 0.5) * 0.9, s * 0.25, (Math.random() - 0.5) * 0.9);
-    r.rotation.set(Math.random() * 0.4, Math.random() * 6.3, Math.random() * 0.4);
+    r.position.set((random() - 0.5) * 0.9, s * 0.25, (random() - 0.5) * 0.9);
+    r.rotation.set(random() * 0.4, random() * 6.3, random() * 0.4);
     g.add(r);
   }
   return g;
@@ -175,11 +176,11 @@ function makeBarrel(): THREE.Group {
   const m = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.32, 0.75, 10), new THREE.MeshStandardMaterial({ map: chestTex, roughness: 1 }));
   const g = new THREE.Group();
   g.add(m);
-  if (Math.random() < 0.5) {
+  if (random() < 0.5) {
     // Toppled barrel
     m.rotation.z = Math.PI / 2;
     m.position.y = 0.3;
-    g.rotation.y = Math.random() * 6.3;
+    g.rotation.y = random() * 6.3;
   } else {
     m.position.y = 0.375;
   }
@@ -189,27 +190,27 @@ function makeBarrel(): THREE.Group {
 /** Chain hanging from the ceiling. Hands back a phase offset so it sways out of step with the others. */
 function makeChain(): { object: THREE.Group; swing: number } {
   const g = new THREE.Group();
-  const len = 0.8 + Math.random() * 1.4;
+  const len = 0.8 + random() * 1.4;
   const c = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, len, 6), ironMat);
   c.position.y = WALL_H - len / 2;
   g.add(c);
   const hook = new THREE.Mesh(new THREE.TorusGeometry(0.08, 0.02, 6, 10), ironMat);
   hook.position.y = WALL_H - len - 0.06;
   g.add(hook);
-  return { object: g, swing: Math.random() * 6.3 };
+  return { object: g, swing: random() * 6.3 };
 }
 
 function makePuddle(): THREE.Mesh {
-  const m = new THREE.Mesh(new THREE.CircleGeometry(0.5 + Math.random() * 0.5, 18), puddleMat);
+  const m = new THREE.Mesh(new THREE.CircleGeometry(0.5 + random() * 0.5, 18), puddleMat);
   m.rotation.x = -Math.PI / 2;
   m.position.y = 0.012;
-  m.scale.x = 0.7 + Math.random() * 0.6;
+  m.scale.x = 0.7 + random() * 0.6;
   return m;
 }
 
 /** Rolls one prop off the probability table. null when nothing comes up. */
 export function rollProp(): Prop | null {
-  const r = Math.random();
+  const r = random();
   if (r < 0.10) return { object: makeBonePile(), swing: null };
   if (r < 0.26) return { object: makeRubble(), swing: null };
   if (r < 0.31) return { object: makeBarrel(), swing: null };
@@ -378,5 +379,5 @@ export function makeSconce(): Sconce {
   light.position.y = 0.2;
   light.layers.enable(1);
   g.add(bracket, flame, light);
-  return { group: g, flame, light, seed: Math.random() * 6.3 };
+  return { group: g, flame, light, seed: random() * 6.3 };
 }

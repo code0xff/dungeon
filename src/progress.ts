@@ -1,4 +1,5 @@
 import { LANTERN_FUEL, MAX_HP, START_AMMO, SWORD_DUR_MAX } from './config';
+import { randomSeed } from './rng';
 
 /**
  * What survives a run, saved to localStorage.
@@ -30,6 +31,12 @@ export interface Progress {
   whetstones: number;
   /** Sword durability carried out. A new run after death gets a fresh blade. */
   swordDur: number;
+  /**
+   * The seed every dungeon in this run is generated from, combined with the
+   * stage. Saved with the rest so a reload continues the same run rather than
+   * quietly regenerating the dungeon underneath the player.
+   */
+  seed: number;
 }
 
 const KEY = 'dungeon.progress.v1';
@@ -38,6 +45,9 @@ function fresh(): Progress {
   return {
     stage: 1, bankGold: 0, hp: MAX_HP, lanternT: 0, ammo: START_AMMO,
     potions: 0, lanterns: 0, whetstones: 0, swordDur: SWORD_DUR_MAX,
+    // Drawn here rather than at the first buildWorld() so that death and New
+    // game — the two callers of fresh() — are exactly what changes the dungeon.
+    seed: randomSeed(),
   };
 }
 
@@ -66,6 +76,9 @@ function merge(raw: unknown): void {
   if (typeof o.swordDur === 'number' && Number.isFinite(o.swordDur)) {
     progress.swordDur = Math.min(SWORD_DUR_MAX, Math.max(0, o.swordDur));
   }
+  // A save written before seeds existed has none, and keeping the one fresh()
+  // already drew is the right answer: that run gets a seed from here on.
+  if (typeof o.seed === 'number' && Number.isFinite(o.seed)) progress.seed = o.seed >>> 0;
 }
 
 /**
@@ -80,6 +93,17 @@ export function loadProgress(): void {
   } catch {
     // Corrupt or unavailable storage: keep the defaults.
   }
+}
+
+/**
+ * Overrides the run seed — the `?seed=` URL parameter, and later whatever a
+ * multiplayer host sends. Not saved on its own: it takes effect on the next
+ * buildWorld() and is written out with the rest at the next extraction, so a
+ * link handed to someone else does not silently overwrite the run they are in
+ * the middle of until they actually finish a stage.
+ */
+export function setRunSeed(seed: number): void {
+  progress.seed = seed >>> 0;
 }
 
 export function saveProgress(): void {
