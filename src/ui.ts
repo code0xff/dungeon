@@ -207,6 +207,17 @@ export function endRun(extracted: boolean): void {
   if (state.gameOver) return;
   state.gameOver = true;
   cancelLoot();
+  // The frame loop stops here, and anything mid-animation stops with it. The
+  // shield would stay frozen half-raised behind the panel, and a creature
+  // parried in the last moment would stay rocked back until the next dungeon.
+  state.guarding = false;
+  state.guardHeld = 0;
+  state.parryT = 0;
+  state.guardT = 0;
+  for (const m of state.monsters) {
+    m.staggerT = 0;
+    m.mesh.rotation.x = 0;
+  }
   if (document.pointerLockElement) document.exitPointerLock();
   lockHintEl.style.display = 'none';
 

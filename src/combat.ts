@@ -168,7 +168,10 @@ export function tryAttack(): void {
 
 /** Fires the buffered swing. loop.ts calls this the frame the cooldown clears. */
 export function releaseQueuedAttack(): void {
-  if (state.gameOver || state.atkQueue <= 0 || state.weapon !== 'sword') {
+  // Guarding is checked here as well as in tryAttack(). A press buffered before
+  // the shield came up would otherwise swing out from behind it the moment the
+  // cooldown cleared, which is the one thing the guard is supposed to stop.
+  if (state.gameOver || state.guarding || state.atkQueue <= 0 || state.weapon !== 'sword') {
     state.atkQueue = 0;
     return;
   }
@@ -291,7 +294,11 @@ export function playerHurt(dmg: number, from?: Monster): 'hit' | 'blocked' | 'pa
         // to the same opening the forward dodge already opens, so it teaches the
         // player nothing new to read.
         state.lungeT = LUNGE_WINDOW;
+        // Cleared along with whatever input is still held, so the counter can
+        // actually be swung — a held key that still counted would put the shield
+        // straight back up.
         state.guarding = false;
+        state.guardHeld = 0;
         state.parryT = 0;
         sfxParry();
         // Named once, the first time it lands. The blade lighting up is the same
