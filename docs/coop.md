@@ -116,8 +116,10 @@ Because the Pages build and the host can now be different versions of the game,
   client bundle never sees; the alternative was hand-writing RFC 6455 framing,
   which is not a good use of anyone's time. It serves the built game too — see
   below.
-- **The lobby UI**, including the field that says where the server is. See
-  "Where players connect" below — the address must never be compiled in.
+- **Remote players.** Nothing is sent about where anyone is yet, so a co-op run
+  is currently the same dungeon walked alone. This is the next piece.
+- **Reporting gold to the host**, so the team total means something. Right now a
+  co-op run's gold is only shown to the player who earned it.
 - **A player avatar.** Other players are drawn as the existing lunatic mesh,
   tinted, until the netcode is proven worth an asset. The creature pipeline
   already has the right shape (rigged GLB per clip) and the budget has ~7.5MB

@@ -48,7 +48,14 @@ export const NAME_MAX = 16;
 export interface LobbyPlayer {
   id: number;
   name: string;
-  /** The host cannot be kicked and is the only one who can start a run. */
+  /**
+   * The one player who may set the level and start a run.
+   *
+   * It is the longest-waiting player *in the lobby*, not the process owner and
+   * not whoever connected first — because the player who needs to start the
+   * next dungeon is one of the dead sitting in the lobby, and the original host
+   * may still be alive inside the last one.
+   */
   host: boolean;
   /** True once they are in the dungeon. Players who died or extracted are false. */
   inRun: boolean;
@@ -69,12 +76,23 @@ export interface CLevel {
   level: number;
 }
 
-/** Host only. Closes the lobby to this run and starts it. */
+/** Host only. Takes everyone waiting in the lobby into a new dungeon. */
 export interface CStart {
   t: 'start';
 }
 
-export type ClientMsg = CJoin | CLevel | CStart;
+/**
+ * "My run is over" — sent when a player dies or extracts.
+ *
+ * Without it the host has no way to know a dungeon emptied out: a browser that
+ * is still connected looks identical whether the player is fighting or sitting
+ * on a death screen, and the lobby would never offer another run.
+ */
+export interface CLeftRun {
+  t: 'leftRun';
+}
+
+export type ClientMsg = CJoin | CLevel | CStart | CLeftRun;
 
 // ---- Host to client ----
 
@@ -100,7 +118,7 @@ export interface SLobby {
   t: 'lobby';
   players: LobbyPlayer[];
   level: number;
-  /** True while a dungeon is running, so the lobby can say why it cannot be joined. */
+  /** True while at least one player is inside a dungeon. */
   running: boolean;
 }
 
@@ -114,7 +132,14 @@ export interface SStart {
   t: 'start';
   seed: number;
   level: number;
+  /** Who went in. Only players who were waiting in the lobby are sent this. */
   players: LobbyPlayer[];
+  /**
+   * Which dungeon this is. Runs can overlap — the dead start another one while
+   * the first is still going — so a message about a player needs to say which
+   * dungeon it happened in.
+   */
+  runId: number;
 }
 
 export type ServerMsg = SWelcome | SReject | SLobby | SStart;

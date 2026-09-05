@@ -4,6 +4,8 @@ import { el } from './dom';
 import { animate } from './loop';
 import { buildWorld } from './world';
 import { closeShop } from './shop';
+import { coop } from './net/session';
+import { openLobbyPanel } from './net/lobby';
 // Imported for side effects: keyboard/mouse/touch listeners and the audio unlock.
 import './input';
 // Same: the pause menu registers its own key, click and touch handlers.
@@ -44,6 +46,16 @@ const loadingEl = el('loading');
 const loadMsgEl = el('loadMsg');
 
 el('restart').addEventListener('click', () => {
+  // In co-op there is nothing to outfit and no next stage to walk into: the run
+  // is over and the only thing to do is go back to the lobby, still connected,
+  // and wait for the host to open another one. Clearing `active` here is what
+  // stops a later solo run being built at the party's level.
+  if (coop.active) {
+    coop.active = false;
+    el('overlay').style.display = 'none';
+    openLobbyPanel();
+    return;
+  }
   // The shop wrote straight into progress, so buildWorld() picks up whatever
   // was bought without anything having to be handed across.
   closeShop();

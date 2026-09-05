@@ -2,6 +2,7 @@ import { GUIDE_KEY } from './config';
 import { el } from './dom';
 import { closeGuidePanel, openGuidePanel } from './guide';
 import { progress, resetProgress } from './progress';
+import { closeLobbyPanel, leaveLobby, openLobbyPanel } from './net/lobby';
 import { closeShop } from './shop';
 import { state } from './state';
 import { guideBtn, guideCloseBtn, overlayEl } from './ui';
@@ -28,10 +29,13 @@ const statusEl = el('menuStatus');
 const resumeBtn = el('menuResume');
 const guideItem = el('menuGuide');
 const newBtn = el('menuNew');
+const coopItem = el('menuCoop');
+const coopCloseBtn = el('coopClose');
 
 /** Whether New game has been clicked once and is waiting for confirmation. */
 let armed = false;
 let guideOpen = false;
+let coopOpen = false;
 
 function disarm(): void {
   armed = false;
@@ -40,13 +44,15 @@ function disarm(): void {
 }
 
 export function isMenuOpen(): boolean {
-  return menuEl.style.display === 'flex' || guideOpen;
+  return menuEl.style.display === 'flex' || guideOpen || coopOpen;
 }
 
 export function openMenu(): void {
   disarm();
   guideOpen = false;
+  coopOpen = false;
   closeGuidePanel();
+  closeLobbyPanel();
   // Not while the end-of-run overlay is up: the loop is already stopped there,
   // and pausing on top of it would leave `paused` set when the next run starts.
   if (!state.gameOver) state.paused = true;
@@ -59,7 +65,9 @@ export function openMenu(): void {
 export function closeMenu(): void {
   disarm();
   guideOpen = false;
+  coopOpen = false;
   closeGuidePanel();
+  closeLobbyPanel();
   menuEl.style.display = 'none';
   state.paused = false;
 }
@@ -77,10 +85,28 @@ function back(): void {
     menuEl.style.display = 'flex';
     return;
   }
+  if (coopOpen) {
+    coopOpen = false;
+    // Back out of the lobby drops the connection rather than hiding it. A
+    // socket left open behind a closed panel is a player the host still counts
+    // against the four, and nobody can see they are there.
+    leaveLobby();
+    menuEl.style.display = 'flex';
+    return;
+  }
   closeMenu();
 }
 
 resumeBtn.addEventListener('click', closeMenu);
+
+coopItem.addEventListener('click', () => {
+  disarm();
+  coopOpen = true;
+  menuEl.style.display = 'none';
+  openLobbyPanel();
+});
+
+coopCloseBtn.addEventListener('click', back);
 
 guideItem.addEventListener('click', () => {
   disarm();
