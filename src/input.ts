@@ -83,7 +83,10 @@ addEventListener('keydown', (e) => {
   }
   if (e.code === 'KeyE') startLoot();
   // A keyboard alternative, for anyone who would rather not hold a mouse button.
-  if (e.code === `Key${GUARD_KEY}`) guardDown();
+  // `e.repeat` is the important half: a held key auto-repeats, and without this
+  // the repeat re-raised the guard the instant a parry dropped it, so the
+  // counter the parry exists to open could not be swung.
+  if (e.code === `Key${GUARD_KEY}` && !e.repeat) guardDown(GUARD_SRC.key);
   if (e.code === `Key${SOUND_KEY}`) toggleSound();
   // Shift, not a direction key of its own: the dodge goes where you are already
   // going, so it adds a finger rather than a decision.
@@ -99,7 +102,7 @@ addEventListener('keydown', (e) => {
 });
 addEventListener('keyup', (e) => {
   keys[e.code] = false;
-  if (e.code === `Key${GUARD_KEY}`) guardUp();
+  if (e.code === `Key${GUARD_KEY}`) guardUp(GUARD_SRC.key);
 });
 
 // ================= Mouse =================
@@ -160,8 +163,14 @@ document.addEventListener('pointerlockerror', () => {
  * The window is on the *press*. A guard held up permanently has to be safe and
  * worthless or there is no decision in it — timing is what the reward costs.
  */
-export function guardDown(): void {
-  if (state.gameOver || state.guarding) return;
+/** Bits for state.guardHeld: the three inputs that can hold the guard. */
+export const GUARD_SRC = { key: 1, mouse: 2, touch: 4 } as const;
+
+export function guardDown(src: number): void {
+  if (state.gameOver) return;
+  const wasHeld = state.guardHeld !== 0;
+  state.guardHeld |= src;
+  if (wasHeld || state.guarding) return;
   state.guarding = true;
   // The window only opens if one has not just been opened. Without the cooldown
   // the timing is free — tapping the button keeps a window permanently open and
@@ -172,9 +181,13 @@ export function guardDown(): void {
   }
 }
 
-export function guardUp(): void {
+/** Releases one input. Pass nothing to drop the guard whatever is still held. */
+export function guardUp(src?: number): void {
+  state.guardHeld = src === undefined ? 0 : state.guardHeld & ~src;
+  if (state.guardHeld !== 0) return;
   state.guarding = false;
   state.parryT = 0;
+  guardBtn.classList.remove('on');
 }
 
 canvasEl.addEventListener('pointerdown', (e) => {
@@ -182,7 +195,10 @@ canvasEl.addEventListener('pointerdown', (e) => {
   // Right button guards. Attacking is the left button, so the two hands are the
   // two buttons and neither has to be a modifier of the other.
   if (e.button === 2) {
-    if (pointerLock.locked) guardDown();
+    // Not gated on the lock. Gating it meant the advertised control silently did
+    // nothing on a fresh run, or after Esc, until an unrelated left click had
+    // relocked the cursor.
+    guardDown(GUARD_SRC.mouse);
     return;
   }
   if (pointerLock.locked) {
@@ -204,7 +220,7 @@ canvasEl.addEventListener('pointerdown', (e) => {
 });
 
 addEventListener('pointerup', (e) => {
-  if (e.button === 2) guardUp();
+  if (e.button === 2) guardUp(GUARD_SRC.mouse);
 });
 // Without this the browser menu eats the release, and the shield sticks up.
 canvasEl.addEventListener('contextmenu', (e) => e.preventDefault());
@@ -282,14 +298,13 @@ guardBtn.addEventListener('touchstart', (e) => {
   e.stopPropagation();
   initAudio();
   if (!touchIsForGame()) return;
-  guardDown();
+  guardDown(GUARD_SRC.touch);
   guardBtn.classList.add('on');
 }, { passive: false });
 for (const ev of ['touchend', 'touchcancel'] as const) {
   guardBtn.addEventListener(ev, (e) => {
     e.preventDefault();
-    guardUp();
-    guardBtn.classList.remove('on');
+    guardUp(GUARD_SRC.touch);
   }, { passive: false });
 }
 

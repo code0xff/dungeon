@@ -183,6 +183,40 @@ gearBob.add(sword);
  */
 export const handShield = new THREE.Group();
 /**
+ * A plank of a shield, used when weapons/shield.glb is missing.
+ *
+ * The lantern that used to be in this hand deliberately had no fallback, because
+ * a primitive lantern read as a paper triangle held against the cheek and an
+ * unlit hand was better. A shield is different on both counts: the shape is a
+ * board, which a box gets right, and unlike the lantern it is showing an active
+ * mechanic rather than decorating. Guarding with nothing in view is worse than
+ * guarding with a plain board.
+ */
+const shieldFallback = (() => {
+  const g = new THREE.Group();
+  const face = new THREE.Mesh(
+    new THREE.BoxGeometry(0.46, 0.78, 0.05),
+    new THREE.MeshStandardMaterial({ color: 0x6d5636, roughness: 0.85, envMap, envMapIntensity: ENV_INTENSITY }),
+  );
+  // Two iron bands across the boards. A torus rim was tried and read as a picture
+  // frame standing off the front, because a low-segment torus is a square hoop.
+  const ironMat = new THREE.MeshStandardMaterial({
+    color: 0x4a4a4e, metalness: 0.7, roughness: 0.45, envMap, envMapIntensity: ENV_INTENSITY,
+  });
+  g.add(face);
+  for (const y of [0.22, -0.16]) {
+    const band = new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.055, 0.012), ironMat);
+    band.position.set(0, y, 0.031);
+    g.add(band);
+  }
+  g.traverse((o) => {
+    o.layers.set(1);
+    if ((o as THREE.Mesh).isMesh) (o as THREE.Mesh).frustumCulled = false;
+  });
+  return g;
+})();
+handShield.add(shieldFallback);
+/**
  * Lowered and raised poses.
  *
  * At rest it hangs low and edge-on at the left, cut by the corner of the frame,
@@ -216,8 +250,9 @@ handShield.position.copy(SHIELD_REST.pos);
 handShield.rotation.copy(SHIELD_REST.rot);
 camera.add(handShield);
 
-/** Puts the loaded shield model in the player's left hand. */
+/** Puts the loaded shield model in the player's left hand, replacing the plank. */
 export function equipShield(model: THREE.Object3D): void {
+  handShield.remove(shieldFallback);
   handShield.add(model);
   model.traverse((o) => {
     o.layers.set(1);

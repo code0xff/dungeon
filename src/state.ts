@@ -78,6 +78,15 @@ export const state = {
   // ---- Guard ----
   /** Whether the shield is being held up. */
   guarding: false,
+  /**
+   * Which inputs are currently holding the guard, as a bitmask: 1 key, 2 mouse,
+   * 4 touch. Kept because the three are independent — releasing the key while
+   * the mouse button is still down used to drop the shield anyway.
+   *
+   * It lives in state rather than in input.ts because a parry has to clear it
+   * too, and combat.ts importing input.ts would close a cycle.
+   */
+  guardHeld: 0,
   /** Raise progress, 0 down to 1 up. Smoothed, so the shield is seen to move. */
   guardT: 0,
   /**
