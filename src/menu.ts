@@ -91,10 +91,10 @@ export function openMenu(): void {
   // Hidden rather than disabled: a greyed button invites a second click.
   newBtn.style.display = coop.active ? 'none' : 'block';
   statusEl.textContent = coop.active
-    ? `Co-op  ·  level ${coop.level}`
+    ? `Multiplayer  ·  level ${coop.level}`
     : `Stage ${progress.stage}  ·  Bank ${progress.bankGold} G`;
   el('menuNote').textContent = coop.active
-    ? 'A co-op run banks nothing and changes nothing you have saved. The dungeon does not stop while you read this.'
+    ? 'A multiplayer run banks nothing and changes nothing you have saved. The dungeon does not stop while you read this.'
     : 'A new game wipes the bank and starts again at stage 1.';
   menuEl.style.display = 'flex';
   syncUi();

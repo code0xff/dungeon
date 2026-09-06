@@ -59,7 +59,7 @@ export function updateHUD(): void {
   // does, so it is replaced by the party rather than left sitting at 0 G.
   if (coop.active) {
     stageEl.textContent = `Level ${coop.level}`;
-    bankEl.textContent = 'Co-op';
+    bankEl.textContent = 'Multiplayer';
   } else {
     stageEl.textContent = `Stage ${progress.stage}`;
     bankEl.textContent = `Bank: ${progress.bankGold} G`;
@@ -272,8 +272,8 @@ export function endRun(extracted: boolean): void {
     // Filled in by the party total when it comes back from the host, which is
     // a round trip away — so it starts by saying what this player is sure of.
     el('ovBank').textContent = extracted
-      ? `Co-op · level ${coop.level}`
-      : `Co-op · level ${coop.level} · nothing carried out`;
+      ? `Multiplayer · level ${coop.level}`
+      : `Multiplayer · level ${coop.level} · nothing carried out`;
     // The button descends into the next stage in solo. Here there is no next
     // stage — it goes back to the lobby, and saying "Descend" would promise a
     // dungeon that clicking it does not open.

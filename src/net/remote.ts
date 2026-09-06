@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { setAnim, spawnPlayerModel } from '../assets';
+import { clipDuration, setAnim, spawnPlayerModel } from '../assets';
 import { NAME_TAG_W, NAME_TAG_Y, REMOTE_FADE, REMOTE_LERP, REMOTE_TINT, REMOTE_TINTS } from '../config';
 import { scene } from '../scene';
 import { state } from '../state';
@@ -40,6 +40,18 @@ interface Remote {
   anim: number;
   /** Seconds since the last snapshot mentioned this player. */
   quiet: number;
+  /**
+   * Seconds left on a swing the body is committed to.
+   *
+   * The sender reports a swing for as long as *their* swing lasts — a third of
+   * a second of first-person arm — and the knight's slash clip is longer than
+   * that. Following the wire cut every ally's attack off part way through. Once
+   * a swing starts here it runs to the end of the clip, and the wire is not
+   * consulted about the body until it has.
+   */
+  swinging: number;
+  /** Set for one frame when a swing has just been reported, so it starts once. */
+  swingStart: boolean;
 }
 
 const remotes = new Map<number, Remote>();
@@ -150,7 +162,7 @@ function createRemote(id: number, x: number, z: number, r: number): Remote {
   scene.add(group);
   const rem: Remote = {
     id, group, tag, tagName, ownsGeometry: !spawned, playback: spawned?.playback ?? null,
-    x, z, r, tx: x, tz: z, tr: r, anim: ANIM_IDLE, quiet: 0,
+    x, z, r, tx: x, tz: z, tr: r, anim: ANIM_IDLE, quiet: 0, swinging: 0, swingStart: false,
   };
   if (rem.playback) setAnim(rem.playback, 'idle', { fade: 0 });
   return rem;
@@ -194,6 +206,10 @@ onNetSnap((rows) => {
     rem.tx = row.x;
     rem.tz = row.z;
     rem.tr = row.r;
+    // The edge, not the level: a swing that is still being reported from last
+    // tick is the same swing, and restarting the clip on every packet would
+    // stutter it at 20Hz.
+    if (row.a === ANIM_ATTACK && rem.anim !== ANIM_ATTACK) rem.swingStart = true;
     rem.anim = row.a;
     rem.quiet = 0;
   }
@@ -283,10 +299,24 @@ export function updateRemotes(dt: number): void {
     rem.group.rotation.y = rem.r + Math.PI;
 
     if (rem.playback) {
-      const want = animName(rem.anim);
-      // death does not loop: a body that replayed its own collapse every second
-      // would be the funniest thing in the dungeon and the least readable.
-      setAnim(rem.playback, want, want === 'death' ? { loop: false } : {});
+      if (rem.swingStart) {
+        rem.swingStart = false;
+        // Forced, because a second swing can begin while the clip from the
+        // first is still the current action and setAnim would otherwise leave
+        // it running rather than start it again.
+        setAnim(rem.playback, 'attack', { loop: false, force: true, fade: 0.06 });
+        rem.swinging = clipDuration(rem.playback, 'attack') ?? 0;
+      }
+      if (rem.swinging > 0) {
+        rem.swinging -= dt;
+      } else {
+        const want = animName(rem.anim);
+        // death does not loop: a body that replayed its own collapse every
+        // second would be the funniest thing in the dungeon and the least
+        // readable. A swing the wire is still reporting after the clip has
+        // finished is left as idle — the blow has landed either way.
+        if (want !== 'attack') setAnim(rem.playback, want, want === 'death' ? { loop: false } : {});
+      }
       rem.playback.mixer.update(dt);
     }
   }
