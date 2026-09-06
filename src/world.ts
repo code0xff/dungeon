@@ -14,6 +14,7 @@ import {
   SMOKE_REST_Y, smoke, world,
 } from './scene';
 import { clearMobSync } from './net/mobsync';
+import { clearWorldSync } from './net/worldsync';
 import { clearRemotes } from './net/remote';
 import { coop, coopKit, runLevel } from './net/session';
 import { random, setSeed, mixSeed, shuffle } from './rng';
@@ -100,6 +101,8 @@ function clearWorld(): void {
   // Same for the creature targets: they index the old dungeon's monster array,
   // and the next one is a different set of creatures at the same indices.
   clearMobSync();
+  // And the chest grants: they are indices into the dungeon that just ended.
+  clearWorldSync();
   for (const m of [world.wall, world.floor, world.ceil]) {
     if (!m) continue;
     scene.remove(m);

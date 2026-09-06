@@ -1,4 +1,4 @@
-import { MOB_LERP, TYPES } from '../config';
+import { MOB_LERP, MOB_STALE, TYPES } from '../config';
 import { killMonster, playerHurt } from '../combat';
 import { scene } from '../scene';
 import { state } from '../state';
@@ -25,13 +25,35 @@ import { coop } from './session';
  * at a zombie that is three metres apart on your two screens.
  */
 
-/** The latest reported state per creature index. */
-const targets = new Map<number, MobRow>();
+/**
+ * The latest reported state per creature index, and how long ago it arrived.
+ *
+ * The age matters because a snapshot is *partial*: the host drops creatures
+ * further than MOB_INTEREST from the recipient, so walking away from one does
+ * not produce a "gone" message, it produces silence. Without the age, that
+ * creature would stand at its last reported spot forever — drawn, and counted
+ * by the heartbeat as something nearby.
+ */
+interface Target {
+  row: MobRow;
+  quiet: number;
+}
+
+const targets = new Map<number, Target>();
+
+/** Creatures this client has already put down, so a repeated kill does nothing. */
+const killed = new Set<number>();
 
 /** Drops everything. buildWorld() calls it: these creatures no longer exist. */
 export function clearMobSync(): void {
   targets.clear();
+  killed.clear();
   sinceSend = 0;
+}
+
+/** What a followed creature is doing, or null if this client has not been told. */
+export function mobAnim(index: number): number | null {
+  return targets.get(index)?.row.a ?? null;
 }
 
 onNetMobs((rows) => {
@@ -39,7 +61,7 @@ onNetMobs((rows) => {
   // still receive a packet the old one had already sent, and applying it would
   // drag its creatures back to where somebody else last thought they were.
   if (isAuthority()) return;
-  for (const row of rows) targets.set(row.i, row);
+  for (const row of rows) targets.set(row.i, { row, quiet: 0 });
 });
 
 /**
@@ -66,7 +88,11 @@ onNetRemoteHit((i, d, by) => {
 /** The authority telling everyone a creature is down and who is being paid. */
 onNetKill((i, by, gold) => {
   const m = state.monsters[i];
-  if (!m || m.hp <= 0) return;
+  // Guarded on having killed it, not on its hp. A living creature's hp arrives
+  // rounded and can already read 0 here, and testing that would leave the body
+  // standing: never dying, never removed, still drawn.
+  if (!m || killed.has(i)) return;
+  killed.add(i);
   targets.delete(i);
   // The amount travels with the announcement rather than being rolled again
   // here: REWARD_SPREAD makes every roll different, and four clients rolling
@@ -117,7 +143,10 @@ export function publishMobs(dt: number): void {
       z: Math.round(m.mesh.position.z * 100) / 100,
       r: Math.round(m.mesh.rotation.y * 100) / 100,
       a: m.hp <= 0 ? ANIM_DEAD : m.attackT > 0 ? ANIM_ATTACK : m.moving ? ANIM_WALK : ANIM_IDLE,
-      hp: Math.round(m.hp),
+      // Rounded *up*, so something still alive never reports 0. A creature on
+      // 0.4 hp is alive, and saying otherwise makes the receiver treat it as
+      // dead before anyone has killed it.
+      hp: m.hp > 0 ? Math.ceil(m.hp) : 0,
     });
   }
   if (rows.length) sendMobs(rows);
@@ -155,9 +184,11 @@ export function followMobs(dt: number): number {
   let nearest = 99;
   const k = 1 - Math.exp(-MOB_LERP * dt);
 
+  for (const t of targets.values()) t.quiet += dt;
+
   for (let i = 0; i < state.monsters.length; i++) {
     const m = state.monsters[i];
-    const row = targets.get(i);
+    const target = targets.get(i);
 
     if (m.hp <= 0) {
       if (m.dead) {
@@ -170,6 +201,15 @@ export function followMobs(dt: number): number {
       }
       continue;
     }
+
+    // Stale means "you walked away from it", not "it died": the host stops
+    // sending what is out of range, and silence is the only notice given.
+    if (target && target.quiet > MOB_STALE) {
+      targets.delete(i);
+      m.mesh.visible = false;
+      continue;
+    }
+    const row = target?.row;
 
     if (!row) {
       // Never reported, or out of the interest radius. Hidden rather than left
@@ -184,7 +224,6 @@ export function followMobs(dt: number): number {
     m.mesh.position.z += (row.z - m.mesh.position.z) * k;
     m.mesh.rotation.y = turnTo(m.mesh.rotation.y, row.r, k);
     m.moving = row.a === ANIM_WALK;
-    m.attackT = row.a === ANIM_ATTACK ? 0.3 : 0;
 
     const dist = Math.hypot(state.pos.x - m.mesh.position.x, state.pos.z - m.mesh.position.z);
     nearest = Math.min(nearest, dist);

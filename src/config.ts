@@ -108,6 +108,15 @@ export const MOB_INTEREST = 34;
  * something is decides whether the swing lands.
  */
 export const MOB_LERP = 20;
+/**
+ * Seconds without a report before a followed creature is dropped.
+ *
+ * Snapshots are partial — the host omits anything past MOB_INTEREST from the
+ * recipient — so walking away from a creature is not announced, it just goes
+ * quiet. Long enough to ride out a dropped packet at TICK_HZ, short enough that
+ * a creature does not linger at the edge of the light after you have left it.
+ */
+export const MOB_STALE = 1.2;
 
 export const WALL_TEX_DIR = 'textures/wall';
 export const FLOOR_TEX_DIR = 'textures/floor';

@@ -4,7 +4,7 @@ import {
   AMMO_PICKUP, CHEST_ALERT_RADIUS, CHEST_ALERT_TIME, LANTERN_FUEL, LANTERN_KEY, MAX_HP,
   MUSKET_AMMO, POTION_HEAL, POTION_KEY, SWORD_DUR_MAX, WHETSTONE_KEY, WHETSTONE_REPAIR,
 } from './config';
-import { tellChestOpened, tellCreak } from './net/worldsync';
+import { tellChestOpened, tellCreak, tellLantern } from './net/worldsync';
 import { setLampLit, setPortalOpen } from './scene';
 import { state } from './state';
 import type { Chest } from './types';
@@ -42,6 +42,11 @@ export function openChest(c: Chest): void {
   if (c.state !== 'closed') return;
   c.state = 'opened';
   c.openT = 0;
+  // Announced before the trap can resolve, because the trap can kill and the
+  // early return below would otherwise leave the party looking at a chest that
+  // is shut on their screens and already emptied on this one — lootable again,
+  // by someone else, for a second payout.
+  tellChestOpened(state.chests.indexOf(c));
   // Fired on the lid coming open rather than on the creak, so backing out of a
   // loot you started still avoids it. That is what makes the tell on the lid
   // worth reading: seeing it is only useful if there is still a choice left.
@@ -93,10 +98,6 @@ export function openChest(c: Chest): void {
       if (!state.loaded && state.reloadT < 0 && state.weapon === 'musket') startReload();
       break;
   }
-
-  // After the contents are resolved, so a trap that kills the player returns
-  // above and the party is not told about a chest that never finished opening.
-  tellChestOpened(state.chests.indexOf(c));
 
   if (c.item) sfxPickup();
   if (trapLine) msg += `\n${trapLine}`;
@@ -161,6 +162,10 @@ export function useLantern(): void {
   if (state.lanterns <= 0) return showMsg('No lanterns');
   if (state.lanternT >= LANTERN_FUEL) return showMsg('The lantern is already full');
   state.lanterns--;
+  // The party sees by it too — light is what this dungeon is about, and one
+  // player lighting a lantern while the others stay in the dark would have them
+  // disagreeing about whether they can see the same corridor.
+  tellLantern();
   // Topping up rather than replacing, so lighting one early is not a waste.
   state.lanternT = Math.min(LANTERN_FUEL, state.lanternT + LANTERN_FUEL);
   state.lanternWarned = false;

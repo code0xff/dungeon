@@ -200,6 +200,18 @@ ending everyone's run because one person closed a tab.
 that the whole dungeon converges on the authority while everyone else walks an
 empty maze.
 
+**Followers animate from the wire, not from simulation state.** animLoaded()
+reads local state — it treats `attackT > 0` as "startAttack already began the
+clip, leave it alone" — and a follower never calls startAttack. Choosing the
+clip from the reported animation is what stops a creature standing idle while
+its blows land.
+
+**A snapshot is partial, so silence is how a creature goes away.** The host
+drops anything past MOB_INTEREST from the recipient, and walking away from a
+creature produces no message at all. A followed creature that has not been
+reported for MOB_STALE is dropped and hidden — without that it would stand at
+its last reported spot forever, drawn and counted as something nearby.
+
 **Hits are drawn immediately and applied remotely.** A swing flashes the
 creature, plays the sound and wears the blade on the spot, because waiting a
 round trip to show a hit makes every swing feel broken. The hp is not touched:

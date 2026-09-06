@@ -21,9 +21,10 @@ import { edgeTurn, keys, moveInput } from './input';
 import { finishDrink, openChest } from './loot';
 import { setTrapJaws } from './props';
 import { nearestPlayer, sendOwnPose, updateRemotes } from './net/remote';
-import { followMobs, publishMobs, reportMobHit } from './net/mobsync';
+import { followMobs, mobAnim, publishMobs, reportMobHit } from './net/mobsync';
+import { ANIM_ATTACK, ANIM_WALK } from './net/protocol';
 import { isAuthority } from './net/client';
-import { tellTrapSprung } from './net/worldsync';
+import { mayOpen, tellTrapSprung } from './net/worldsync';
 import {
   DUST, camera, dustGeo, flashLight, gearBob, handShield, MUSKET_REST, musket,
   SHIELD_GUARD, SHIELD_REST,
@@ -480,18 +481,49 @@ function updateMonsters(dt: number, now: number): number {
 /**
  * The creature pass for clients that are not simulating.
  *
- * followMobs() moves the bodies from the wire; the animation is driven here,
- * with the same two calls the real pass uses, because a creature sliding along
- * in a frozen pose is the exact bug this project has already fixed once.
+ * followMobs() moves the bodies and ticks the dead ones; the living ones are
+ * animated here from what the authority reported, which is the part that cannot
+ * reuse animLoaded(). animLoaded reads local simulation state — it treats
+ * `attackT > 0` as "startAttack already began the clip, leave it alone" — and a
+ * follower never calls startAttack, so a creature swinging at somebody would
+ * have stood there idle while its blows landed.
  */
 function followMonsters(dt: number, now: number): number {
   const nearest = followMobs(dt);
-  for (const m of state.monsters) {
-    if (m.hp <= 0 && !m.dead) continue;
-    if (m.playback) animLoaded(m, m.playback, dt);
+  for (let i = 0; i < state.monsters.length; i++) {
+    const m = state.monsters[i];
+    // The dead are handled inside followMobs, mixer and all.
+    if (m.hp <= 0) continue;
+    if (m.playback) animFollowed(m, m.playback, dt, mobAnim(i));
     else if (m.rig) animProcedural(m, m.rig, dt, now);
   }
   return nearest;
+}
+
+/** The clip a followed creature should be playing, chosen from the wire. */
+function animFollowed(m: Monster, pb: MonsterPlayback, dt: number, anim: number | null): void {
+  const flash = m.hurtT > 0;
+  if (flash) m.hurtT -= dt;
+  flashLoadedMesh(m.mesh, flash);
+
+  if (anim === ANIM_ATTACK) {
+    // force, because the report repeats every tick for as long as the swing
+    // lasts and setAnim would otherwise refuse to restart the clip it is on.
+    // It is not forced *again* mid-swing: setAnim already ignores a request for
+    // the clip that is playing unless told otherwise, and the attack is the one
+    // clip here that must not be restarted from its first frame every 50ms.
+    setAnim(pb, 'attack', { loop: false, fade: 0.08 });
+  } else if (anim === ANIM_WALK) {
+    setAnim(pb, 'walk');
+    if (pb.action) {
+      const [lo, hi] = WALK_TIMESCALE_RANGE;
+      const scale = m.groundSpeed / (pb.walkClipSpeed ?? WALK_CLIP_SPEED);
+      pb.action.timeScale = Math.max(lo, Math.min(hi, scale));
+    }
+  } else {
+    setAnim(pb, 'idle');
+  }
+  pb.mixer.update(dt);
 }
 
 /**
@@ -683,7 +715,10 @@ function updateChests(dt: number, playerMoving: boolean): void {
     } else {
       state.looting.t += dt;
       lootFillEl.style.width = Math.min(100, (state.looting.t / LOOT_TIME) * 100) + '%';
-      if (state.looting.t >= LOOT_TIME) {
+      // Held at the end until the host says this chest is ours. Everyone who
+      // starts a loot asks; only one is answered yes, and opening without the
+      // answer is what let two players collect the same chest.
+      if (state.looting.t >= LOOT_TIME && mayOpen(state.chests.indexOf(state.looting.chest))) {
         // Cleared *before* the chest opens, not after. A trapped chest damages
         // the player from inside openChest(), and playerHurt() cancels a loot in
         // progress and says "Looting interrupted!" — which is both untrue here

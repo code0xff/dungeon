@@ -1,11 +1,15 @@
 import { sfxCreak, sfxTrap } from '../audio';
 import { alertCreatures } from '../combat';
-import { CHEST_ALERT_RADIUS, CHEST_ALERT_TIME, TRAP_ALERT_RADIUS, TRAP_ALERT_TIME, TRAP_SPRING_TIME } from '../config';
-import { setPortalOpen } from '../scene';
+import {
+  CHEST_ALERT_RADIUS, CHEST_ALERT_TIME, LANTERN_FUEL, SHOT_ALERT_RADIUS, SHOT_ALERT_TIME,
+  TRAP_ALERT_RADIUS, TRAP_ALERT_TIME, TRAP_SPRING_TIME,
+} from '../config';
+import { setLampLit, setPortalOpen } from '../scene';
 import { el } from '../dom';
 import { state } from '../state';
 import { cancelLoot, minimapEl, objectiveEl, overlayEl, showMsg, updateHUD } from '../ui';
-import { net, onNetClaim, onNetEvent, onNetParty, sendClaim, sendEvent } from './client';
+import { isAuthority, net, onNetClaim, onNetEvent, onNetParty, sendClaim, sendEvent } from './client';
+import { remotePosition } from './remote';
 import type { WorldEvent } from './protocol';
 import { coop } from './session';
 
@@ -50,12 +54,45 @@ export function tellCreak(chestIndex: number): void {
  * loot is cancelled now rather than at the end, so the player can go and do
  * something else with the second they would have spent standing still.
  */
+/** Chest indices the host has awarded to this player. */
+const granted = new Set<number>();
+
+/**
+ * Drops the grants with the dungeon. buildWorld() calls it.
+ *
+ * They are chest *indices*, and the next dungeon has its own chest 3 — carrying
+ * them would let a player open one without ever asking, which is the whole
+ * thing this exists to prevent.
+ */
+export function clearWorldSync(): void {
+  granted.clear();
+}
+
 onNetClaim((i, to) => {
-  if (to === net.id) return;
+  if (to === net.id) {
+    granted.add(i);
+    return;
+  }
   if (state.looting?.chest !== state.chests[i]) return;
   cancelLoot();
   showMsg(`${nameOf(to)} is already opening that one`);
 });
+
+/**
+ * Whether this player may open a chest yet.
+ *
+ * In solo, always. In co-op the answer comes from the host, and the loot bar
+ * waits at the end for it rather than opening on the strength of having asked.
+ * That is what closes the race: two clients can both finish looting, but only
+ * one of them is ever told yes.
+ *
+ * The wait is normally invisible — the request goes out when the lid starts
+ * moving, LOOT_TIME earlier — and it only shows at all on a connection where
+ * the round trip is longer than opening a chest takes.
+ */
+export function mayOpen(chestIndex: number): boolean {
+  return !coop.active || granted.has(chestIndex);
+}
 
 /**
  * The party's total, whenever somebody's run ends.
@@ -85,6 +122,22 @@ export function tellTrapSprung(trapIndex: number): void {
   tell('trap', trapIndex);
 }
 
+/** One player lit a lantern; the whole party sees by it. */
+export function tellLantern(): void {
+  tell('lantern', 0);
+}
+
+/**
+ * A musket went off here.
+ *
+ * The noise is what matters and it is loud enough to be the point of the
+ * weapon. No position travels with it: the authority already holds a fresher
+ * copy of where the shooter is than anything this could send.
+ */
+export function tellShot(): void {
+  tell('shot', 0);
+}
+
 onNetEvent((k, i, by) => {
   if (k === 'creak') {
     const c = state.chests[i];
@@ -95,6 +148,27 @@ onNetEvent((k, i, by) => {
     // dungeon's copy.
     alertCreatures(CHEST_ALERT_RADIUS, CHEST_ALERT_TIME, c.mesh.position.x, c.mesh.position.z);
     sfxCreak();
+    return;
+  }
+
+  if (k === 'lantern') {
+    // Topped up rather than set, exactly as the player's own lantern is, so two
+    // people lighting one in the same minute is not a wasted lantern.
+    state.lanternT = Math.min(LANTERN_FUEL, state.lanternT + LANTERN_FUEL);
+    state.lanternWarned = false;
+    state.lightBase = setLampLit(true);
+    showMsg(`${nameOf(by)} lit a lantern`);
+    updateHUD();
+    return;
+  }
+
+  if (k === 'shot') {
+    // Only the client simulating the creatures needs to act: everyone else is
+    // drawing what it reports. The shot happened where the shooter is, and
+    // remote.ts already knows that better than any payload could say.
+    if (!isAuthority()) return;
+    const who = remotePosition(by);
+    if (who) alertCreatures(SHOT_ALERT_RADIUS, SHOT_ALERT_TIME, who.x, who.z);
     return;
   }
 

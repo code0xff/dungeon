@@ -125,6 +125,14 @@ interface Run {
   gold: number;
   /** chest index -> { player, when } — a lease, see SClaim. */
   claims: Map<number, { to: number; at: number }>;
+  /**
+   * Everyone who went in, whether or not they are still down there.
+   *
+   * The party total is sent to this rather than to the current occupants: a
+   * player who extracted first has their end screen open and is watching the
+   * number, and they are exactly the person who stops being in the run.
+   */
+  members: Set<number>;
 }
 
 const runs = new Map<number, Run>();
@@ -271,9 +279,8 @@ wss.on('connection', (sock: WebSocket) => {
       if (run && msg.out === true) run.gold += gold;
       if (run) {
         const total = run.gold;
-        const leftId = me.runId;
         for (const p of players.values()) {
-          if (p.runId === leftId || p.id === me.id) {
+          if (run.members.has(p.id)) {
             send(p.sock, { t: 'g', total, by: me.id, gold, out: msg.out === true });
           }
         }
@@ -299,17 +306,27 @@ wss.on('connection', (sock: WebSocket) => {
     // odd creatures, which is the shape of every other trust decision here.
     if (msg.t === 'm') {
       if (!me.inRun || !Array.isArray(msg.m)) return;
+      // Checked before anything dereferences a row. A single `null` in this
+      // array would throw out of the socket callback below and take the process
+      // down with every run inside it — the same shape of failure as the
+      // malformed URL escape, and worth being just as careful about.
+      const rows = msg.m.filter((row: unknown): row is MobRow => (
+        typeof row === 'object' && row !== null
+        && Number.isFinite((row as MobRow).x) && Number.isFinite((row as MobRow).z)
+        && Number.isFinite((row as MobRow).r) && Number.isInteger((row as MobRow).i)
+      ));
+      if (!rows.length) return;
       for (const p of players.values()) {
         if (p.runId !== me.runId || p.id === me.id) continue;
         // Trimmed to what this player could plausibly care about. At level 15
         // there are over a hundred creatures and most of them are nowhere near
         // anybody; sending them all is bandwidth spent on things nobody can see.
         const near = p.pose
-          ? msg.m.filter((row: MobRow) => {
+          ? rows.filter((row: MobRow) => {
             const dx = row.x - p.pose!.x, dz = row.z - p.pose!.z;
             return dx * dx + dz * dz < MOB_INTEREST * MOB_INTEREST;
           })
-          : msg.m;
+          : rows;
         if (near.length) send(p.sock, { t: 'm', m: near });
       }
       return;
@@ -426,7 +443,10 @@ wss.on('connection', (sock: WebSocket) => {
       p.runId = runId;
       p.pose = null;
     }
-        runs.set(runId, { maze: buildMaze(roll, level), gold: 0, claims: new Map() });
+        runs.set(runId, {
+          maze: buildMaze(roll, level), gold: 0, claims: new Map(),
+          members: new Set(group.map((p) => p.id)),
+        });
         const start: ServerMsg = {
           t: 'start', seed: roll, level, runId,
           players: group.map((p) => ({ id: p.id, name: p.name, host: p.host, inRun: true, runId })),

@@ -29,8 +29,15 @@
  * or joins from a stale bookmark — and a mismatched client that gets to join is
  * a client that desynchronises silently ten minutes later. It is rejected at
  * the handshake instead.
+ *
+ * It also became load-bearing the moment the deployed Pages build could reach a
+ * tunnel: that page and the host are separately deployed and routinely
+ * different versions of the game.
+ *
+ * 2: poses, creature snapshots, hits, kills, world events, chest claims and the
+ * party total. 1 knew only the lobby.
  */
-export const PROTOCOL_VERSION = 1;
+export const PROTOCOL_VERSION = 2;
 
 /** The port the host listens on for both the game page and the socket. */
 export const COOP_PORT = 5848;
@@ -162,7 +169,23 @@ export type WorldEvent =
   /** A chest finished opening. */
   | 'chest'
   /** A floor trap went off. */
-  | 'trap';
+  | 'trap'
+  /**
+   * A lantern was lit.
+   *
+   * `i` is unused. The fuel is not sent either: LANTERN_FUEL is the same
+   * constant on every client and topping up is idempotent, so the event is
+   * enough and a number would only be something to disagree about.
+   */
+  | 'lantern'
+  /**
+   * A musket was fired.
+   *
+   * Carries no position: `i` is unused, and the authority already knows where
+   * the shooter is from their last pose. Sending coordinates that the receiver
+   * holds a fresher copy of would only be a way for the two to disagree.
+   */
+  | 'shot';
 
 export interface CEvent {
   t: 'e';

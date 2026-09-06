@@ -11,6 +11,7 @@ import {
 import { flashLight, muzzleFlash, scene, smoke } from './scene';
 import { isAuthority } from './net/client';
 import { announceKill, reportHit } from './net/mobsync';
+import { tellShot } from './net/worldsync';
 import { state } from './state';
 import type { Monster } from './types';
 import { cancelLoot, flashHurt, endRun, showMsg, updateHUD } from './ui';
@@ -157,7 +158,11 @@ export function fireMusket(): void {
     }
   }
 
-  // The report carries a long way.
+  // The report carries a long way — and it has to carry to the party's
+  // creatures, not just this client's copies of them. Without this a follower
+  // could fire all day and nothing would come looking, because the only client
+  // whose creatures decide anything never heard it.
+  tellShot();
   const alerted = alertCreatures(SHOT_ALERT_RADIUS, SHOT_ALERT_TIME);
   if (alerted > 1) showMsg(`The shot echoes... ${alerted} coming your way`);
 

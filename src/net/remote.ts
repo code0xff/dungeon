@@ -291,6 +291,12 @@ export function nearestPlayer(x: number, z: number): { id: number; x: number; z:
   return best;
 }
 
+/** Where an ally is, or null if this client has no body for them. */
+export function remotePosition(id: number): { x: number; z: number } | null {
+  const rem = remotes.get(id);
+  return rem ? { x: rem.x, z: rem.z } : null;
+}
+
 /** What this player's body is doing, for the others to draw. */
 function ownAnim(moving: boolean): number {
   if (state.gameOver) return ANIM_DEAD;
