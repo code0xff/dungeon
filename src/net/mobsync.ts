@@ -37,6 +37,16 @@ import { coop } from './session';
 interface Target {
   row: MobRow;
   quiet: number;
+  /**
+   * Whether the fallback body has already begun the swing this report describes.
+   *
+   * A creature's attack is reported for as long as it lasts, and the authority's
+   * clip is longer than the fallback's guess at it — the shipped zombie swings
+   * for about 1.56s where FALLBACK_ATTACK_TIME allows 0.56. Without this the
+   * local timer would run out mid-swing and be restarted by the next packet,
+   * turning one blow into three.
+   */
+  swinging: boolean;
 }
 
 const targets = new Map<number, Target>();
@@ -61,7 +71,12 @@ onNetMobs((rows) => {
   // still receive a packet the old one had already sent, and applying it would
   // drag its creatures back to where somebody else last thought they were.
   if (isAuthority()) return;
-  for (const row of rows) targets.set(row.i, { row, quiet: 0 });
+  for (const row of rows) {
+    // Carried across the replacement, so the swing is only ever started on the
+    // edge where the creature was not attacking a moment ago.
+    const was = targets.get(row.i)?.swinging ?? false;
+    targets.set(row.i, { row, quiet: 0, swinging: was && row.a === ANIM_ATTACK });
+  }
 });
 
 /**
@@ -235,9 +250,17 @@ export function followMobs(dt: number): number {
     // The duration matches what startAttack() would have used for a creature
     // with no clips, so a fallback body swings at the same rate on every client.
     if (row.a === ANIM_ATTACK) {
-      if (m.attackT <= 0) m.attackT = FALLBACK_ATTACK_TIME / m.type.attackSpeed;
-      else m.attackT = Math.max(0, m.attackT - dt);
+      if (!target.swinging) {
+        target.swinging = true;
+        m.attackT = FALLBACK_ATTACK_TIME / m.type.attackSpeed;
+      } else {
+        // Runs down and stays down. The report outlasts the fallback's swing,
+        // and finishing early with the arms at rest is right — restarting would
+        // show one blow as several.
+        m.attackT = Math.max(0, m.attackT - dt);
+      }
     } else {
+      target.swinging = false;
       m.attackT = 0;
     }
 

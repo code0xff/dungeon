@@ -17,6 +17,14 @@ export const coop = {
   /** The seed the whole party generates its dungeon from. */
   seed: 0,
   /**
+   * Which dungeon this player's score belongs to.
+   *
+   * Kept after the run ends, unlike net.runId, because the end screen outlives
+   * the run: it is what tells a total for the dungeon you just left from a
+   * total for one you left twenty minutes ago.
+   */
+  runId: 0,
+  /**
    * What the party has banked between them this run.
    *
    * Counted by the host, because only the host sees everyone finish. It is the

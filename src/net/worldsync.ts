@@ -110,7 +110,10 @@ export function mayOpen(chestIndex: number): boolean {
  * out — a total that was true when the panel opened and silently wrong a minute
  * later is worse than no total.
  */
-onNetParty((total, by, gold, out) => {
+onNetParty((run, total, by, gold, out) => {
+  // A score for a dungeon this player is no longer counting. They may have died
+  // out of it, gone back in, and be looking at a newer run's end screen.
+  if (run !== coop.runId) return;
   coop.partyGold = total;
   const mine = by === net.id;
   if (!mine) {

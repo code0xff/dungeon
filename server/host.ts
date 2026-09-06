@@ -281,12 +281,12 @@ wss.on('connection', (sock: WebSocket) => {
         const total = run.gold;
         const from = me.runId;
         for (const p of players.values()) {
-          // Everyone who went in — but only while they are still in that
-          // dungeon or in no dungeon at all. A player who died here and has
-          // already started the next run is watching a different score, and
-          // SParty carries no run id for them to tell the two apart with.
-          if (run.members.has(p.id) && (p.runId === from || p.runId === 0)) {
-            send(p.sock, { t: 'g', total, by: me.id, gold, out: msg.out === true });
+          // Everyone who went in, wherever they are now — a player watching
+          // their end screen has left the run and is exactly who this is for.
+          // Which score it belongs to travels with it, because the host cannot
+          // tell "on run 1's end screen" from "on run 2's" and should not try.
+          if (run.members.has(p.id)) {
+            send(p.sock, { t: 'g', run: from, total, by: me.id, gold, out: msg.out === true });
           }
         }
       }

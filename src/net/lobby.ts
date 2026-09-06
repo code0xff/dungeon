@@ -117,6 +117,7 @@ onNetStart((seed, level) => {
   // Each dungeon is its own score. Nothing carries between runs, so a total
   // left over from the last one would be the mode's only number, wrong.
   coop.partyGold = 0;
+  coop.runId = net.runId;
   // The end-of-run overlay and the pause both belong to whatever came before.
   // Leaving either set would drop the party into a dungeon that is already
   // stopped, which looks exactly like the game failing to load.

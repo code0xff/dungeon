@@ -333,6 +333,15 @@ export interface SEvent {
  */
 export interface SParty {
   t: 'g';
+  /**
+   * Which dungeon this is the score for.
+   *
+   * Carried because runs overlap and a player can be sitting on the end screen
+   * of one while an earlier one is still finishing. Without it the receiver has
+   * no way to tell a stale total from its own, and the host cannot work it out
+   * either — "not currently in a run" describes both.
+   */
+  run: number;
   /** The whole run's banked total so far. */
   total: number;
   /** Who just finished, and with how much. */

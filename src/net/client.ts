@@ -238,7 +238,7 @@ export function connect(server: string, name: string): void {
         onMobHit?.(msg.i, msg.p, msg.d);
         break;
       case 'g':
-        onParty?.(msg.total, msg.by, msg.gold, msg.out);
+        onParty?.(msg.run, msg.total, msg.by, msg.gold, msg.out);
         break;
       case 'c':
         onClaim?.(msg.i, msg.to);
@@ -339,9 +339,11 @@ export function sendClaim(i: number, to: number): void {
 }
 
 /** Called when the party's total changes — somebody extracted, or did not. */
-let onParty: ((total: number, by: number, gold: number, out: boolean) => void) | null = null;
+let onParty: ((run: number, total: number, by: number, gold: number, out: boolean) => void) | null = null;
 
-export function onNetParty(fn: (total: number, by: number, gold: number, out: boolean) => void): void {
+export function onNetParty(
+  fn: (run: number, total: number, by: number, gold: number, out: boolean) => void,
+): void {
   onParty = fn;
 }
 
