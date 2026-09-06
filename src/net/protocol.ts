@@ -34,10 +34,16 @@
  * tunnel: that page and the host are separately deployed and routinely
  * different versions of the game.
  *
- * 2: poses, creature snapshots, hits, kills, world events, chest claims and the
- * party total. 1 knew only the lobby.
+ * 3: the party total carries the run it belongs to, and a swing announces its
+ * first tick separately. 2: poses, creature snapshots, hits, kills, world
+ * events, chest claims and the party total. 1 knew only the lobby.
+ *
+ * Bump this with *any* change to a shape below, including adding a field. A
+ * client one version behind does not fail loudly — it quietly drops what it
+ * cannot read, which here would have meant every party total discarded by a
+ * filter reading a field the sender never sent.
  */
-export const PROTOCOL_VERSION = 2;
+export const PROTOCOL_VERSION = 3;
 
 /** The port the host listens on for both the game page and the socket. */
 export const COOP_PORT = 5848;
@@ -243,6 +249,16 @@ export const ANIM_IDLE = 0;
 export const ANIM_WALK = 1;
 export const ANIM_ATTACK = 2;
 export const ANIM_DEAD = 3;
+/**
+ * The first tick of a swing, as distinct from the rest of it.
+ *
+ * It exists because a creature can start its next attack before the next
+ * snapshot goes out, so a plain "is attacking" flag never returns to idle and
+ * two blows arrive looking like one long one. The fallback body needs that edge
+ * — it drives its arms off a local timer — and a separate code carries it
+ * without adding a field to the row that repeats 20 times a second per creature.
+ */
+export const ANIM_ATTACK_START = 4;
 
 // ---- Host to client ----
 

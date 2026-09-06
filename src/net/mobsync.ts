@@ -7,8 +7,9 @@ import {
   isAuthority, net, onNetKill, onNetMobHit, onNetMobs, onNetRemoteHit,
   sendHit, sendKill, sendMobHit, sendMobs,
 } from './client';
-import { ANIM_ATTACK, ANIM_DEAD, ANIM_IDLE, ANIM_WALK, TICK_HZ } from './protocol';
+import { ANIM_ATTACK, ANIM_ATTACK_START, ANIM_DEAD, ANIM_IDLE, ANIM_WALK, TICK_HZ } from './protocol';
 import type { MobRow } from './protocol';
+import type { Monster } from '../types';
 import { coop } from './session';
 
 /**
@@ -47,6 +48,14 @@ interface Target {
    * turning one blow into three.
    */
   swinging: boolean;
+  /**
+   * True for the single frame a swing begins, and false on every other.
+   *
+   * The wire's ANIM_ATTACK_START lasts a whole snapshot, which is three or four
+   * frames — long enough to restart the animation on each of them. This narrows
+   * it to the one frame that is actually an edge.
+   */
+  freshSwing: boolean;
 }
 
 const targets = new Map<number, Target>();
@@ -54,16 +63,35 @@ const targets = new Map<number, Target>();
 /** Creatures this client has already put down, so a repeated kill does nothing. */
 const killed = new Set<number>();
 
+/**
+ * Creature indices whose current swing has already been announced.
+ *
+ * Only the authority uses it, and only so that the *first* tick of a swing goes
+ * out as ANIM_ATTACK_START. Without it two attacks with no idle frame between
+ * them are indistinguishable from one.
+ */
+const announcedSwing = new Set<number>();
+
 /** Drops everything. buildWorld() calls it: these creatures no longer exist. */
 export function clearMobSync(): void {
   targets.clear();
   killed.clear();
+  announcedSwing.clear();
   sinceSend = 0;
 }
 
-/** What a followed creature is doing, or null if this client has not been told. */
+/**
+ * What a followed creature is doing this frame, or null if not been told.
+ *
+ * ANIM_ATTACK_START is reported for exactly the frame the swing begins, not for
+ * as long as the snapshot that carried it — the difference is whether the clip
+ * restarts once or on every frame until the next packet.
+ */
 export function mobAnim(index: number): number | null {
-  return targets.get(index)?.row.a ?? null;
+  const t = targets.get(index);
+  if (!t) return null;
+  if (t.freshSwing) return ANIM_ATTACK_START;
+  return t.row.a === ANIM_ATTACK_START ? ANIM_ATTACK : t.row.a;
 }
 
 onNetMobs((rows) => {
@@ -74,8 +102,10 @@ onNetMobs((rows) => {
   for (const row of rows) {
     // Carried across the replacement, so the swing is only ever started on the
     // edge where the creature was not attacking a moment ago.
+    // ANIM_ATTACK_START always begins a new swing; ANIM_ATTACK continues
+    // whatever was already going.
     const was = targets.get(row.i)?.swinging ?? false;
-    targets.set(row.i, { row, quiet: 0, swinging: was && row.a === ANIM_ATTACK });
+    targets.set(row.i, { row, quiet: 0, swinging: was && row.a === ANIM_ATTACK, freshSwing: false });
   }
 });
 
@@ -157,7 +187,7 @@ export function publishMobs(dt: number): void {
       x: Math.round(m.mesh.position.x * 100) / 100,
       z: Math.round(m.mesh.position.z * 100) / 100,
       r: Math.round(m.mesh.rotation.y * 100) / 100,
-      a: m.hp <= 0 ? ANIM_DEAD : m.attackT > 0 ? ANIM_ATTACK : m.moving ? ANIM_WALK : ANIM_IDLE,
+      a: mobAnimFor(i, m),
       // Rounded *up*, so something still alive never reports 0. A creature on
       // 0.4 hp is alive, and saying otherwise makes the receiver treat it as
       // dead before anyone has killed it.
@@ -165,6 +195,27 @@ export function publishMobs(dt: number): void {
     });
   }
   if (rows.length) sendMobs(rows);
+}
+
+/**
+ * What to report a creature as doing, marking the tick a swing begins.
+ *
+ * The edge has to be found here rather than by the receiver, because between
+ * two snapshots a creature can finish one attack and begin another and the wire
+ * would carry no gap at all.
+ */
+function mobAnimFor(index: number, m: Monster): number {
+  if (m.hp <= 0) {
+    announcedSwing.delete(index);
+    return ANIM_DEAD;
+  }
+  if (m.attackT > 0) {
+    if (announcedSwing.has(index)) return ANIM_ATTACK;
+    announcedSwing.add(index);
+    return ANIM_ATTACK_START;
+  }
+  announcedSwing.delete(index);
+  return m.moving ? ANIM_WALK : ANIM_IDLE;
 }
 
 /** Tells the authority about a hit this client just landed. */
@@ -249,11 +300,13 @@ export function followMobs(dt: number): number {
     //
     // The duration matches what startAttack() would have used for a creature
     // with no clips, so a fallback body swings at the same rate on every client.
-    if (row.a === ANIM_ATTACK) {
+    if (row.a === ANIM_ATTACK || row.a === ANIM_ATTACK_START) {
       if (!target.swinging) {
         target.swinging = true;
+        target.freshSwing = true;
         m.attackT = FALLBACK_ATTACK_TIME / m.type.attackSpeed;
       } else {
+        target.freshSwing = false;
         // Runs down and stays down. The report outlasts the fallback's swing,
         // and finishing early with the arms at rest is right — restarting would
         // show one blow as several.
@@ -261,6 +314,7 @@ export function followMobs(dt: number): number {
       }
     } else {
       target.swinging = false;
+      target.freshSwing = false;
       m.attackT = 0;
     }
 

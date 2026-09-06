@@ -22,7 +22,7 @@ import { finishDrink, openChest } from './loot';
 import { setTrapJaws } from './props';
 import { nearestPlayer, sendOwnPose, updateRemotes } from './net/remote';
 import { followMobs, mobAnim, publishMobs, reportMobHit } from './net/mobsync';
-import { ANIM_ATTACK, ANIM_WALK } from './net/protocol';
+import { ANIM_ATTACK, ANIM_ATTACK_START, ANIM_WALK } from './net/protocol';
 import { isAuthority } from './net/client';
 import { mayOpen, tellTrapSprung } from './net/worldsync';
 import {
@@ -506,7 +506,7 @@ function animFollowed(m: Monster, pb: MonsterPlayback, dt: number, anim: number 
   if (flash) m.hurtT -= dt;
   flashLoadedMesh(m.mesh, flash);
 
-  if (anim === ANIM_ATTACK) {
+  if (anim === ANIM_ATTACK || anim === ANIM_ATTACK_START) {
     // force, because the report repeats every tick for as long as the swing
     // lasts and setAnim would otherwise refuse to restart the clip it is on.
     // It is not forced *again* mid-swing: setAnim already ignores a request for
@@ -515,7 +515,13 @@ function animFollowed(m: Monster, pb: MonsterPlayback, dt: number, anim: number 
     // The same speed startAttack() uses. Without it the clip plays at 1x while
     // the authority runs it at attackSpeed, so on a fast creature the wire says
     // "done" and flips back to idle before the follower has finished the swing.
-    setAnim(pb, 'attack', { loop: false, fade: 0.08, speed: m.type.attackSpeed });
+    // Forced only on the frame the swing begins. Two attacks with no idle
+    // between them are one continuous 'attack' as far as setAnim is concerned,
+    // so without the force the second one never restarts the clip — and with it
+    // on every frame the clip would restart four times a snapshot.
+    setAnim(pb, 'attack', {
+      loop: false, fade: 0.08, speed: m.type.attackSpeed, force: anim === ANIM_ATTACK_START,
+    });
   } else if (anim === ANIM_WALK) {
     setAnim(pb, 'walk');
     if (pb.action) {
