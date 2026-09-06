@@ -222,6 +222,14 @@ onNetEvent((k, i, by) => {
   // portal, so one key opens it for everyone; and a map that only one player
   // could read would mean two people in the same corridor disagreeing about
   // whether they know where they are.
+  // A trapped chest is a trap going off, and a trap is heard much further than
+  // a creaking lid. The damage stays with whoever opened it — that was resolved
+  // on their machine — but the noise belongs to the dungeon.
+  if (c.trapped) {
+    alertCreatures(TRAP_ALERT_RADIUS, TRAP_ALERT_TIME, c.mesh.position.x, c.mesh.position.z);
+    sfxTrap();
+  }
+
   const who = nameOf(by);
   if (c.item === 'key') {
     state.hasKey = true;

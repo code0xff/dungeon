@@ -67,7 +67,11 @@ export function openMenu(): void {
   closeLobbyPanel();
   // Not while the end-of-run overlay is up: the loop is already stopped there,
   // and pausing on top of it would leave `paused` set when the next run starts.
-  if (!state.gameOver) state.paused = true;
+  // Solo only. In co-op the dungeon belongs to everyone: freezing it here would
+  // stop the creature simulation for the whole party if this client happens to
+  // be the one running it, and their creatures would go stale and vanish. It
+  // would also be an exploit — reading the menu while a brute walks up.
+  if (!state.gameOver && !coop.active) state.paused = true;
   // Reading needs the cursor back; the click that re-locks it is harmless.
   if (document.pointerLockElement) document.exitPointerLock();
   // New game wipes the solo bank and rebuilds the world. In a co-op run that is
@@ -79,7 +83,7 @@ export function openMenu(): void {
     ? `Co-op  ·  level ${coop.level}`
     : `Stage ${progress.stage}  ·  Bank ${progress.bankGold} G`;
   el('menuNote').textContent = coop.active
-    ? 'A co-op run banks nothing and changes nothing you have saved.'
+    ? 'A co-op run banks nothing and changes nothing you have saved. The dungeon does not stop while you read this.'
     : 'A new game wipes the bank and starts again at stage 1.';
   menuEl.style.display = 'flex';
 }

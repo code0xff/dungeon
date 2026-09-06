@@ -194,7 +194,13 @@ onNetSnap((rows) => {
 onNetChange(() => {
   for (const [id, rem] of remotes) {
     const row = net.players.find((p) => p.id === id);
-    if (!row || !row.inRun) {
+    // Compared against coop.runId, not net.runId: net.runId is cleared the
+    // moment this player's own run ends, and a spectator watching from the end
+    // screen still wants the bodies of the dungeon they just left. An ally who
+    // has gone into the *next* run has a different runId and is dropped, which
+    // is what stops their body haunting the run they left — a ghost the
+    // creatures would happily chase.
+    if (!row || !row.inRun || row.runId !== coop.runId) {
       destroy(rem);
       remotes.delete(id);
       continue;

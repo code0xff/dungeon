@@ -81,6 +81,13 @@ export function onNetKill(fn: (i: number, by: number, gold: number) => void): vo
   onKill = fn;
 }
 
+/** Called on the authority when somebody reports a parry. */
+let onParry: ((i: number, by: number) => void) | null = null;
+
+export function onNetParry(fn: (i: number, by: number) => void): void {
+  onParry = fn;
+}
+
 /** Called when the authority says a creature swung at somebody. */
 let onMobHit: ((i: number, p: number, d: number) => void) | null = null;
 
@@ -243,6 +250,9 @@ export function connect(server: string, name: string): void {
       case 'c':
         onClaim?.(msg.i, msg.to);
         break;
+      case 'y':
+        onParry?.(msg.i, msg.by);
+        break;
       case 'start':
         net.phase = 'run';
         net.level = msg.level;
@@ -357,6 +367,11 @@ export function onNetClaim(fn: (i: number, to: number) => void): void {
 /** The authority announcing a kill: which creature, who swung, what it paid. */
 export function sendKill(i: number, by: number, gold: number): void {
   send({ t: 'k', i, by, gold });
+}
+
+/** Tells whoever is simulating that this player just parried a creature. */
+export function sendParry(i: number): void {
+  send({ t: 'y', i, by: net.id });
 }
 
 /** The authority announcing that a creature swung at a player. */

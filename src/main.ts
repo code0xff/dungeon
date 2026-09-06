@@ -5,6 +5,7 @@ import { animate } from './loop';
 import { buildWorld } from './world';
 import { closeShop } from './shop';
 import { coop } from './net/session';
+import { state } from './state';
 import { openLobbyPanel } from './net/lobby';
 // Imported for side effects: keyboard/mouse/touch listeners and the audio unlock.
 import './input';
@@ -52,6 +53,10 @@ el('restart').addEventListener('click', () => {
   // stops a later solo run being built at the party's level.
   if (coop.active) {
     coop.active = false;
+    // Cleared with it. Otherwise backing out of the lobby and pressing Resume
+    // returns to a world whose frame loop is still refusing to run, and only
+    // another co-op run or New game would ever start it again.
+    state.gameOver = false;
     el('overlay').style.display = 'none';
     openLobbyPanel();
     return;

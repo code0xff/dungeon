@@ -34,8 +34,9 @@
  * tunnel: that page and the host are separately deployed and routinely
  * different versions of the game.
  *
- * 3: the party total carries the run it belongs to, and a swing announces its
- * first tick separately. 2: poses, creature snapshots, hits, kills, world
+ * 4: a parry travels to whoever is simulating the creature. 3: the party total
+ * carries the run it belongs to, and a swing announces its first tick
+ * separately. 2: poses, creature snapshots, hits, kills, world
  * events, chest claims and the party total. 1 knew only the lobby.
  *
  * Bump this with *any* change to a shape below, including adding a field. A
@@ -43,7 +44,7 @@
  * cannot read, which here would have meant every party total discarded by a
  * filter reading a field the sender never sent.
  */
-export const PROTOCOL_VERSION = 3;
+export const PROTOCOL_VERSION = 4;
 
 /** The port the host listens on for both the game page and the socket. */
 export const COOP_PORT = 5848;
@@ -237,7 +238,8 @@ export type CMobHit = SMobHit;
 export type CClaim = SClaim;
 
 export type ClientMsg =
-  | CJoin | CLevel | CStart | CLeftRun | CPose | CEvent | CMobs | CHit | CKill | CMobHit | CClaim;
+  | CJoin | CLevel | CStart | CLeftRun | CPose | CEvent | CMobs | CHit | CKill | CMobHit | CClaim
+  | CParry;
 
 /**
  * What a remote body is doing, as one number.
@@ -386,6 +388,24 @@ export interface SClaim {
   to: number;
 }
 
+/**
+ * "I parried creature i."
+ *
+ * The parry itself is decided on the defender's machine — that is the whole
+ * reason this mode is co-op — but the *consequence* is not theirs to apply: the
+ * creature lives on the authority's machine, and a stagger the authority never
+ * hears about is a parry that does nothing. No direction travels with it. The
+ * authority knows where both of them are and can work out which way the
+ * creature rocks better than a defender a round trip away.
+ */
+export interface SParry {
+  t: 'y';
+  i: number;
+  by: number;
+}
+
+export type CParry = SParry;
+
 /** A hit somebody else landed, for the authority to apply. */
 export interface SHit {
   t: 'h';
@@ -426,7 +446,7 @@ export interface SMobHit {
 
 export type ServerMsg =
   | SWelcome | SReject | SLobby | SStart | SSnap | SEvent | SMobs | SKill | SMobHit | SHit
-  | SParty | SClaim;
+  | SParty | SClaim | SParry;
 
 /**
  * Parses a message off the wire.

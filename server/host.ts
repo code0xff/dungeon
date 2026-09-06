@@ -348,12 +348,12 @@ wss.on('connection', (sock: WebSocket) => {
       return;
     }
 
-    // The authority announcing a kill, or a creature's blow landing on someone.
-    // Both are relayed to the run for the same reason the hit reports are: the
-    // authority is derived by each client, not registered here, so the host has
-    // no idea which of them is entitled to say it — and the ones it does not
-    // concern drop it.
-    if (msg.t === 'k' || msg.t === 'x') {
+    // A kill, a creature's blow, or a parry going the other way. All three are
+    // relayed to the run for the same reason the hit reports are: the authority
+    // is derived by each client rather than registered here, so the host has no
+    // idea which of them any of these concerns — and the ones it does not
+    // concern drop them.
+    if (msg.t === 'k' || msg.t === 'x' || msg.t === 'y') {
       if (!me.inRun) return;
       for (const p of players.values()) {
         if (p.runId === me.runId && p.id !== me.id) send(p.sock, msg);
@@ -506,13 +506,20 @@ setInterval(() => {
     if (list) list.push(p);
     else byRun.set(p.runId, [p]);
   }
-  for (const group of byRun.values()) {
-    // Alone in a dungeon there is nothing to say, and this is the common case
-    // for a solo host testing — no reason to send 20 empty frames a second.
-    if (group.length < 2) continue;
+  for (const [runId, group] of byRun) {
     const poses = group.map((p) => p.pose).filter((x): x is PoseRow => x !== null);
     if (!poses.length) continue;
-    for (const p of group) {
+    // Everyone still down there, plus anyone who went in and has not gone
+    // anywhere else since. That second group is the spectators: death is final
+    // but watching is offered, and cutting their snapshots would end it after
+    // REMOTE_FADE with the bodies quietly fading out.
+    //
+    // They receive poses without contributing one, which is exactly right — a
+    // spectator is not in the dungeon.
+    const run = runs.get(runId);
+    for (const p of players.values()) {
+      const watching = p.runId === runId || (p.runId === 0 && run?.members.has(p.id));
+      if (!watching) continue;
       // Everyone else's, not their own: a client that received its own pose
       // back would have to filter it out anyway, and one round trip late.
       const others = poses.filter((row) => row.id !== p.id);

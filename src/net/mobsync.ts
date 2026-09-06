@@ -1,15 +1,16 @@
 import { FALLBACK_ATTACK_TIME, MOB_LERP, MOB_STALE, TYPES } from '../config';
-import { killMonster, playerHurt } from '../combat';
+import { killMonster, playerHurt, staggerCreature } from '../combat';
 import { scene } from '../scene';
 import { state } from '../state';
 import { showMsg } from '../ui';
 import {
-  isAuthority, net, onNetKill, onNetMobHit, onNetMobs, onNetRemoteHit,
-  sendHit, sendKill, sendMobHit, sendMobs,
+  isAuthority, net, onNetKill, onNetMobHit, onNetMobs, onNetParry, onNetRemoteHit,
+  sendHit, sendKill, sendMobHit, sendMobs, sendParry,
 } from './client';
 import { ANIM_ATTACK, ANIM_ATTACK_START, ANIM_DEAD, ANIM_IDLE, ANIM_WALK, TICK_HZ } from './protocol';
 import type { MobRow } from './protocol';
 import type { Monster } from '../types';
+import { remotePosition } from './remote';
 import { coop } from './session';
 
 /**
@@ -159,7 +160,30 @@ onNetKill((i, by, gold) => {
  */
 onNetMobHit((i, p, d) => {
   if (p !== net.id) return;
-  playerHurt(d, state.monsters[i] ?? undefined);
+  const outcome = playerHurt(d, state.monsters[i] ?? undefined);
+  // The parry is decided here and its consequence is not. playerHurt() rocked
+  // this client's own copy of the creature, which the next snapshot will
+  // overwrite — the creature that matters is on the authority's machine, still
+  // mid-swing, and a stagger it never hears about is a parry that did nothing.
+  if (outcome === 'parried') sendParry(i);
+});
+
+/**
+ * Somebody parried a creature. Authority only.
+ *
+ * The direction is worked out here rather than sent: this machine holds both
+ * positions, and the defender's idea of where the creature is, is a round trip
+ * old.
+ */
+onNetParry((i, by) => {
+  if (!isAuthority()) return;
+  const m = state.monsters[i];
+  if (!m || m.hp <= 0) return;
+  const who = remotePosition(by);
+  if (!who) return;
+  const dx = m.mesh.position.x - who.x, dz = m.mesh.position.z - who.z;
+  const d = Math.hypot(dx, dz) || 1;
+  staggerCreature(m, dx / d, dz / d);
 });
 
 let sinceSend = 0;
