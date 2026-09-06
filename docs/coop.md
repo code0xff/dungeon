@@ -116,9 +116,13 @@ and left open, not oversights:
 - **Handover jolts.** When the simulating client leaves, the next one takes over
   from its own interpolated copies and the party sees the creatures jump once.
   The alternative was ending everyone's run because one person closed a tab.
-- **A chest can still pay twice in one case.** The claim is a lease, so if its
-  holder dies mid-loot and the lease expires, a second player can open the same
-  chest. A chest nobody can ever open again is the worse failure.
+- **A chest can pay twice inside one round trip.** The claim is a lease: take a
+  chest, get pulled off it by a zombie without opening it, and the lease expires
+  on the host while somebody else takes it for real. Their grant reaches you and
+  your client drops the chest — but if your own bar happened to complete while
+  that message was still in flight, you both opened it. Closing the last of that
+  needs the two clients to agree before either pays, and a lease that can expire
+  is the price of a chest never becoming unopenable.
 - **Nothing is persisted.** A host restart is a new lobby with nothing carried,
   which is correct for the mode but means a crash mid-run ends it.
 - **No text or voice between players.** The lobby list and the names over the

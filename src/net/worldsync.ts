@@ -73,6 +73,14 @@ onNetClaim((i, to) => {
     granted.add(i);
     return;
   }
+  // Named to somebody else, so it is no longer ours — and this line is the one
+  // that matters. A grant used to be kept forever once received, which let two
+  // players hold one at the same time: take a chest, get interrupted by a
+  // zombie before opening it, and the lease on the host expires while your own
+  // client still believes the chest is yours. The next player is granted it for
+  // real, and if you both finish opening within a round trip of each other,
+  // neither has heard about the other's chest and it pays twice.
+  granted.delete(i);
   if (state.looting?.chest !== state.chests[i]) return;
   cancelLoot();
   showMsg(`${nameOf(to)} is already opening that one`);
