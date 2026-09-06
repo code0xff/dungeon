@@ -89,7 +89,15 @@ function merge(raw: unknown): void {
 export function loadProgress(): void {
   try {
     const raw = localStorage.getItem(KEY);
-    if (raw) merge(JSON.parse(raw));
+    const stored: unknown = raw ? JSON.parse(raw) : null;
+    if (stored) merge(stored);
+    // A fresh install, or a save written before seeds existed, is carrying the
+    // seed fresh() just drew and nothing on disk. Written now rather than at the
+    // first extraction, because a reload before then would draw another one —
+    // and reloading into a different dungeon is the thing the seed exists to
+    // prevent.
+    const hadSeed = typeof (stored as { seed?: unknown } | null)?.seed === 'number';
+    if (!hadSeed) saveProgress();
   } catch {
     // Corrupt or unavailable storage: keep the defaults.
   }

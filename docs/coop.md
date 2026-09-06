@@ -49,9 +49,12 @@ does not simulate.
 - **Gold is one team total, and only what extracted players carry counts.** A
   player who dies contributes nothing, which is where the reason to keep each
   other alive comes from, given there is no revive.
-- **Death is final for that run. Spectating is offered, never forced.** A dead
-  player can watch an ally, or drop back to the lobby and be in the next run —
-  or host their own.
+- **Death is final for that run. Watching is offered, never forced.** The end
+  screen has a Watch button when somebody is still down there: the overlay goes
+  away, the dungeon stays on screen, and none of it can be touched. There is no
+  free camera — you watch from where you fell, because a camera that could fly
+  through the maze would be a map. The alternative is dropping back to the
+  lobby and being in the next run, or hosting one.
 
   This is what keeps the dungeon full size. Forced spectating would have meant a
   bear trap in the first minute costing twenty minutes of watching, and the only
@@ -109,10 +112,15 @@ Because the Pages build and the host can now be different versions of the game,
 Everything the mode describes above is built. These are the holes that are known
 and left open, not oversights:
 
-- **The authority is trusted about the creatures.** Poses are checked against
-  the maze; creature positions are not, so a modified client that happens to be
-  simulating can put them where it likes. In a mode played with people you
-  invited, this is worth naming rather than paying to prevent.
+- **The authority is trusted about the creatures.** Only the derived authority
+  may send creature snapshots, kills or creature blows — the host checks, since
+  it can derive the same lowest-id rule — but *what* it sends is not checked
+  against anything. Poses are validated against the maze; creature positions are
+  not.
+- **Extracted gold is taken on trust.** The host does not own the loot, so it
+  cannot tell 400 G that was carried out from 400 G that was typed in. Closing
+  that means the host owning chests and their contents, which is a different
+  design from the one where the seed does.
 - **Handover jolts.** When the simulating client leaves, the next one takes over
   from its own interpolated copies and the party sees the creatures jump once.
   The alternative was ending everyone's run because one person closed a tab.

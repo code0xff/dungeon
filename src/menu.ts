@@ -56,6 +56,17 @@ function disarm(): void {
   newBtn.textContent = 'New game';
 }
 
+/**
+ * Kept in step with the panels on every transition.
+ *
+ * input.ts reads it instead of importing this module: menu.ts already registers
+ * its own listeners to avoid a cycle through world.ts, and a flag on `state`
+ * keeps that arrangement intact.
+ */
+function syncUi(): void {
+  state.uiOpen = isMenuOpen();
+}
+
 export function isMenuOpen(): boolean {
   return menuEl.style.display === 'flex' || guideOpen || coopOpen();
 }
@@ -86,6 +97,7 @@ export function openMenu(): void {
     ? 'A co-op run banks nothing and changes nothing you have saved. The dungeon does not stop while you read this.'
     : 'A new game wipes the bank and starts again at stage 1.';
   menuEl.style.display = 'flex';
+  syncUi();
 }
 
 export function closeMenu(): void {
@@ -95,6 +107,7 @@ export function closeMenu(): void {
   closeLobbyPanel();
   menuEl.style.display = 'none';
   state.paused = false;
+  syncUi();
 }
 
 export function toggleMenu(): void {
@@ -108,6 +121,7 @@ function back(): void {
     guideOpen = false;
     closeGuidePanel();
     menuEl.style.display = 'flex';
+    syncUi();
     return;
   }
   if (coopOpen()) {
@@ -116,6 +130,7 @@ function back(): void {
     // against the four, and nobody can see they are there.
     leaveLobby();
     menuEl.style.display = 'flex';
+    syncUi();
     return;
   }
   closeMenu();
@@ -127,6 +142,7 @@ coopItem.addEventListener('click', () => {
   disarm();
   menuEl.style.display = 'none';
   openLobbyPanel();
+  syncUi();
 });
 
 coopCloseBtn.addEventListener('click', back);
@@ -136,6 +152,7 @@ guideItem.addEventListener('click', () => {
   guideOpen = true;
   menuEl.style.display = 'none';
   openGuidePanel();
+  syncUi();
 });
 
 newBtn.addEventListener('click', () => {

@@ -1,4 +1,4 @@
-import { FALLBACK_ATTACK_TIME, MOB_LERP, MOB_STALE, TYPES } from '../config';
+import { FALLBACK_ATTACK_TIME, MOB_LERP, MOB_STALE, TYPES, WALK_REPORT_SPEED } from '../config';
 import { killMonster, playerHurt, staggerCreature } from '../combat';
 import { scene } from '../scene';
 import { state } from '../state';
@@ -240,7 +240,12 @@ function mobAnimFor(index: number, m: Monster): number {
     publishedSwing.set(index, m.swingSeq);
     return ANIM_ATTACK_START;
   }
-  return m.moving ? ANIM_WALK : ANIM_IDLE;
+  // groundSpeed, not m.moving. The animation pass clears m.moving on its way
+  // out of every creature — inside the same loop that set it — so by the time
+  // anything downstream looks, the whole dungeon is standing still. groundSpeed
+  // is the smoothed distance actually covered and survives the frame, which is
+  // also what the walk clip is retimed against.
+  return m.groundSpeed > WALK_REPORT_SPEED ? ANIM_WALK : ANIM_IDLE;
 }
 
 /** Tells the authority about a hit this client just landed. */
@@ -297,7 +302,7 @@ export function followMobs(dt: number): number {
     // sending what is out of range, and silence is the only notice given.
     if (target && target.quiet > MOB_STALE) {
       targets.delete(i);
-      m.mesh.visible = false;
+      hide(m);
       continue;
     }
     const row = target?.row;
@@ -306,7 +311,7 @@ export function followMobs(dt: number): number {
       // Never reported, or out of the interest radius. Hidden rather than left
       // standing where the seed first put it — a creature drawn at its spawn
       // point while it is actually across the dungeon is worse than no creature.
-      m.mesh.visible = false;
+      hide(m);
       continue;
     }
 
@@ -355,6 +360,23 @@ export function followMobs(dt: number): number {
     m.groundSpeed = row.a === ANIM_WALK ? t.speed * m.speedMul : 0;
   }
   return nearest;
+}
+
+/**
+ * Takes a creature this client is no longer being told about out of play.
+ *
+ * Hiding the mesh is not enough: combat scans state.monsters by position, so an
+ * unreported creature is still swingable at wherever it was last seen — and the
+ * authority applies the resulting hit by index, without checking that anyone
+ * was near it. Walking back past the place a zombie used to be would kill it
+ * through a wall.
+ *
+ * Marked by visibility rather than by hp: hp is what followMobs uses to decide
+ * a creature is dead and skip it, so zeroing it here would mean the next
+ * snapshot could never bring the creature back. Combat reads the same flag.
+ */
+function hide(m: Monster): void {
+  m.mesh.visible = false;
 }
 
 /** Shortest way round from a to b, by k. */

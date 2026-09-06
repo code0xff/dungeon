@@ -21,6 +21,13 @@ interface Remote {
   /** The name label, and the name it was drawn with. */
   tag: THREE.Sprite;
   tagName: string;
+  /**
+   * True for the fallback body, which built its own geometry.
+   *
+   * A loaded model shares its geometry with the template every other ally is
+   * cloned from, and disposing that would empty the dungeon of allies.
+   */
+  ownsGeometry: boolean;
   playback: MonsterPlayback | null;
   /** Where the body is being drawn, which is behind where it has been reported. */
   x: number;
@@ -142,7 +149,7 @@ function createRemote(id: number, x: number, z: number, r: number): Remote {
   group.position.set(x, 0, z);
   scene.add(group);
   const rem: Remote = {
-    id, group, tag, tagName, playback: spawned?.playback ?? null,
+    id, group, tag, tagName, ownsGeometry: !spawned, playback: spawned?.playback ?? null,
     x, z, r, tx: x, tz: z, tr: r, anim: ANIM_IDLE, quiet: 0,
   };
   if (rem.playback) setAnim(rem.playback, 'idle', { fade: 0 });
@@ -151,14 +158,24 @@ function createRemote(id: number, x: number, z: number, r: number): Remote {
 
 function destroy(rem: Remote): void {
   scene.remove(rem.group);
-  // The tag owns its canvas texture and material outright — unlike the body,
-  // which is a clone of a shared template — so it is the one thing here that
-  // leaks if it is not disposed.
+  rem.playback?.mixer.stopAllAction();
+  // The tag owns its canvas texture and material outright.
   rem.tag.material.map?.dispose();
   rem.tag.material.dispose();
-  // The geometry and materials come from the shared template clone, so only the
-  // mixer holds anything that would otherwise keep ticking.
-  rem.playback?.mixer.stopAllAction();
+  // And so does the body, in two different ways. A loaded model is a clone
+  // whose *materials* were cloned per instance so the tint is per player — the
+  // geometry is shared with the template and must be left alone. A fallback
+  // body built here owns both. Getting this wrong in either direction is a
+  // bug: leaking on every join, or disposing the template out from under
+  // everyone else.
+  rem.group.traverse((o) => {
+    // The tag is a Sprite, disposed above, and is not a Mesh — so the isMesh
+    // test already excludes it.
+    const mesh = o as THREE.Mesh;
+    if (!mesh.isMesh) return;
+    for (const mat of Array.isArray(mesh.material) ? mesh.material : [mesh.material]) mat?.dispose();
+    if (rem.ownsGeometry) mesh.geometry?.dispose();
+  });
 }
 
 /** Drops every body. buildWorld() calls this: the last dungeon's allies are gone. */

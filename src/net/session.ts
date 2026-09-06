@@ -32,6 +32,14 @@ export const coop = {
    * the story of the run are the whole of what a party takes away.
    */
   partyGold: 0,
+  /**
+   * Watching the rest of the party after dying.
+   *
+   * Death is final and spectating is offered rather than forced (docs/coop.md),
+   * and this is the offer being taken: the run is over for this player, the
+   * dungeon carries on, and they can look at it.
+   */
+  watching: false,
 };
 
 /**

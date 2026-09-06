@@ -1,4 +1,4 @@
-import { COOP_MAX_LEVEL } from '../config';
+import { COOP_MAX_LEVEL, GUIDE_KEY } from '../config';
 import { el } from '../dom';
 import { progress } from '../progress';
 import { state } from '../state';
@@ -110,7 +110,29 @@ function render(): void {
 
 onNetChange(render);
 
+/**
+ * Death is final, watching is offered — this is the offer.
+ *
+ * The overlay goes away and the dungeon stays on screen: allies keep moving,
+ * creatures keep coming, and none of it can be touched. There is deliberately
+ * no free camera. Watching from where you fell is the honest version of this,
+ * and a camera that could fly through the maze would be a map.
+ */
+el('ovWatch').addEventListener('click', () => {
+  coop.watching = true;
+  overlayEl.style.display = 'none';
+  el('watchHint').textContent = `Watching — press ${GUIDE_KEY} for the menu`;
+  el('watchHint').style.display = 'block';
+});
+
+/** Stops watching, whatever ended it. */
+export function stopWatching(): void {
+  coop.watching = false;
+  el('watchHint').style.display = 'none';
+}
+
 onNetStart((seed, level) => {
+  stopWatching();
   coop.active = true;
   coop.seed = seed;
   coop.level = level;
@@ -118,6 +140,7 @@ onNetStart((seed, level) => {
   // left over from the last one would be the mode's only number, wrong.
   coop.partyGold = 0;
   coop.runId = net.runId;
+  coop.watching = false;
   // The end-of-run overlay and the pause both belong to whatever came before.
   // Leaving either set would drop the party into a dungeon that is already
   // stopped, which looks exactly like the game failing to load.
@@ -165,6 +188,7 @@ export function closeLobbyPanel(): void {
 
 /** Leaves the lobby entirely — the menu's Back does this, not just hide. */
 export function leaveLobby(): void {
+  stopWatching();
   disconnect();
   net.error = '';
   closeLobbyPanel();

@@ -5,7 +5,7 @@ import { context2d, el, firstChild, queryChild } from './dom';
 import { bankRun, loseRun, progress } from './progress';
 import { flashLight } from './scene';
 import { closeShop, openShop } from './shop';
-import { leftRun } from './net/client';
+import { leftRun, net } from './net/client';
 import { coop } from './net/session';
 import { state } from './state';
 import { finishDrink } from './loot';
@@ -278,6 +278,11 @@ export function endRun(extracted: boolean): void {
     // stage — it goes back to the lobby, and saying "Descend" would promise a
     // dungeon that clicking it does not open.
     el('restart').textContent = 'Back to the lobby';
+    // Offered only when there is something to watch. Somebody has to still be
+    // down there, and it is not on for the player who walked out — they left of
+    // their own accord and can start the next run.
+    const others = net.players.some((p) => p.id !== net.id && p.inRun && p.runId === coop.runId);
+    el('ovWatch').style.display = !extracted && others ? 'block' : 'none';
     // No shop here — but one may already be open underneath from a solo run
     // that ended before this player joined the lobby. Its buttons write
     // straight into progress, so leaving it visible behind a co-op result is a

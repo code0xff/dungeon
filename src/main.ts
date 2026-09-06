@@ -5,8 +5,7 @@ import { animate } from './loop';
 import { buildWorld } from './world';
 import { closeShop } from './shop';
 import { coop } from './net/session';
-import { state } from './state';
-import { openLobbyPanel } from './net/lobby';
+import { openLobbyPanel, stopWatching } from './net/lobby';
 // Imported for side effects: keyboard/mouse/touch listeners and the audio unlock.
 import './input';
 // Same: the pause menu registers its own key, click and touch handlers.
@@ -53,11 +52,15 @@ el('restart').addEventListener('click', () => {
   // stops a later solo run being built at the party's level.
   if (coop.active) {
     coop.active = false;
-    // Cleared with it. Otherwise backing out of the lobby and pressing Resume
-    // returns to a world whose frame loop is still refusing to run, and only
-    // another co-op run or New game would ever start it again.
-    state.gameOver = false;
+    stopWatching();
     el('overlay').style.display = 'none';
+    // The solo game is rebuilt rather than merely un-paused. Clearing
+    // `gameOver` on its own left the co-op dungeon standing with its key in the
+    // player's pack and its portal underfoot — and one frame later the solo
+    // portal check banked a co-op run into the solo save, which is the one
+    // thing this mode promises never to do. Leaving co-op means going back to
+    // your own game, and this is what that means.
+    buildWorld();
     openLobbyPanel();
     return;
   }

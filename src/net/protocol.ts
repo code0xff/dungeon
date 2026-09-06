@@ -460,9 +460,32 @@ export function parseMsg<T extends { t: string }>(data: string): T | null {
   try {
     const o: unknown = JSON.parse(data);
     if (typeof o !== 'object' || o === null) return null;
-    if (typeof (o as { t?: unknown }).t !== 'string') return null;
+    const m = o as Record<string, unknown>;
+    if (typeof m.t !== 'string') return null;
+    // Every numeric field on every message, checked once here rather than at
+    // each of the two dozen places one is used. `{t:'h',i:0,d:'bad'}` is
+    // well-formed JSON with a known tag, and it reached the authority and
+    // turned a creature's hp into NaN — which never throws and never recovers.
+    for (const key of NUMERIC_FIELDS) {
+      if (key in m && !Number.isFinite(m[key])) return null;
+    }
     return o as T;
   } catch {
     return null;
   }
 }
+
+/**
+ * Fields that must be numbers wherever they appear.
+ *
+ * A deliberately flat list: these names mean the same thing in every message
+ * that carries them, which is what makes checking them in one place honest
+ * rather than merely convenient.
+ *
+ * `p` is not here and must not be. It is a number on SMobHit and an array of
+ * poses on SSnap, and a rule that has to know which message it is looking at
+ * does not belong in a shared check — it would have rejected every snapshot.
+ */
+const NUMERIC_FIELDS = [
+  'i', 'd', 'x', 'z', 'r', 'a', 'v', 'to', 'by', 'gold', 'total', 'run', 'level', 'seed', 'runId',
+] as const;

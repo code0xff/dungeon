@@ -240,6 +240,18 @@
   .guideTouch { display:none; }
   .guideNote { margin-top:14px; padding-top:12px; border-top:1px solid rgba(201,192,174,.12);
                font-size:13.5px; line-height:1.55; opacity:.6; font-style:italic; }
+  /* Sits above Descend on the end screen, and only appears when there is
+     somebody left down there to watch. */
+  #ovWatch { display:none; margin:16px auto 0; font-family:var(--display); font-size:12px;
+             letter-spacing:2.4px; text-transform:uppercase; padding:10px 26px; border-radius:2px;
+             border:1px solid rgba(140,170,210,.45); background:rgba(18,28,44,.7); color:#c3d6ee;
+             cursor:pointer; font-weight:600; }
+  #ovWatch:hover { border-color:rgba(170,200,240,.8); color:#e2eeff; }
+  /* Shown while watching, in place of every other control. */
+  #watchHint { position:fixed; bottom:26px; left:50%; transform:translateX(-50%); z-index:12;
+               display:none; font-size:13.5px; font-style:italic; opacity:.6; color:var(--ink);
+               background:rgba(6,7,9,.72); padding:7px 16px; border-radius:4px;
+               border:1px solid rgba(201,192,174,.16); pointer-events:none; user-select:none; }
   #guideClose, #coopClose { display:block; margin:18px auto 0; font-family:var(--display); font-size:12px;
                 letter-spacing:2.4px; text-transform:uppercase; padding:11px 30px; border-radius:2px;
                 border:1px solid rgba(201,192,174,.28); background:rgba(30,28,25,.9); color:var(--ink);
@@ -507,6 +519,8 @@
   <button id="coopClose">Back</button>
 </div>
 
+<div id="watchHint"></div>
+
 <div id="guide">
   <div class="guidePanel">
     <div class="guideHead">Controls</div>
@@ -544,6 +558,7 @@
   <div id="shop">
     <div class="shopHead"><span id="shopHead">Outfitting</span> <span id="shopBank"></span></div>
   </div>
+  <button id="ovWatch">Watch the others</button>
   <button id="restart">Descend</button>
 </div>
 

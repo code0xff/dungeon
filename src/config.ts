@@ -109,6 +109,15 @@ export const MOB_INTEREST = 34;
  */
 export const MOB_LERP = 20;
 /**
+ * Metres per second above which a creature is reported as walking.
+ *
+ * Not zero: groundSpeed is smoothed, so a creature that has just stopped decays
+ * toward zero rather than reaching it, and a walk clip left running on a
+ * standing body reads as sliding. Well under the slowest creature's speed —
+ * the zombie shambles at 0.35 — so nothing that is moving is called still.
+ */
+export const WALK_REPORT_SPEED = 0.05;
+/**
  * Seconds without a report before a followed creature is dropped.
  *
  * Snapshots are partial — the host omits anything past MOB_INTEREST from the

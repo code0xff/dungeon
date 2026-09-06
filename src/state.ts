@@ -40,6 +40,15 @@ export const state = {
   gameOver: false,
   /** The guide is open. The frame loop still renders, it just stops advancing. */
   paused: false,
+  /**
+   * Whether a panel — the menu, the controls, the lobby — is on screen.
+   *
+   * Separate from `paused` because co-op does not pause: the dungeon belongs to
+   * the whole party and one player reading the controls must not stop it. What
+   * *must* stop is this player's own input, or they attack and walk about while
+   * looking at a menu.
+   */
+  uiOpen: false,
 
   // ---- Sword ----
   /** Durability, 0..SWORD_DUR_MAX. Damage falls with it. */

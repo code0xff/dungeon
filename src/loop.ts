@@ -24,6 +24,7 @@ import { nearestPlayer, sendOwnPose, updateRemotes } from './net/remote';
 import { followMobs, mobAnim, publishMobs, reportMobHit } from './net/mobsync';
 import { ANIM_ATTACK, ANIM_ATTACK_START, ANIM_WALK } from './net/protocol';
 import { isAuthority } from './net/client';
+import { coop } from './net/session';
 import { mayOpen, tellTrapSprung } from './net/worldsync';
 import {
   DUST, camera, dustGeo, flashLight, gearBob, handShield, MUSKET_REST, musket,
@@ -924,6 +925,10 @@ export function animate(): void {
   // reads the menu or sits on a death screen, and freezing their bodies would
   // make a live dungeon look like it had crashed.
   updateRemotes(dt);
+  // A watcher is dead — no simulation, no input, no publishing — but the
+  // dungeon they are looking at is somebody else's and still running, so the
+  // creatures in it have to keep being drawn from the wire.
+  if (coop.watching && state.gameOver) followMonsters(dt, now);
 
   camera.position.copy(state.pos);
   // A sideways dodge rolls the view into it and back out. Straight dodges do not

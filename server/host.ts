@@ -172,6 +172,22 @@ function recomputeHost(): void {
   }
 }
 
+/**
+ * The client simulating a given dungeon: the lowest id still inside it.
+ *
+ * The same rule the clients derive for themselves, which is what lets the host
+ * check it. Creature snapshots, kills and creature blows are only accepted from
+ * this player — without that, any peer could kill creatures, award itself the
+ * gold, or damage somebody else in a mode with no friendly fire.
+ */
+function authorityOf(runId: number): number {
+  let lowest = Infinity;
+  for (const p of players.values()) {
+    if (p.inRun && p.runId === runId && p.id < lowest) lowest = p.id;
+  }
+  return lowest;
+}
+
 /** True while at least one player is inside a dungeon. */
 function anyInRun(): boolean {
   return [...players.values()].some((p) => p.inRun);
@@ -311,6 +327,7 @@ wss.on('connection', (sock: WebSocket) => {
     // odd creatures, which is the shape of every other trust decision here.
     if (msg.t === 'm') {
       if (!me.inRun || !Array.isArray(msg.m)) return;
+      if (authorityOf(me.runId) !== me.id) return;
       // Checked before anything dereferences a row. A single `null` in this
       // array would throw out of the socket callback below and take the process
       // down with every run inside it — the same shape of failure as the
@@ -321,8 +338,12 @@ wss.on('connection', (sock: WebSocket) => {
         && Number.isFinite((row as MobRow).r) && Number.isInteger((row as MobRow).i)
       ));
       if (!rows.length) return;
+      const run = runs.get(me.runId);
       for (const p of players.values()) {
-        if (p.runId !== me.runId || p.id === me.id) continue;
+        // Players in the dungeon, and the ones watching it from an end screen.
+        // A spectator with no creatures sees allies fighting nothing.
+        const watching = p.runId === me.runId || (p.runId === 0 && run?.members.has(p.id));
+        if (!watching || p.id === me.id) continue;
         // Trimmed to what this player could plausibly care about. At level 15
         // there are over a hundred creatures and most of them are nowhere near
         // anybody; sending them all is bandwidth spent on things nobody can see.
@@ -355,6 +376,11 @@ wss.on('connection', (sock: WebSocket) => {
     // concern drop them.
     if (msg.t === 'k' || msg.t === 'x' || msg.t === 'y') {
       if (!me.inRun) return;
+      // A parry is a claim about yourself and anyone may make it. A kill or a
+      // creature's blow is a claim about the simulation, and only the client
+      // running it may say either — otherwise a modified peer awards itself
+      // kills, or hurts an ally in a mode that has no friendly fire.
+      if (msg.t !== 'y' && authorityOf(me.runId) !== me.id) return;
       for (const p of players.values()) {
         if (p.runId === me.runId && p.id !== me.id) send(p.sock, msg);
       }

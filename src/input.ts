@@ -31,6 +31,10 @@ export const keys: Record<string, boolean> = {};
  * the loop and the dodge below need it, and the raw inputs are here.
  */
 export function moveInput(): { f: number; s: number } {
+  // A held key does not stop being held when a panel opens, and in co-op
+  // nothing pauses — so without this the player walks off down the corridor
+  // while reading the controls.
+  if (state.uiOpen) return { f: 0, s: 0 };
   let f = 0, s = 0;
   if (keys['KeyW'] || keys['ArrowUp']) f += 1;
   if (keys['KeyS'] || keys['ArrowDown']) f -= 1;
@@ -71,7 +75,9 @@ addEventListener('keydown', (e) => {
   // Paused, only the sound key does anything here — otherwise Space would swing
   // the sword at a stopped dungeon. Opening and closing the menu is menu.ts's
   // own listener, so this does not have to know the panel stack.
-  if (state.paused) {
+  // uiOpen as well as paused: co-op leaves the dungeon running while a panel is
+  // up, and Space would swing the sword at it from behind the menu.
+  if (state.paused || state.uiOpen) {
     if (e.code === `Key${SOUND_KEY}`) toggleSound();
     return;
   }
@@ -334,7 +340,7 @@ for (const [btn, action] of touchButtons) {
  * on a phone at all, however it is styled.
  */
 function touchIsForGame(): boolean {
-  return !state.gameOver && !state.paused;
+  return !state.gameOver && !state.paused && !state.uiOpen;
 }
 
 /** Flips the sound and keeps the button showing which way it is. */

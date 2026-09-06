@@ -186,10 +186,17 @@ export function connect(server: string, name: string): void {
   sock = ws;
 
   ws.addEventListener('open', () => {
+    // Clicking Connect twice leaves the first socket still opening. Its handler
+    // would fire later and join through the global send(), which by then points
+    // at the second socket — two joins on one connection, and the host has no
+    // way to tell them apart. Every handler here checks it is still the current
+    // one first.
+    if (sock !== ws) return;
     send({ t: 'join', v: PROTOCOL_VERSION, name });
   });
 
   ws.addEventListener('message', (e: MessageEvent<string>) => {
+    if (sock !== ws) return;
     const msg = parseMsg<ServerMsg>(typeof e.data === 'string' ? e.data : '');
     if (!msg) return;
     switch (msg.t) {

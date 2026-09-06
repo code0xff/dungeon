@@ -127,7 +127,9 @@ export function fireMusket(): void {
   let best: Monster | null = null;
   let bestDot = 0.985;
   for (const m of state.monsters) {
-    if (m.hp <= 0) continue;
+    // As in resolveSwing(): a creature this client is not being told about is
+    // still in the array at a stale position, and must not be shootable there.
+    if (m.hp <= 0 || !m.mesh.visible) continue;
     const dx = m.mesh.position.x - state.pos.x, dz = m.mesh.position.z - state.pos.z;
     const d = Math.hypot(dx, dz);
     if (d > MUSKET_RANGE) continue;
@@ -232,7 +234,14 @@ export function resolveSwing(): void {
   const [fx, fz] = facing();
   const inArc: { m: Monster; d: number }[] = [];
   for (const m of state.monsters) {
-    if (m.hp <= 0) continue;
+    // Invisible means "not being reported to this client": in co-op a creature
+    // outside the interest radius keeps its last known position in the array,
+    // and without this a swing at where a zombie used to stand would report a
+    // hit that the authority applies by index, from across the dungeon.
+    //
+    // Safe in solo, where visibility is CREATURE_DRAW_DISTANCE at 30m and the
+    // longest weapon reaches 26.
+    if (m.hp <= 0 || !m.mesh.visible) continue;
     const dx = m.mesh.position.x - state.pos.x, dz = m.mesh.position.z - state.pos.z;
     const d = Math.hypot(dx, dz);
     if (d > ATTACK_RANGE + m.type.r) continue;
