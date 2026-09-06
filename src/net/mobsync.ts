@@ -316,6 +316,14 @@ export function followMobs(dt: number): number {
     }
 
     m.hp = row.hp;
+    // Back in range after being dropped: it may be anywhere in the dungeon by
+    // now, and easing it there from where it was last seen would drag it
+    // through the walls in between. Only the first row after an absence snaps.
+    if (!m.mesh.visible) {
+      m.mesh.position.x = row.x;
+      m.mesh.position.z = row.z;
+      m.mesh.rotation.y = row.r;
+    }
     m.mesh.position.x += (row.x - m.mesh.position.x) * k;
     m.mesh.position.z += (row.z - m.mesh.position.z) * k;
     m.mesh.rotation.y = turnTo(m.mesh.rotation.y, row.r, k);

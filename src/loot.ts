@@ -27,7 +27,12 @@ export function startLoot(): void {
   //
   // Starting and cancelling still wakes them. That is the point — the noise was
   // made.
-  const heard = alertCreatures(CHEST_ALERT_RADIUS, CHEST_ALERT_TIME);
+  // From the chest, not the player — the same point the rest of the party
+  // hears it from. A chest at arm's length is still not where you stand, and a
+  // creature on the edge of the radius woke or did not depending on who opened
+  // the lid.
+  const at = state.looting.chest.mesh.position;
+  const heard = alertCreatures(CHEST_ALERT_RADIUS, CHEST_ALERT_TIME, at.x, at.z);
   if (heard > 0) showMsg(`The lid creaks... ${heard} heard it`);
   // The others hear it too, from where the chest is. Sent on starting rather
   // than on finishing for the same reason the alert fires here: the noise was

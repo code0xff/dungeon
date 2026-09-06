@@ -119,6 +119,13 @@ onNetChange(render);
  * and a camera that could fly through the maze would be a map.
  */
 el('ovWatch').addEventListener('click', () => {
+  // The button was drawn when the run ended; the last ally may have left since.
+  // Watching an empty dungeon is a black screen with no way out but the menu.
+  const anyone = net.players.some((p) => p.id !== net.id && p.inRun && p.runId === coop.runId);
+  if (!anyone) {
+    el('ovWatch').style.display = 'none';
+    return;
+  }
   coop.watching = true;
   sendWatch(coop.runId);
   overlayEl.style.display = 'none';

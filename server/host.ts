@@ -25,7 +25,7 @@
  */
 import { createReadStream, existsSync, statSync } from 'node:fs';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
-import { extname, join, normalize, resolve } from 'node:path';
+import { extname, join, normalize, resolve, sep } from 'node:path';
 import { networkInterfaces } from 'node:os';
 import { WebSocketServer, type WebSocket } from 'ws';
 import {
@@ -36,7 +36,7 @@ import {
 // The level cap is a game tunable, so it is read from config.ts rather than
 // duplicated here — a server that clamped to a different number than the client
 // offers would be a bug nobody notices until someone picks the top of the dial.
-import { CELL, COOP_MAX_LEVEL, LOOT_TIME, MOB_INTEREST } from '../src/config.ts';
+import { CELL, COOP_MAX_LEVEL, LOOT_TIME, LUNGE_DMG, MOB_INTEREST, MUSKET_DMG } from '../src/config.ts';
 // The host builds the same maze the players do, from the same seed, so it can
 // tell a pose that is inside a wall from one that is not. dungeon.ts and rng.ts
 // are pure — no three.js, no DOM — which is what makes this possible at all.
@@ -84,7 +84,10 @@ function serve(req: IncomingMessage, res: ServerResponse): void {
   let path = join(ROOT, rel);
   if (existsSync(path) && statSync(path).isDirectory()) path = join(path, 'index.html');
 
-  if (!path.startsWith(ROOT) || !existsSync(path)) {
+  // A separator-aware boundary. `startsWith(ROOT)` alone let a request for
+  // `/%2e%2e%2fdist-old/x` through, because a sibling called dist-old also
+  // starts with the string "…/dist" — and this listens on somebody's LAN.
+  if ((path !== ROOT && !path.startsWith(ROOT + sep)) || !existsSync(path)) {
     res.writeHead(404, { 'content-type': 'text/plain' });
     res.end('Not found');
     return;
@@ -145,13 +148,16 @@ interface Run {
 const runs = new Map<number, Run>();
 
 /**
- * The most damage one reported hit may carry.
+ * The most damage one reported hit may carry: the biggest hit the game can
+ * actually deal, plus rounding room.
  *
- * A bound, not a rule about the game: the biggest real hit is a lunge with a
- * fresh blade, and this is far above it. It exists so that "I hit it" cannot
- * mean "I killed everything", which the authority would then pay out for.
+ * Derived from the same constants the client swings with — a lunge is
+ * LUNGE_DMG times a fresh blade's 1.0, the musket is MUSKET_DMG — so this is
+ * not a guess that drifts when they are tuned. A report above it is not a hit,
+ * it is a forgery, and it is dropped rather than clamped: a modified client that
+ * sends 200 to kill a brute outright should get nothing, not a free maximum.
  */
-const MAX_REPORTED_HIT = 200;
+const MAX_REPORTED_HIT = Math.max(LUNGE_DMG, MUSKET_DMG) * 1.05;
 
 /** Every valid world-event kind, for checking one off the wire. */
 const WORLD_EVENTS: readonly string[] = ['creak', 'chest', 'trap', 'lantern', 'shot'];
@@ -323,7 +329,13 @@ wss.on('connection', (sock: WebSocket) => {
       // Only a run they were actually in, so nobody can subscribe to a dungeon
       // they were never part of and watch it through the walls.
       const wanted = Number.isInteger(msg.run) ? msg.run : 0;
-      me.watchRun = wanted !== 0 && runs.get(wanted)?.members.has(me.id) ? wanted : 0;
+      // Only from the lobby, and only a dungeon somebody is still in. A client
+      // that is inside run 2 asking to watch run 1 would have run 1's kills and
+      // events — which carry no run id — applied to run 2's chests and
+      // creatures; and a dungeon everyone has left has nothing left to watch.
+      const target = wanted !== 0 ? runs.get(wanted) : undefined;
+      const alive = target !== undefined && [...players.values()].some((p) => p.inRun && p.runId === wanted);
+      me.watchRun = me.runId === 0 && target?.members.has(me.id) && alive ? wanted : 0;
       return;
     }
 
@@ -427,8 +439,12 @@ wss.on('connection', (sock: WebSocket) => {
       // running it may say either — otherwise a modified peer awards itself
       // kills, or hurts an ally in a mode that has no friendly fire.
       if (msg.t !== 'y' && authorityOf(me.runId) !== me.id) return;
+      // A parry is stamped with who actually sent it. The client fills `by`
+      // in, and a modified one could name a different player and have the
+      // authority rock the creature away from somebody who never parried.
+      const out: ServerMsg = msg.t === 'y' ? { t: 'y', i: msg.i, by: me.id } : msg;
       for (const p of players.values()) {
-        if (inOrWatching(p, me.runId) && p.id !== me.id) send(p.sock, msg);
+        if (inOrWatching(p, me.runId) && p.id !== me.id) send(p.sock, out);
       }
       return;
     }

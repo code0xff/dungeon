@@ -124,6 +124,15 @@ and left open, not oversights:
   it can derive the same lowest-id rule — but *what* it sends is not checked
   against anything. Poses are validated against the maze; creature positions are
   not.
+- **World events are taken on trust.** A client in the run can say it opened
+  chest 3 or sprang trap 7 without having been near either, and the party
+  applies it. The host holds the maze but not the chests — it cannot rebuild
+  them without three.js — so it can check *which* kinds of event exist and not
+  whether one happened. Same root as the gold, below.
+- **A late watcher sees the dungeon as it started.** Watching subscribes to
+  what happens next; nothing replays what already did. A player who waits on
+  the end screen before pressing Watch sees chests that are already open as
+  closed. Creatures are fine — they arrive whole in every snapshot.
 - **Extracted gold is taken on trust.** The host does not own the loot, so it
   cannot tell 400 G that was carried out from 400 G that was typed in. Closing
   that means the host owning chests and their contents, which is a different

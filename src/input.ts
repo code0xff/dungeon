@@ -250,6 +250,10 @@ addEventListener('pointermove', (e) => {
   if (e.pointerType === 'touch') return;
   mouseX = e.clientX;
   mouseInside = true;
+  // The keyboard is already gated on this; the mouse was not, so crossing the
+  // lobby panel spun the camera underneath it and the dungeon faced somewhere
+  // new when the panel closed. A watcher is dead and may not look about either.
+  if (state.uiOpen || state.paused || state.gameOver) return;
   // Turn on mouse movement whether or not the pointer is locked; no click required.
   state.yaw -= e.movementX * SENS;
   state.pitch = Math.max(-PITCH_MAX, Math.min(PITCH_MAX, state.pitch - e.movementY * SENS));
@@ -258,6 +262,7 @@ addEventListener('pointermove', (e) => {
 /** Unlocked, a cursor parked at the screen edge keeps turning that way. */
 export function edgeTurn(dt: number): void {
   if (pointerLock.locked || !mouseInside || mouseX < 0) return;
+  if (state.uiOpen || state.paused || state.gameOver) return;
   const edge = innerWidth * EDGE_FRAC;
   if (mouseX < edge) state.yaw += EDGE_TURN * (1 - mouseX / edge) * dt;
   else if (mouseX > innerWidth - edge) state.yaw -= EDGE_TURN * (1 - (innerWidth - mouseX) / edge) * dt;

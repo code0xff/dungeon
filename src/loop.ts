@@ -551,8 +551,11 @@ function animFollowed(m: Monster, pb: MonsterPlayback, dt: number, anim: number 
  */
 function entersCreature(wx: number, wz: number): boolean {
   for (const m of state.monsters) {
-    // Corpses are walked over, not around.
-    if (m.hp <= 0) continue;
+    // Corpses are walked over, not around — and so is a creature this client is
+    // not being told about, which in co-op is still in the array at wherever
+    // it was last seen. An invisible wall where a zombie used to stand is
+    // worse than walking through one.
+    if (m.hp <= 0 || !m.mesh.visible) continue;
     const min = PLAYER_R + m.type.r;
     const nx = wx - m.mesh.position.x, nz = wz - m.mesh.position.z;
     if (nx * nx + nz * nz >= min * min) continue;
@@ -950,6 +953,9 @@ export function animate(): void {
     // timer, and nothing else was advancing the timer.
     animateChests(dt);
     animateTraps(dt);
+    // A map an ally finds after this player died arrives as an event that
+    // shows the canvas; without this it would show it blank, forever.
+    if (state.hasMap) drawMinimap();
   }
 
   camera.position.copy(state.pos);
