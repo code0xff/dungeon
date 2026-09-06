@@ -73,12 +73,6 @@ does not simulate.
 - **Extraction is individual.** Walking into the portal takes you out and leaves
   the others in. Nobody is forced to leave, and nobody is forced to stay.
 
-## What already exists for this
-
-Seeded worldgen (`src/rng.ts`). A dungeon is a pure function of
-`(seed, level)`, so the host sends two numbers instead of a map. See
-`docs/testing.md` for the `?seed=` parameter.
-
 ## Where players connect
 
 **Only the host runs a server.** Nobody else installs or starts anything. What
@@ -110,25 +104,29 @@ Two consequences for the client:
 Because the Pages build and the host can now be different versions of the game,
 `PROTOCOL_VERSION` is doing real work rather than guarding a theoretical case.
 
-## What is missing
+## What is not done
 
-- **The server.** Node, `ws`, in-memory, no database. It is a dependency the
-  client bundle never sees; the alternative was hand-writing RFC 6455 framing,
-  which is not a good use of anyone's time. It serves the built game too — see
-  below.
-- **Reporting gold to the host**, so the team total means something. Right now a
-  co-op run's gold is only shown to the player who earned it.
-- **Claiming a chest.** Opening one is announced when it opens, not when it
-  starts, so two players who finish looting the same chest within LOOT_TIME of
-  each other both collect. The common case — one gets there first — is handled;
-  closing the race needs someone to own the chest, and the creatures need an
-  owner first.
-- **Host-side movement validation.** The host relays poses without checking
-  them, so a modified client can walk through walls. It can be done — the host
-  knows the seed and the level, and `dungeon.ts` is pure, so it can rebuild the
-  same maze and clamp — but it is not done.
-- **The team total.** Gold is still only counted on the machine that earned it;
-  nothing adds it up at the end.
+Everything the mode describes above is built. These are the holes that are known
+and left open, not oversights:
+
+- **The authority is trusted about the creatures.** Poses are checked against
+  the maze; creature positions are not, so a modified client that happens to be
+  simulating can put them where it likes. In a mode played with people you
+  invited, this is worth naming rather than paying to prevent.
+- **Handover jolts.** When the simulating client leaves, the next one takes over
+  from its own interpolated copies and the party sees the creatures jump once.
+  The alternative was ending everyone's run because one person closed a tab.
+- **A chest can still pay twice in one case.** The claim is a lease, so if its
+  holder dies mid-loot and the lease expires, a second player can open the same
+  chest. A chest nobody can ever open again is the worse failure.
+- **Nothing is persisted.** A host restart is a new lobby with nothing carried,
+  which is correct for the mode but means a crash mid-run ends it.
+- **No text or voice between players.** The lobby list and the names over the
+  bodies are the whole of the communication the game provides.
+- **Not played over a real network.** All of it has been exercised on one
+  machine — loopback, no latency, no packet loss. The parry window is 0.35s and
+  the interpolation constants were chosen for a link nobody has measured.
+
 ## The score
 
 Gold is one team total per run, and only what walks out counts. It is counted by
