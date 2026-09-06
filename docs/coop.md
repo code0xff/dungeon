@@ -129,6 +129,20 @@ Because the Pages build and the host can now be different versions of the game,
   same maze and clamp — but it is not done.
 - **The team total.** Gold is still only counted on the machine that earned it;
   nothing adds it up at the end.
+## The score
+
+Gold is one team total per run, and only what walks out counts. It is counted by
+the host, because only the host sees everyone finish: a client reports its gold
+when its run ends and says whether it extracted or died, and the running total
+comes back to everyone still in that dungeon.
+
+A death is announced too, with nothing added. "Nobody is bringing that 400 G
+back" is what the rest of the party wants to know at the moment it happens, and
+it is the only thing that makes going in deeper a decision anyone else feels.
+
+The total is written into the end screen while it is open, so a player reading
+their own result sees it move when an ally gets out.
+
 ## The dungeon
 
 Chests, the key, the map and the floor traps are kept in step by events, not by
@@ -144,6 +158,25 @@ whether they know where they are.
 
 Noises carry their own position. A creaking lid or a sprung trap wakes the
 creatures standing near *it*, not near whoever is listening.
+
+A chest is claimed when someone starts opening it, and the host decides who
+gets it — first asker wins. Not the creature authority: every message reaches
+the host in an order, and "who asked first" is a question only something with
+an order can answer. The claim is a lease, not a fact, because a client that
+dies mid-loot never says so and a chest nobody can ever open again is worse
+than a rare double payout.
+
+## Where the host does not trust the client
+
+Poses are checked against the maze. The host rebuilds it from the same seed and
+level the players did — `dungeon.ts` and `rng.ts` are pure, no three.js and no
+DOM — and drops any pose that lands in a wall cell. Dropped, not corrected:
+the nearest open cell may be on the other side of the wall, and teleporting
+someone there for one bad packet is a worse bug than their body pausing until
+the next pose arrives.
+
+Authority and validation are different things. The host simulates nothing; it
+only refuses the impossible.
 
 ## The creatures
 

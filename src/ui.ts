@@ -259,13 +259,21 @@ export function endRun(extracted: boolean): void {
     // Told to the host straight away, not when the player gets round to
     // clicking through the overlay: until this lands the lobby believes they
     // are still underground and will not offer anyone another run.
-    leftRun();
+    //
+    // The gold goes with it, and `extracted` is what decides whether it counts.
+    // This is the only honest moment to count it: before it, the run is not
+    // over; after it, the run is gone.
+    leftRun(state.runGold, extracted);
     title.textContent = extracted ? 'Extracted' : 'Killed';
     title.className = extracted ? 'win' : 'dead';
     desc.textContent = extracted
       ? `Out with ${state.runGold} G for the party.`
       : `You died with ${state.runGold} G. It stays down there.`;
-    el('ovBank').textContent = `Co-op · level ${coop.level}`;
+    // Filled in by the party total when it comes back from the host, which is
+    // a round trip away — so it starts by saying what this player is sure of.
+    el('ovBank').textContent = extracted
+      ? `Co-op · level ${coop.level}`
+      : `Co-op · level ${coop.level} · nothing carried out`;
     // The button descends into the next stage in solo. Here there is no next
     // stage — it goes back to the lobby, and saying "Descend" would promise a
     // dungeon that clicking it does not open.

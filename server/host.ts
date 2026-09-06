@@ -14,6 +14,14 @@
  *
  * There is no database and no persistence. A restart is a new lobby, which is
  * correct: co-op carries nothing between runs by design (docs/coop.md).
+ *
+ * **This file imports game source, and Node resolves imports differently from
+ * vite.** protocol.ts, config.ts, dungeon.ts, rng.ts and types.ts are reachable
+ * from here, and a *value* import added to any of them without a file
+ * extension will start this process and kill it, while `npm run build` passes —
+ * vite resolves extensionless specifiers and Node does not. Type-only imports
+ * are erased by the stripper and are safe either way. Start the host after
+ * touching those files; the build gate cannot see this.
  */
 import { createReadStream, existsSync, statSync } from 'node:fs';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
@@ -28,7 +36,13 @@ import {
 // The level cap is a game tunable, so it is read from config.ts rather than
 // duplicated here — a server that clamped to a different number than the client
 // offers would be a bug nobody notices until someone picks the top of the dial.
-import { COOP_MAX_LEVEL, MOB_INTEREST } from '../src/config.ts';
+import { CELL, COOP_MAX_LEVEL, LOOT_TIME, MOB_INTEREST } from '../src/config.ts';
+// The host builds the same maze the players do, from the same seed, so it can
+// tell a pose that is inside a wall from one that is not. dungeon.ts and rng.ts
+// are pure — no three.js, no DOM — which is what makes this possible at all.
+import { dungeonSize, generateDungeon } from '../src/dungeon.ts';
+import { setSeed } from '../src/rng.ts';
+import type { Maze } from '../src/types.ts';
 
 const ROOT = resolve(import.meta.dirname, '..', 'dist');
 
@@ -99,6 +113,37 @@ let level = 1;
 let nextRunId = 1;
 
 /**
+ * Per dungeon: the maze to check poses against, the party's banked gold, and
+ * who has claimed which chest.
+ *
+ * Kept by runId because runs overlap. Entries are never deleted — a run holds a
+ * maze and a few numbers, and a host that has been up long enough for that to
+ * matter has been up for weeks.
+ */
+interface Run {
+  maze: Maze;
+  gold: number;
+  /** chest index -> { player, when } — a lease, see SClaim. */
+  claims: Map<number, { to: number; at: number }>;
+}
+
+const runs = new Map<number, Run>();
+
+/**
+ * Rebuilds a dungeon's maze exactly as the clients do.
+ *
+ * The order matters and is not arbitrary: buildWorld() seeds, then asks for the
+ * size, then carves. Doing any two of those in the other order draws different
+ * numbers from the stream and produces a different maze — which would then
+ * reject every player for standing in a wall that is not there.
+ */
+function buildMaze(seed: number, lvl: number): Maze {
+  setSeed(seed);
+  const { gw, gh } = dungeonSize(lvl);
+  return generateDungeon(gw, gh);
+}
+
+/**
  * The host is the longest-waiting player **in the lobby**, recomputed on every
  * change rather than granted once.
  *
@@ -155,6 +200,25 @@ function cleanName(raw: unknown, id: number): string {
   return s.length > 0 ? s : `Player ${id}`;
 }
 
+/**
+ * Whether a point is on a floor cell of that run's maze.
+ *
+ * The rounding matches collides() in world.ts, which is what makes this agree
+ * with the client: a player hugging a wall is still nearer the centre of their
+ * own cell than the wall's, so a legitimate pose never rounds into stone.
+ *
+ * A run with no maze — one started before this host knew how to build them —
+ * passes everything, because refusing every pose is a worse failure than
+ * trusting them.
+ */
+function onFloor(run: Run | undefined, x: number, z: number): boolean {
+  if (!run) return true;
+  const gx = Math.round(x / CELL), gz = Math.round(z / CELL);
+  const row = run.maze[gz];
+  if (!row || row[gx] === undefined) return false;
+  return row[gx] === 0;
+}
+
 const wss = new WebSocketServer({ noServer: true });
 
 wss.on('connection', (sock: WebSocket) => {
@@ -199,6 +263,21 @@ wss.on('connection', (sock: WebSocket) => {
     // instruction about the whole lobby and belongs to the host alone.
     if (msg.t === 'leftRun') {
       if (!me.inRun) return;
+      const run = runs.get(me.runId);
+      const gold = Number.isFinite(msg.gold) ? Math.max(0, Math.round(msg.gold)) : 0;
+      // Only what walks out counts. A death still announces itself, because
+      // "nobody is bringing that back" is what the rest of the party wants to
+      // know at the moment it happens.
+      if (run && msg.out === true) run.gold += gold;
+      if (run) {
+        const total = run.gold;
+        const leftId = me.runId;
+        for (const p of players.values()) {
+          if (p.runId === leftId || p.id === me.id) {
+            send(p.sock, { t: 'g', total, by: me.id, gold, out: msg.out === true });
+          }
+        }
+      }
       me.inRun = false;
       me.runId = 0;
       // Dropped with the run, so a body does not stay standing in a dungeon its
@@ -283,7 +362,42 @@ wss.on('connection', (sock: WebSocket) => {
     if (msg.t === 'p') {
       if (!me.inRun) return;
       if (!Number.isFinite(msg.x) || !Number.isFinite(msg.z) || !Number.isFinite(msg.r)) return;
+      // Checked against the maze, and dropped rather than clamped. A modified
+      // client walking through walls would otherwise be visible to everyone as
+      // a body gliding through stone, and worse, would pull the creatures after
+      // it into places they cannot reach.
+      //
+      // Dropped, not corrected, because there is no correct answer: the nearest
+      // open cell may be on the other side of the wall, and teleporting someone
+      // there for one bad packet is a worse bug than their body pausing. The
+      // last good pose simply stands until they send another.
+      //
+      // Authority and validation are different things. This does not simulate
+      // anyone — it only refuses the impossible.
+      if (!onFloor(runs.get(me.runId), msg.x, msg.z)) return;
       me.pose = { id: me.id, x: msg.x, z: msg.z, r: msg.r, a: (msg.a | 0) & 3 };
+      return;
+    }
+
+    // Who gets the chest. A client asks for itself when it starts looting and
+    // the host answers rather than relays: every message arrives here in an
+    // order, and "who asked first" is a question only something with an order
+    // can answer. The creature authority is not involved — it has no more
+    // information about this than anyone else.
+    if (msg.t === 'c') {
+      if (!me.inRun) return;
+      const run = runs.get(me.runId);
+      if (!run || !Number.isInteger(msg.i)) return;
+      const held = run.claims.get(msg.i);
+      // A lease, not a fact. The holder may have died mid-loot and will never
+      // say so, and a chest nobody can open again is worse than a rare double
+      // payout. Twice LOOT_TIME is comfortably longer than opening one takes.
+      const fresh = held && Date.now() - held.at < LOOT_TIME * 2000;
+      const to = fresh ? held.to : msg.to;
+      if (!fresh) run.claims.set(msg.i, { to, at: Date.now() });
+      for (const p of players.values()) {
+        if (p.runId === me.runId) send(p.sock, { t: 'c', i: msg.i, to });
+      }
       return;
     }
 
@@ -312,6 +426,7 @@ wss.on('connection', (sock: WebSocket) => {
       p.runId = runId;
       p.pose = null;
     }
+        runs.set(runId, { maze: buildMaze(roll, level), gold: 0, claims: new Map() });
         const start: ServerMsg = {
           t: 'start', seed: roll, level, runId,
           players: group.map((p) => ({ id: p.id, name: p.name, host: p.host, inRun: true, runId })),

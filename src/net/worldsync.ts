@@ -2,9 +2,10 @@ import { sfxCreak, sfxTrap } from '../audio';
 import { alertCreatures } from '../combat';
 import { CHEST_ALERT_RADIUS, CHEST_ALERT_TIME, TRAP_ALERT_RADIUS, TRAP_ALERT_TIME, TRAP_SPRING_TIME } from '../config';
 import { setPortalOpen } from '../scene';
+import { el } from '../dom';
 import { state } from '../state';
-import { cancelLoot, minimapEl, objectiveEl, showMsg, updateHUD } from '../ui';
-import { net, onNetEvent, sendEvent } from './client';
+import { cancelLoot, minimapEl, objectiveEl, overlayEl, showMsg, updateHUD } from '../ui';
+import { net, onNetClaim, onNetEvent, onNetParty, sendClaim, sendEvent } from './client';
 import type { WorldEvent } from './protocol';
 import { coop } from './session';
 
@@ -35,7 +36,46 @@ function tell(k: WorldEvent, i: number): void {
 
 export function tellCreak(chestIndex: number): void {
   tell('creak', chestIndex);
+  // And ask to own it. The noise and the claim are separate on purpose: the
+  // noise is true the moment the lid moves and cannot be taken back, while the
+  // claim is a question the host answers. Sending them together only means the
+  // answer arrives while the loot bar is still running.
+  if (coop.active) sendClaim(chestIndex, net.id);
 }
+
+/**
+ * The host has said who owns a chest.
+ *
+ * Losing means somebody started opening it first — not that they finished. The
+ * loot is cancelled now rather than at the end, so the player can go and do
+ * something else with the second they would have spent standing still.
+ */
+onNetClaim((i, to) => {
+  if (to === net.id) return;
+  if (state.looting?.chest !== state.chests[i]) return;
+  cancelLoot();
+  showMsg(`${nameOf(to)} is already opening that one`);
+});
+
+/**
+ * The party's total, whenever somebody's run ends.
+ *
+ * Written into the end screen if this player is sitting on one, because that is
+ * where the number belongs and they may well be reading it when an ally walks
+ * out — a total that was true when the panel opened and silently wrong a minute
+ * later is worse than no total.
+ */
+onNetParty((total, by, gold, out) => {
+  coop.partyGold = total;
+  const mine = by === net.id;
+  if (!mine) {
+    showMsg(out
+      ? `${nameOf(by)} got out with ${gold} G — the party has ${total} G`
+      : `${nameOf(by)} died with ${gold} G`);
+  }
+  const bank = el('ovBank');
+  if (overlayEl.style.display === 'flex') bank.textContent = `Party total: ${total} G`;
+});
 
 export function tellChestOpened(chestIndex: number): void {
   tell('chest', chestIndex);

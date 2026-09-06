@@ -99,6 +99,10 @@ export interface CStart {
  */
 export interface CLeftRun {
   t: 'leftRun';
+  /** Gold carried at the end. Counted only when `out` is true. */
+  gold: number;
+  /** True if they walked out through the portal, false if they died. */
+  out: boolean;
 }
 
 /**
@@ -201,9 +205,10 @@ export interface CHit {
  */
 export type CKill = SKill;
 export type CMobHit = SMobHit;
+export type CClaim = SClaim;
 
 export type ClientMsg =
-  | CJoin | CLevel | CStart | CLeftRun | CPose | CEvent | CMobs | CHit | CKill | CMobHit;
+  | CJoin | CLevel | CStart | CLeftRun | CPose | CEvent | CMobs | CHit | CKill | CMobHit | CClaim;
 
 /**
  * What a remote body is doing, as one number.
@@ -296,6 +301,43 @@ export interface SEvent {
   by: number;
 }
 
+/**
+ * The party's running total, sent whenever somebody extracts.
+ *
+ * Only what walks out counts, so a death sends this with nothing added — but it
+ * is still sent, because "nobody is coming back with that 400 G" is news the
+ * rest of the party wants at the moment it happens.
+ */
+export interface SParty {
+  t: 'g';
+  /** The whole run's banked total so far. */
+  total: number;
+  /** Who just finished, and with how much. */
+  by: number;
+  gold: number;
+  out: boolean;
+}
+
+/**
+ * Who owns a chest.
+ *
+ * A client asks for one when it starts looting; the host answers, and the first
+ * asker wins. Settled by the host rather than by the creature authority because
+ * this is exactly what a host is for — every message goes through it in an
+ * order, and "who asked first" is a question only something with an order can
+ * answer.
+ *
+ * The claim is a lease rather than a fact. A client that dies mid-loot never
+ * says so, and a chest nobody can ever open again is worse than a rare double
+ * payout.
+ */
+export interface SClaim {
+  t: 'c';
+  i: number;
+  /** The player who may open it. */
+  to: number;
+}
+
 /** A hit somebody else landed, for the authority to apply. */
 export interface SHit {
   t: 'h';
@@ -335,7 +377,8 @@ export interface SMobHit {
 }
 
 export type ServerMsg =
-  | SWelcome | SReject | SLobby | SStart | SSnap | SEvent | SMobs | SKill | SMobHit | SHit;
+  | SWelcome | SReject | SLobby | SStart | SSnap | SEvent | SMobs | SKill | SMobHit | SHit
+  | SParty | SClaim;
 
 /**
  * Parses a message off the wire.

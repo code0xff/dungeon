@@ -1,7 +1,12 @@
+// The .ts is not a stylistic choice and must not be tidied away: server/host.ts
+// imports this file directly under `node --experimental-strip-types` to rebuild
+// the maze, and Node's resolver will not find an extensionless specifier. vite
+// resolves it either way, so `npm run build` passes and the host dies at
+// startup — which is exactly how this was found.
 import {
   MAZE_ASPECT, MAZE_CELLS_PEAK, MAZE_CELLS_START, REF_FLOOR_CELLS, ROOM_COUNT, SPAWN_PEAK_STAGE,
-} from './config';
-import { random } from './rng';
+} from './config.ts';
+import { random } from './rng.ts';
 import type { GridCell, Maze } from './types';
 
 /**

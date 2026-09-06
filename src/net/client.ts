@@ -237,6 +237,12 @@ export function connect(server: string, name: string): void {
       case 'x':
         onMobHit?.(msg.i, msg.p, msg.d);
         break;
+      case 'g':
+        onParty?.(msg.total, msg.by, msg.gold, msg.out);
+        break;
+      case 'c':
+        onClaim?.(msg.i, msg.to);
+        break;
       case 'start':
         net.phase = 'run';
         net.level = msg.level;
@@ -327,6 +333,25 @@ export function sendHit(i: number, d: number): void {
   send({ t: 'h', i, d });
 }
 
+/** The authority settling who may open a chest. */
+export function sendClaim(i: number, to: number): void {
+  send({ t: 'c', i, to });
+}
+
+/** Called when the party's total changes — somebody extracted, or did not. */
+let onParty: ((total: number, by: number, gold: number, out: boolean) => void) | null = null;
+
+export function onNetParty(fn: (total: number, by: number, gold: number, out: boolean) => void): void {
+  onParty = fn;
+}
+
+/** Called when the authority says who owns a chest. */
+let onClaim: ((i: number, to: number) => void) | null = null;
+
+export function onNetClaim(fn: (i: number, to: number) => void): void {
+  onClaim = fn;
+}
+
 /** The authority announcing a kill: which creature, who swung, what it paid. */
 export function sendKill(i: number, by: number, gold: number): void {
   send({ t: 'k', i, by, gold });
@@ -352,9 +377,13 @@ export function sendPose(x: number, z: number, r: number, a: number): void {
  *
  * Without it a browser sitting on a death screen is indistinguishable from one
  * still fighting, and the lobby would never offer another run.
+ *
+ * It carries the gold because this is the only moment the party's total can be
+ * counted honestly: `out` says whether the player walked it out or left it down
+ * there, and only the first kind counts.
  */
-export function leftRun(): void {
+export function leftRun(gold: number, out: boolean): void {
   if (net.runId === 0) return;
   net.runId = 0;
-  send({ t: 'leftRun' });
+  send({ t: 'leftRun', gold, out });
 }

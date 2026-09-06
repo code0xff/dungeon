@@ -16,6 +16,14 @@ export const coop = {
   level: 1,
   /** The seed the whole party generates its dungeon from. */
   seed: 0,
+  /**
+   * What the party has banked between them this run.
+   *
+   * Counted by the host, because only the host sees everyone finish. It is the
+   * mode's only score: there is no bank and nothing carries, so this number and
+   * the story of the run are the whole of what a party takes away.
+   */
+  partyGold: 0,
 };
 
 /**
