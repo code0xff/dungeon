@@ -185,6 +185,12 @@ export function openLobbyPanel(): void {
   if (!nameEl.value) nameEl.value = `Delver ${progress.seed % 100}`;
   render();
   panelEl.style.display = 'flex';
+  // A solo dungeon behind this panel is paused, the way it is behind the menu.
+  // The co-op case is deliberately left running (see menu.ts): that world is
+  // the whole party's. This one is only ours, and it was left running once —
+  // the end screen rebuilt it and put the lobby over it, and the creatures
+  // carried on with nobody at the keyboard.
+  if (!coop.active) state.paused = true;
   // Set here rather than by the caller. The panel is opened and closed from
   // three places — the menu, the host's start, the end screen — and every one
   // of them that forgot left the game either deaf behind a dungeon or live
@@ -214,5 +220,8 @@ export function leaveLobby(): void {
     state.gameOver = false;
     overlayEl.style.display = 'none';
     buildWorld();
+    // Back lands on the menu, and a solo world behind the menu is a paused one.
+    // closeMenu() is what lifts it.
+    state.paused = true;
   }
 }

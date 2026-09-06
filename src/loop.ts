@@ -682,18 +682,29 @@ function separateMonsters(dt: number): void {
  * the only way a player learns what an *un*sprung one looks like, and on a map
  * you are crossing twice it also marks where you have already been.
  */
-function updateTraps(dt: number): void {
+/**
+ * The jaws closing — the part of a trap that is only a picture.
+ *
+ * Separate from the trigger check because a watcher needs this and must not
+ * have that: they are dead, standing where they fell, and a trap they happen to
+ * be lying on must not go off under a corpse.
+ */
+function animateTraps(dt: number): void {
   for (const t of state.traps) {
-    if (t.springT > 0) {
-      t.springT = Math.max(0, t.springT - dt);
-      // The jaws snap shut. Eased on the square so it leaves fast and arrives
-      // hard, which is the whole character of a spring — a linear close reads
-      // like a door. The bone ring this replaced could only be scaled flat.
-      const k = t.springT / TRAP_SPRING_TIME;
-      setTrapJaws(t.jaws, k * k);
-      continue;
-    }
-    if (t.sprung) continue;
+    if (t.springT <= 0) continue;
+    t.springT = Math.max(0, t.springT - dt);
+    // The jaws snap shut. Eased on the square so it leaves fast and arrives
+    // hard, which is the whole character of a spring — a linear close reads
+    // like a door. The bone ring this replaced could only be scaled flat.
+    const k = t.springT / TRAP_SPRING_TIME;
+    setTrapJaws(t.jaws, k * k);
+  }
+}
+
+function updateTraps(dt: number): void {
+  animateTraps(dt);
+  for (const t of state.traps) {
+    if (t.springT > 0 || t.sprung) continue;
     const dx = t.mesh.position.x - state.pos.x, dz = t.mesh.position.z - state.pos.z;
     if (dx * dx + dz * dz > TRAP_RADIUS * TRAP_RADIUS) continue;
     t.sprung = true;
@@ -743,7 +754,11 @@ function updateChests(dt: number, playerMoving: boolean): void {
     }
   }
 
-  // Easing on the lid as it opens
+  animateChests(dt);
+}
+
+/** The lids easing open. The same split, for the same reason, as animateTraps(). */
+function animateChests(dt: number): void {
   for (const c of state.chests) {
     if (c.state === 'opened' && c.openT < 1) {
       c.openT = Math.min(1, c.openT + dt * 3);
@@ -928,7 +943,14 @@ export function animate(): void {
   // A watcher is dead — no simulation, no input, no publishing — but the
   // dungeon they are looking at is somebody else's and still running, so the
   // creatures in it have to keep being drawn from the wire.
-  if (coop.watching && state.gameOver) followMonsters(dt, now);
+  if (coop.watching && state.gameOver) {
+    followMonsters(dt, now);
+    // What the party does to the dungeon still has to be seen doing it: a lid
+    // an ally opened and a trap they sprang both arrive as events that set a
+    // timer, and nothing else was advancing the timer.
+    animateChests(dt);
+    animateTraps(dt);
+  }
 
   camera.position.copy(state.pos);
   // A sideways dodge rolls the view into it and back out. Straight dodges do not

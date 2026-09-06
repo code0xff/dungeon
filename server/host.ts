@@ -528,6 +528,11 @@ wss.on('connection', (sock: WebSocket) => {
       p.inRun = true;
       p.runId = runId;
       p.pose = null;
+      // Whatever they were watching, they are not now. The client sends w:0
+      // when it stops, but a start that arrives first would otherwise leave an
+      // old run's kills and world events flowing into a dungeon they index a
+      // different set of chests and creatures in.
+      p.watchRun = 0;
     }
         runs.set(runId, {
           maze: buildMaze(roll, level), gold: 0, claims: new Map(),
