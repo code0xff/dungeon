@@ -81,6 +81,23 @@ export const REMOTE_TINT = 0.07;
  * already be moving correctly by the time it comes into view — arriving at the
  * edge of the light and snapping into place is worse than not being drawn.
  */
+/**
+ * The name tag over an ally: height above their feet, and how wide the label is
+ * drawn in metres.
+ *
+ * 2.05 clears the knight's head at PLAYER_ASSET.height without floating: a tag
+ * further up stops reading as belonging to the body under it. The width is what
+ * makes the text legible at the far end of a corridor without the label being
+ * the biggest thing in the dungeon.
+ *
+ * It is a sprite, so it turns to face the camera on its own and — because it
+ * respects the depth buffer — a wall hides it. That is deliberate: a name
+ * floating through stone would tell you where an ally is when the game has
+ * decided you cannot see them.
+ */
+export const NAME_TAG_Y = 2.05;
+export const NAME_TAG_W = 1.15;
+
 export const MOB_INTEREST = 34;
 /**
  * How fast a creature chases the position the authority reported for it.

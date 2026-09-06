@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { setAnim, spawnPlayerModel } from '../assets';
-import { REMOTE_FADE, REMOTE_LERP, REMOTE_TINT, REMOTE_TINTS } from '../config';
+import { NAME_TAG_W, NAME_TAG_Y, REMOTE_FADE, REMOTE_LERP, REMOTE_TINT, REMOTE_TINTS } from '../config';
 import { scene } from '../scene';
 import { state } from '../state';
 import type { MonsterPlayback } from '../types';
@@ -18,6 +18,9 @@ import { coop } from './session';
 interface Remote {
   id: number;
   group: THREE.Group;
+  /** The name label, and the name it was drawn with. */
+  tag: THREE.Sprite;
+  tagName: string;
   playback: MonsterPlayback | null;
   /** Where the body is being drawn, which is behind where it has been reported. */
   x: number;
@@ -50,6 +53,52 @@ function makeFallbackBody(colour: number): THREE.Group {
   head.position.y = 1.62;
   g.add(body, head);
   return g;
+}
+
+/**
+ * The floating name over an ally.
+ *
+ * Drawn into a canvas rather than built from DOM: this has to sit in the world,
+ * behind walls and at the right distance, and an HTML overlay would have to be
+ * projected by hand every frame and would happily draw through stone.
+ *
+ * The name came off the network, so it goes through fillText and nothing else —
+ * no innerHTML anywhere near it.
+ */
+function makeNameTag(name: string, colour: number): THREE.Sprite {
+  const canvas = document.createElement('canvas');
+  canvas.width = 256;
+  canvas.height = 64;
+  const x = canvas.getContext('2d');
+  // A canvas with no 2d context is not worth failing a run over; an empty tag
+  // is. The caller gets a sprite either way.
+  if (x) {
+    x.font = '600 34px "EB Garamond", Georgia, serif';
+    x.textAlign = 'center';
+    x.textBaseline = 'middle';
+    // Outlined before filled. A dungeon is lit the colour of rust and a name in
+    // any single colour disappears against something — the dark stroke is what
+    // makes it readable over a torch as well as over shadow.
+    x.lineWidth = 6;
+    x.strokeStyle = 'rgba(0,0,0,0.85)';
+    x.strokeText(name, 128, 34);
+    x.fillStyle = `#${colour.toString(16).padStart(6, '0')}`;
+    x.fillText(name, 128, 34);
+  }
+  const tex = new THREE.CanvasTexture(canvas);
+  // The label is small on screen and never viewed straight on, so a mipmap
+  // chain costs memory to make it blurrier.
+  tex.generateMipmaps = false;
+  tex.minFilter = THREE.LinearFilter;
+  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true }));
+  sprite.scale.set(NAME_TAG_W, NAME_TAG_W / 4, 1);
+  sprite.position.y = NAME_TAG_Y;
+  return sprite;
+}
+
+/** What to call a player: their name, or something stable until the roster lands. */
+function nameFor(id: number): string {
+  return net.players.find((p) => p.id === id)?.name ?? `Player ${id}`;
 }
 
 /**
@@ -87,10 +136,13 @@ function createRemote(id: number, x: number, z: number, r: number): Remote {
   } else {
     group.add(makeFallbackBody(colour));
   }
+  const tagName = nameFor(id);
+  const tag = makeNameTag(tagName, colour);
+  group.add(tag);
   group.position.set(x, 0, z);
   scene.add(group);
   const rem: Remote = {
-    id, group, playback: spawned?.playback ?? null,
+    id, group, tag, tagName, playback: spawned?.playback ?? null,
     x, z, r, tx: x, tz: z, tr: r, anim: ANIM_IDLE, quiet: 0,
   };
   if (rem.playback) setAnim(rem.playback, 'idle', { fade: 0 });
@@ -99,6 +151,11 @@ function createRemote(id: number, x: number, z: number, r: number): Remote {
 
 function destroy(rem: Remote): void {
   scene.remove(rem.group);
+  // The tag owns its canvas texture and material outright — unlike the body,
+  // which is a clone of a shared template — so it is the one thing here that
+  // leaks if it is not disposed.
+  rem.tag.material.map?.dispose();
+  rem.tag.material.dispose();
   // The geometry and materials come from the shared template clone, so only the
   // mixer holds anything that would otherwise keep ticking.
   rem.playback?.mixer.stopAllAction();
@@ -137,9 +194,21 @@ onNetSnap((rows) => {
 onNetChange(() => {
   for (const [id, rem] of remotes) {
     const row = net.players.find((p) => p.id === id);
-    if (row && row.inRun) continue;
-    destroy(rem);
-    remotes.delete(id);
+    if (!row || !row.inRun) {
+      destroy(rem);
+      remotes.delete(id);
+      continue;
+    }
+    // A body can be created from a pose that arrived before the roster did, so
+    // the tag may be reading "Player 3". Redrawn once the real name is known.
+    if (row.name !== rem.tagName) {
+      rem.tag.material.map?.dispose();
+      rem.tag.material.dispose();
+      rem.group.remove(rem.tag);
+      rem.tag = makeNameTag(row.name, tintFor(id));
+      rem.tagName = row.name;
+      rem.group.add(rem.tag);
+    }
   }
 });
 

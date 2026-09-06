@@ -224,6 +224,12 @@ player carries — through the same loader the creatures use, and the same
 fallback rule: without the file you get a coloured capsule and co-op still
 works.
 
+Each carries their name on a sprite above their head, drawn into a canvas so it
+lives in the world rather than on top of it: it shrinks with distance and a wall
+hides it. That last part is deliberate — a name floating through stone would
+tell you where an ally is at the moment the game has decided you cannot see
+them.
+
 Each is tinted by an emissive at REMOTE_TINT, which both says which ally it is
 and lifts them off a dark wall. The value was found by looking: hard enough and
 the knight is a flat coloured silhouette with no armour left, none at all and
