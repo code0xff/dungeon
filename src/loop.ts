@@ -512,7 +512,10 @@ function animFollowed(m: Monster, pb: MonsterPlayback, dt: number, anim: number 
     // It is not forced *again* mid-swing: setAnim already ignores a request for
     // the clip that is playing unless told otherwise, and the attack is the one
     // clip here that must not be restarted from its first frame every 50ms.
-    setAnim(pb, 'attack', { loop: false, fade: 0.08 });
+    // The same speed startAttack() uses. Without it the clip plays at 1x while
+    // the authority runs it at attackSpeed, so on a fast creature the wire says
+    // "done" and flips back to idle before the follower has finished the swing.
+    setAnim(pb, 'attack', { loop: false, fade: 0.08, speed: m.type.attackSpeed });
   } else if (anim === ANIM_WALK) {
     setAnim(pb, 'walk');
     if (pb.action) {

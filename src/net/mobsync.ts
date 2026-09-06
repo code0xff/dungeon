@@ -1,4 +1,4 @@
-import { MOB_LERP, MOB_STALE, TYPES } from '../config';
+import { FALLBACK_ATTACK_TIME, MOB_LERP, MOB_STALE, TYPES } from '../config';
 import { killMonster, playerHurt } from '../combat';
 import { scene } from '../scene';
 import { state } from '../state';
@@ -224,6 +224,22 @@ export function followMobs(dt: number): number {
     m.mesh.position.z += (row.z - m.mesh.position.z) * k;
     m.mesh.rotation.y = turnTo(m.mesh.rotation.y, row.r, k);
     m.moving = row.a === ANIM_WALK;
+
+    // attackT is rebuilt from the wire because the *fallback* creature model
+    // needs it: animProcedural() poses the arms from how far through attackT is,
+    // and nothing else on a follower would ever set it. It is safe to keep now
+    // in a way it was not before — animFollowed() picks its clip from the
+    // reported animation and never reads this, so it cannot be mistaken for
+    // "startAttack already began the swing" the way animLoaded() would.
+    //
+    // The duration matches what startAttack() would have used for a creature
+    // with no clips, so a fallback body swings at the same rate on every client.
+    if (row.a === ANIM_ATTACK) {
+      if (m.attackT <= 0) m.attackT = FALLBACK_ATTACK_TIME / m.type.attackSpeed;
+      else m.attackT = Math.max(0, m.attackT - dt);
+    } else {
+      m.attackT = 0;
+    }
 
     const dist = Math.hypot(state.pos.x - m.mesh.position.x, state.pos.z - m.mesh.position.z);
     nearest = Math.min(nearest, dist);

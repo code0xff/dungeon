@@ -279,8 +279,13 @@ wss.on('connection', (sock: WebSocket) => {
       if (run && msg.out === true) run.gold += gold;
       if (run) {
         const total = run.gold;
+        const from = me.runId;
         for (const p of players.values()) {
-          if (run.members.has(p.id)) {
+          // Everyone who went in — but only while they are still in that
+          // dungeon or in no dungeon at all. A player who died here and has
+          // already started the next run is watching a different score, and
+          // SParty carries no run id for them to tell the two apart with.
+          if (run.members.has(p.id) && (p.runId === from || p.runId === 0)) {
             send(p.sock, { t: 'g', total, by: me.id, gold, out: msg.out === true });
           }
         }
