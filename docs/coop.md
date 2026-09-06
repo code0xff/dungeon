@@ -1,10 +1,13 @@
 # Co-op
 
 A hosted, session-only co-op mode: one player runs a WebSocket server on their
-machine, the others join, and everyone walks the same dungeon.
+machine, the others join, and everyone walks the same dungeon. The menu calls
+it **Multiplayer**; this document says co-op because the design fact it records
+is that the mode is cooperative and not PvP, and that is the word for it.
 
-Nothing here is built yet. This document is the decisions, so the code can be
-reviewed against something.
+This is the design and the decisions behind it, kept current with the code so
+the code can be reviewed against something. The player-facing how-to is in
+[README.md](../README.md#2-multiplayer).
 
 ## Why co-op and not PvP
 
@@ -93,6 +96,16 @@ A tunnel (ngrok, Cloudflare Tunnel, Tailscale Funnel) hands out an `https://`
 address, and `wss://` to that address is allowed from an HTTPS page. So the
 deployed build *is* usable for co-op — it just cannot reach an uncertificated
 machine directly, and no amount of client code changes that.
+
+The one that has actually been used, and works without an account:
+
+```bash
+cloudflared tunnel --url http://localhost:5848
+```
+
+Measured through it: the page served over HTTPS, a `wss://` join and a run
+start, 113ms round trip via Cloudflare's edge. The first real-network play was
+over this and found a bug five loopback reviews had not.
 
 Two consequences for the client:
 

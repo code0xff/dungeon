@@ -13,6 +13,7 @@ detail lives in `docs/`.
 | [docs/code-quality.md](docs/code-quality.md) | writing any code — the standards and the review checklist |
 | [docs/threejs-pitfalls.md](docs/threejs-pitfalls.md) | anything renders, animates or is sized wrongly |
 | [docs/testing.md](docs/testing.md) | before claiming a change works |
+| [docs/coop.md](docs/coop.md) | anything under `src/net/` or `server/` — the multiplayer design, who decides what, and what is deliberately not done |
 | [README.md](README.md) | the player- and contributor-facing guide |
 
 ## The premises
@@ -67,6 +68,7 @@ npm run dev              # dev server, HMR, bound to 0.0.0.0
 npm run build            # the gate: typecheck, then bundle to dist/
 npm run typecheck        # types only
 npm run preview          # serve the build
+npm run host             # serve the build + the multiplayer lobby on 5848; Node 22.6+
 npm run fetch-assets     # re-pull textures, weapons and props from Poly Haven
 npm run optimize-assets  # convert raw/ FBX into assets/ GLB
 ```

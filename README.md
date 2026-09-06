@@ -237,6 +237,7 @@ npm run dev        # http://localhost:5847
 | `npm run dev` | dev server with HMR, bound to 0.0.0.0 |
 | `npm run build` | typecheck, then bundle into `dist/` |
 | `npm run preview` | serve the build |
+| `npm run host` | serve the build **and** the multiplayer lobby on port 5848 (Node 22.6+) |
 | `npm run typecheck` | typecheck only |
 | `npm run fetch-assets` | re-download textures and weapons from Poly Haven |
 | `npm run optimize-assets` | convert `raw/` FBX into `assets/` GLB |
@@ -251,7 +252,48 @@ loaded and which fell back.
 
 ---
 
-## 2. Deploying
+## 2. Multiplayer
+
+Up to four people in one dungeon. Open the menu (`H`) and pick **Multiplayer**.
+One person hosts; everyone else just opens a link in a browser.
+
+**Nothing carries in or out.** No bank, no gear, no stages — the host picks a
+level in the lobby, everyone is outfitted for it, and the gold you walk out with
+is one team total for that run. Death is final for the run; you can watch the
+others or go back to the lobby for the next one. The design and every decision
+behind it is in [docs/coop.md](docs/coop.md).
+
+### Hosting on the same network
+
+```bash
+npm run build && npm run host
+```
+
+It prints an address like `http://192.168.0.12:5848`. Read it out; the others
+open it. The page and the lobby come from the same place, so the **Server**
+field in the lobby can stay empty.
+
+### Hosting over the internet
+
+The deployed site is HTTPS and a browser will not open a plain `ws://` socket
+from an HTTPS page to a home machine, so a direct connection is not possible. A
+tunnel gives the host an `https://` address instead. With
+[cloudflared](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/)
+installed (`brew install cloudflared`), in a second terminal:
+
+```bash
+cloudflared tunnel --url http://localhost:5848
+```
+
+It prints an address like `https://something-random.trycloudflare.com`. Send
+that. The others open it directly — or open the deployed site and paste the
+address into the lobby's **Server** field. No account, no router settings. The
+address changes each time you start the tunnel.
+
+Hosting needs **Node 22.6 or newer**; the host runs straight from TypeScript.
+Joining needs only a browser.
+
+## 3. Deploying
 
 Pushing to `dev` builds and publishes to GitHub Pages through
 `.github/workflows/deploy.yml`. Nothing else to do.
@@ -261,7 +303,7 @@ URL, a custom domain, or a local `npx serve dist`.
 
 ---
 
-## 3. Creatures — Mixamo
+## 4. Creatures — Mixamo
 
 https://www.mixamo.com (free, needs an Adobe account)
 
@@ -324,7 +366,7 @@ are baked; nothing reads them again.
 
 ---
 
-## 4. Type
+## 5. Type
 
 Two faces, both **SIL Open Font License 1.1**, self-hosted under `assets/fonts/`
 with their licences beside them:
@@ -345,7 +387,7 @@ once with `font-weight: 400 700`.
 
 ---
 
-## 5. Walls, floors and weapons — Poly Haven
+## 6. Walls, floors and weapons — Poly Haven
 
 ```bash
 npm run fetch-assets
@@ -413,7 +455,7 @@ name stays `musket` throughout the code.
 
 ---
 
-## 6. Licences
+## 7. Licences
 
 Mixamo characters and animations are free to use and ship inside a game, including
 commercially, but **the FBX files themselves must not be redistributed**. So `raw/`
@@ -428,7 +470,7 @@ in `assets/fonts/` next to the woff2 files they cover.
 
 ---
 
-## 7. Ideas
+## 8. Ideas
 
 - **Shadows** are off. `renderer.shadowMap.enabled = true` in `src/scene.ts` plus
   `castShadow` on the player's light turns them on, but there are a lot of walls, so check
