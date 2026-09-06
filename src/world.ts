@@ -251,6 +251,7 @@ function spawnOne(key: CreatureKey): void {
     rig: sp.rig,
     atkCd: 0,
     attackT: 0,
+    swingSeq: 0,
     pendingHit: null,
     hurtT: 0,
     staggerT: 0,

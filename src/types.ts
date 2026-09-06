@@ -139,6 +139,15 @@ export interface Monster {
   atkCd: number;
   /** Seconds of attack animation left. Above 0 the creature is attacking and cannot move. */
   attackT: number;
+  /**
+   * Incremented once per swing, by startAttack().
+   *
+   * Counted where the swing begins rather than worked out from attackT at
+   * publish time: a creature can finish one attack and start the next between
+   * two snapshots, and both samples then look identical. The number is what
+   * tells a follower that the swing it is watching is a different swing.
+   */
+  swingSeq: number;
   /** Seconds until the hit resolves. Fires once mid-animation, then goes null. */
   pendingHit: number | null;
   /** Seconds of hit flash left. */

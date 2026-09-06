@@ -95,6 +95,8 @@ function animProcedural(m: Monster, rig: CreatureRig, dt: number, now: number): 
 
 /** Starts the attack animation, honouring the clip's own length when there is one. */
 function startAttack(m: Monster): void {
+  // Bumped here, at the only place a swing ever begins.
+  m.swingSeq++;
   const clip = m.playback ? clipDuration(m.playback, 'attack') : null;
   // attackSpeed shortens the clip, so every timing below scales with it.
   const dur = (clip ?? FALLBACK_ATTACK_TIME) / m.type.attackSpeed;

@@ -64,19 +64,21 @@ const targets = new Map<number, Target>();
 const killed = new Set<number>();
 
 /**
- * Creature indices whose current swing has already been announced.
+ * The swing number last published per creature, so the authority can mark the
+ * first tick of each one.
  *
- * Only the authority uses it, and only so that the *first* tick of a swing goes
- * out as ANIM_ATTACK_START. Without it two attacks with no idle frame between
- * them are indistinguishable from one.
+ * Keyed on the counter startAttack() bumps rather than on whether the creature
+ * looks like it is attacking: between two snapshots it can finish one swing and
+ * begin another, and both samples read the same. The counter is the only thing
+ * that changed.
  */
-const announcedSwing = new Set<number>();
+const publishedSwing = new Map<number, number>();
 
 /** Drops everything. buildWorld() calls it: these creatures no longer exist. */
 export function clearMobSync(): void {
   targets.clear();
   killed.clear();
-  announcedSwing.clear();
+  publishedSwing.clear();
   sinceSend = 0;
 }
 
@@ -206,15 +208,14 @@ export function publishMobs(dt: number): void {
  */
 function mobAnimFor(index: number, m: Monster): number {
   if (m.hp <= 0) {
-    announcedSwing.delete(index);
+    publishedSwing.delete(index);
     return ANIM_DEAD;
   }
   if (m.attackT > 0) {
-    if (announcedSwing.has(index)) return ANIM_ATTACK;
-    announcedSwing.add(index);
+    if (publishedSwing.get(index) === m.swingSeq) return ANIM_ATTACK;
+    publishedSwing.set(index, m.swingSeq);
     return ANIM_ATTACK_START;
   }
-  announcedSwing.delete(index);
   return m.moving ? ANIM_WALK : ANIM_IDLE;
 }
 
