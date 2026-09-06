@@ -105,6 +105,13 @@ interface Player {
   runId: number;
   /** Their last pose, or null until they send one. */
   pose: PoseRow | null;
+  /**
+   * A dungeon they are watching but not in, or 0.
+   *
+   * Told rather than guessed. "Out of a run" describes a watcher and a player
+   * who went back to the lobby equally well, and they want opposite things.
+   */
+  watchRun: number;
 }
 
 const players = new Map<number, Player>();
@@ -136,6 +143,18 @@ interface Run {
 }
 
 const runs = new Map<number, Run>();
+
+/**
+ * The most damage one reported hit may carry.
+ *
+ * A bound, not a rule about the game: the biggest real hit is a lunge with a
+ * fresh blade, and this is far above it. It exists so that "I hit it" cannot
+ * mean "I killed everything", which the authority would then pay out for.
+ */
+const MAX_REPORTED_HIT = 200;
+
+/** Every valid world-event kind, for checking one off the wire. */
+const WORLD_EVENTS: readonly string[] = ['creak', 'chest', 'trap', 'lantern', 'shot'];
 
 /**
  * Rebuilds a dungeon's maze exactly as the clients do.
@@ -186,6 +205,18 @@ function authorityOf(runId: number): number {
     if (p.inRun && p.runId === runId && p.id < lowest) lowest = p.id;
   }
   return lowest;
+}
+
+/**
+ * Whether a message about `runId` should reach this player.
+ *
+ * Everyone in that dungeon, plus anyone watching it. Used by every route that
+ * carries something about a run — poses, creatures, kills, world events — so a
+ * watcher cannot end up with allies fighting invisible creatures, or with
+ * chests that never open.
+ */
+function inOrWatching(p: Player, runId: number): boolean {
+  return p.runId === runId || p.watchRun === runId;
 }
 
 /** True while at least one player is inside a dungeon. */
@@ -271,7 +302,10 @@ wss.on('connection', (sock: WebSocket) => {
         return;
       }
       const id = nextId++;
-      me = { id, name: cleanName(msg.name, id), sock, host: false, inRun: false, runId: 0, pose: null };
+      me = {
+        id, name: cleanName(msg.name, id), sock, host: false,
+        inRun: false, runId: 0, pose: null, watchRun: 0,
+      };
       players.set(id, me);
       recomputeHost();
       send(sock, { t: 'welcome', id, host: me.host });
@@ -285,6 +319,14 @@ wss.on('connection', (sock: WebSocket) => {
     // Leaving a run is the one thing a player says about themselves, so it is
     // handled before the host gate below — everything past that point is an
     // instruction about the whole lobby and belongs to the host alone.
+    if (msg.t === 'w') {
+      // Only a run they were actually in, so nobody can subscribe to a dungeon
+      // they were never part of and watch it through the walls.
+      const wanted = Number.isInteger(msg.run) ? msg.run : 0;
+      me.watchRun = wanted !== 0 && runs.get(wanted)?.members.has(me.id) ? wanted : 0;
+      return;
+    }
+
     if (msg.t === 'leftRun') {
       if (!me.inRun) return;
       const run = runs.get(me.runId);
@@ -308,6 +350,8 @@ wss.on('connection', (sock: WebSocket) => {
       }
       me.inRun = false;
       me.runId = 0;
+      // Not watching yet either — that is a separate thing the client asks for.
+      me.watchRun = 0;
       // Dropped with the run, so a body does not stay standing in a dungeon its
       // player has already left.
       me.pose = null;
@@ -338,12 +382,8 @@ wss.on('connection', (sock: WebSocket) => {
         && Number.isFinite((row as MobRow).r) && Number.isInteger((row as MobRow).i)
       ));
       if (!rows.length) return;
-      const run = runs.get(me.runId);
       for (const p of players.values()) {
-        // Players in the dungeon, and the ones watching it from an end screen.
-        // A spectator with no creatures sees allies fighting nothing.
-        const watching = p.runId === me.runId || (p.runId === 0 && run?.members.has(p.id));
-        if (!watching || p.id === me.id) continue;
+        if (!inOrWatching(p, me.runId) || p.id === me.id) continue;
         // Trimmed to what this player could plausibly care about. At level 15
         // there are over a hundred creatures and most of them are nowhere near
         // anybody; sending them all is bandwidth spent on things nobody can see.
@@ -363,8 +403,14 @@ wss.on('connection', (sock: WebSocket) => {
     // host does not know which of them it is — and the others drop it.
     if (msg.t === 'h') {
       if (!me.inRun) return;
+      // A hit is the one thing a non-authority may say about a creature, so it
+      // is the one thing worth bounding here. Negative damage heals, and an
+      // enormous one kills anything in the dungeon from anywhere in it — both
+      // with the sender credited for the gold.
+      if (!(msg.d > 0) || msg.d > MAX_REPORTED_HIT) return;
+      if (!Number.isInteger(msg.i) || msg.i < 0) return;
       for (const p of players.values()) {
-        if (p.runId === me.runId && p.id !== me.id) send(p.sock, { t: 'h', i: msg.i, d: msg.d, by: me.id });
+        if (inOrWatching(p, me.runId) && p.id !== me.id) send(p.sock, { t: 'h', i: msg.i, d: msg.d, by: me.id });
       }
       return;
     }
@@ -382,7 +428,7 @@ wss.on('connection', (sock: WebSocket) => {
       // kills, or hurts an ally in a mode that has no friendly fire.
       if (msg.t !== 'y' && authorityOf(me.runId) !== me.id) return;
       for (const p of players.values()) {
-        if (p.runId === me.runId && p.id !== me.id) send(p.sock, msg);
+        if (inOrWatching(p, me.runId) && p.id !== me.id) send(p.sock, msg);
       }
       return;
     }
@@ -396,9 +442,13 @@ wss.on('connection', (sock: WebSocket) => {
     if (msg.t === 'e') {
       if (!me.inRun) return;
       if (!Number.isInteger(msg.i) || msg.i < 0) return;
+      // An unknown kind is not harmless: the client's handler falls through to
+      // the chest branch, so `{k:'bogus'}` opens chest 0 for the whole party
+      // and gives nobody its contents.
+      if (!WORLD_EVENTS.includes(msg.k)) return;
       const out: ServerMsg = { t: 'e', k: msg.k, i: msg.i, by: me.id };
       for (const p of players.values()) {
-        if (p.runId === me.runId && p.id !== me.id) send(p.sock, out);
+        if (inOrWatching(p, me.runId) && p.id !== me.id) send(p.sock, out);
       }
       return;
     }
@@ -436,6 +486,11 @@ wss.on('connection', (sock: WebSocket) => {
       if (!me.inRun) return;
       const run = runs.get(me.runId);
       if (!run || !Number.isInteger(msg.i)) return;
+      if (msg.i < 0) return;
+      // Claimed for yourself or not at all. Trusting `to` let a modified peer
+      // reserve every chest in the dungeon to a player who does not exist and
+      // keep everyone else's loot cancelled until each lease ran out.
+      if (msg.to !== me.id) return;
       const held = run.claims.get(msg.i);
       // A lease, not a fact. The holder may have died mid-loot and will never
       // say so, and a chest nobody can open again is worse than a rare double
@@ -444,7 +499,7 @@ wss.on('connection', (sock: WebSocket) => {
       const to = fresh ? held.to : msg.to;
       if (!fresh) run.claims.set(msg.i, { to, at: Date.now() });
       for (const p of players.values()) {
-        if (p.runId === me.runId) send(p.sock, { t: 'c', i: msg.i, to });
+        if (inOrWatching(p, me.runId)) send(p.sock, { t: 'c', i: msg.i, to });
       }
       return;
     }
@@ -542,10 +597,8 @@ setInterval(() => {
     //
     // They receive poses without contributing one, which is exactly right — a
     // spectator is not in the dungeon.
-    const run = runs.get(runId);
     for (const p of players.values()) {
-      const watching = p.runId === runId || (p.runId === 0 && run?.members.has(p.id));
-      if (!watching) continue;
+      if (!inOrWatching(p, runId)) continue;
       // Everyone else's, not their own: a client that received its own pose
       // back would have to filter it out anyway, and one round trip late.
       const others = poses.filter((row) => row.id !== p.id);

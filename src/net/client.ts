@@ -320,6 +320,12 @@ export function connect(server: string, name: string): void {
  */
 export function isAuthority(): boolean {
   if (!coop.active) return true;
+  // Out of the dungeon — dead, extracted, watching — is never simulating it.
+  // Without this the roster has no row matching a watcher's (cleared) runId,
+  // the search below finds nothing, the "nobody yet, carry on" default fires,
+  // and the watcher throws away every snapshot it is sent: a Watch screen with
+  // no creatures in it.
+  if (net.runId === 0) return false;
   let lowest = Infinity;
   for (const p of net.players) {
     if (p.inRun && p.runId === net.runId && p.id < lowest) lowest = p.id;
@@ -374,6 +380,11 @@ export function onNetClaim(fn: (i: number, to: number) => void): void {
 /** The authority announcing a kill: which creature, who swung, what it paid. */
 export function sendKill(i: number, by: number, gold: number): void {
   send({ t: 'k', i, by, gold });
+}
+
+/** Says which dungeon this player is watching, or 0 to stop. */
+export function sendWatch(run: number): void {
+  send({ t: 'w', run });
 }
 
 /** Tells whoever is simulating that this player just parried a creature. */

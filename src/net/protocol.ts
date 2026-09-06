@@ -34,7 +34,8 @@
  * tunnel: that page and the host are separately deployed and routinely
  * different versions of the game.
  *
- * 4: a parry travels to whoever is simulating the creature. 3: the party total
+ * 5: a player can say they are watching a dungeon they are no longer in. 4: a
+ * parry travels to whoever is simulating the creature. 3: the party total
  * carries the run it belongs to, and a swing announces its first tick
  * separately. 2: poses, creature snapshots, hits, kills, world
  * events, chest claims and the party total. 1 knew only the lobby.
@@ -44,7 +45,7 @@
  * cannot read, which here would have meant every party total discarded by a
  * filter reading a field the sender never sent.
  */
-export const PROTOCOL_VERSION = 4;
+export const PROTOCOL_VERSION = 5;
 
 /** The port the host listens on for both the game page and the socket. */
 export const COOP_PORT = 5848;
@@ -239,7 +240,7 @@ export type CClaim = SClaim;
 
 export type ClientMsg =
   | CJoin | CLevel | CStart | CLeftRun | CPose | CEvent | CMobs | CHit | CKill | CMobHit | CClaim
-  | CParry;
+  | CParry | CWatch;
 
 /**
  * What a remote body is doing, as one number.
@@ -405,6 +406,19 @@ export interface SParry {
 }
 
 export type CParry = SParry;
+
+/**
+ * "I am watching run N", or 0 to stop.
+ *
+ * Said explicitly rather than inferred from being out of a run, because those
+ * are different things: a player who went back to the lobby is also out of a
+ * run and must stop receiving it. Guessing gave watchers no chest or kill
+ * messages and gave the lobby poses it had no use for.
+ */
+export interface CWatch {
+  t: 'w';
+  run: number;
+}
 
 /** A hit somebody else landed, for the authority to apply. */
 export interface SHit {

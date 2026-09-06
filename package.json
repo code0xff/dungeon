@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "license": "BUSL-1.1",
   "private": true,
+  "engines": {
+    "node": ">=22.6"
+  },
   "type": "module",
   "scripts": {
     "dev": "vite",

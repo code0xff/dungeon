@@ -107,6 +107,13 @@ Two consequences for the client:
 Because the Pages build and the host can now be different versions of the game,
 `PROTOCOL_VERSION` is doing real work rather than guarding a theoretical case.
 
+## Hosting needs Node 22.6
+
+`npm run host` runs the server straight from TypeScript with
+`--experimental-strip-types`, which older Node does not have — on Node 20 the
+command exits before it binds the port. package.json says so in `engines`. Only
+the host needs it; joining is a browser.
+
 ## What is not done
 
 Everything the mode describes above is built. These are the holes that are known

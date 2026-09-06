@@ -195,6 +195,10 @@ onNetEvent((k, i, by) => {
     return;
   }
 
+  // Explicit, not "everything else". The chest branch used to be the fallthrough
+  // and any kind this build does not know — an older peer, a modified one —
+  // silently consumed a chest.
+  if (k !== 'chest') return;
   const c = state.chests[i];
   if (!c || c.state !== 'closed') return;
   c.state = 'opened';

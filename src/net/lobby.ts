@@ -4,7 +4,7 @@ import { progress } from '../progress';
 import { state } from '../state';
 import { overlayEl } from '../ui';
 import { buildWorld } from '../world';
-import { connect, disconnect, net, onNetChange, onNetStart, setLevel, startRun } from './client';
+import { connect, disconnect, net, onNetChange, onNetStart, sendWatch, setLevel, startRun } from './client';
 import { MAX_PLAYERS, NAME_MAX } from './protocol';
 import { coop } from './session';
 
@@ -120,6 +120,7 @@ onNetChange(render);
  */
 el('ovWatch').addEventListener('click', () => {
   coop.watching = true;
+  sendWatch(coop.runId);
   overlayEl.style.display = 'none';
   el('watchHint').textContent = `Watching — press ${GUIDE_KEY} for the menu`;
   el('watchHint').style.display = 'block';
@@ -127,8 +128,12 @@ el('ovWatch').addEventListener('click', () => {
 
 /** Stops watching, whatever ended it. */
 export function stopWatching(): void {
+  if (coop.watching) sendWatch(0);
   coop.watching = false;
   el('watchHint').style.display = 'none';
+  // The offer belongs to the screen that made it. Left showing, the next solo
+  // death would offer to watch a party that does not exist.
+  el('ovWatch').style.display = 'none';
 }
 
 onNetStart((seed, level) => {
@@ -180,16 +185,34 @@ export function openLobbyPanel(): void {
   if (!nameEl.value) nameEl.value = `Delver ${progress.seed % 100}`;
   render();
   panelEl.style.display = 'flex';
+  // Set here rather than by the caller. The panel is opened and closed from
+  // three places — the menu, the host's start, the end screen — and every one
+  // of them that forgot left the game either deaf behind a dungeon or live
+  // behind a panel.
+  state.uiOpen = true;
 }
 
 export function closeLobbyPanel(): void {
   panelEl.style.display = 'none';
+  state.uiOpen = false;
 }
 
 /** Leaves the lobby entirely — the menu's Back does this, not just hide. */
 export function leaveLobby(): void {
+  // A dungeon may still be on screen behind this panel — live, or being
+  // watched. Left alone it becomes a solo run holding co-op gear at a co-op
+  // portal, which is the same way co-op gold reached the solo bank once
+  // already. Going back to your own game means building it.
+  const wasInCoop = coop.active || coop.watching;
   stopWatching();
   disconnect();
   net.error = '';
   closeLobbyPanel();
+  if (wasInCoop) {
+    coop.active = false;
+    coop.runId = 0;
+    state.gameOver = false;
+    overlayEl.style.display = 'none';
+    buildWorld();
+  }
 }

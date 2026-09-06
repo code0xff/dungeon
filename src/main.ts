@@ -52,6 +52,9 @@ el('restart').addEventListener('click', () => {
   // stops a later solo run being built at the party's level.
   if (coop.active) {
     coop.active = false;
+    // Forgotten too, or a party total from that dungeon arriving later is
+    // accepted in the middle of a solo run and writes over its death screen.
+    coop.runId = 0;
     stopWatching();
     el('overlay').style.display = 'none';
     // The solo game is rebuilt rather than merely un-paused. Clearing
