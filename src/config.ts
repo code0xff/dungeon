@@ -71,6 +71,14 @@ export const REMOTE_TINTS = [0x4a86d8, 0x4fae72, 0xb47ad0, 0x4fb3ae];
  * colours wash the armour out sooner.
  */
 export const REMOTE_TINT = 0.07;
+/**
+ * Seconds an ally's body cross-fades into its swing.
+ *
+ * Short, because a swing is a sudden thing: the sender's own arm starts the
+ * instant they press, and a slow blend here would have the knight still
+ * winding down its walk while its sword was already coming through.
+ */
+export const REMOTE_SWING_FADE = 0.06;
 
 /**
  * Metres. A creature further than this from a player is not sent to them.
@@ -98,6 +106,16 @@ export const REMOTE_TINT = 0.07;
 export const NAME_TAG_Y = 2.05;
 export const NAME_TAG_W = 1.15;
 
+/**
+ * How far above the game's biggest real hit a reported hit may be before the
+ * host drops it as forged.
+ *
+ * Multiplicative, on max(LUNGE_DMG, sword) and MUSKET_DMG. It is not a rounding
+ * allowance — reports are rounded to a tenth — but headroom so a future
+ * damage tweak does not silently make every lunge a forgery. Anything past it
+ * is dropped, not clamped: a client that sends 200 should get nothing.
+ */
+export const HIT_REPORT_MARGIN = 1.05;
 export const MOB_INTEREST = 34;
 /**
  * How fast a creature chases the position the authority reported for it.

@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { clipDuration, setAnim, spawnPlayerModel } from '../assets';
-import { NAME_TAG_W, NAME_TAG_Y, REMOTE_FADE, REMOTE_LERP, REMOTE_TINT, REMOTE_TINTS } from '../config';
+import {
+  NAME_TAG_W, NAME_TAG_Y, REMOTE_FADE, REMOTE_LERP, REMOTE_SWING_FADE, REMOTE_TINT, REMOTE_TINTS,
+} from '../config';
 import { scene } from '../scene';
 import { state } from '../state';
 import type { MonsterPlayback } from '../types';
@@ -301,11 +303,20 @@ export function updateRemotes(dt: number): void {
     if (rem.playback) {
       if (rem.swingStart) {
         rem.swingStart = false;
-        // Forced, because a second swing can begin while the clip from the
-        // first is still the current action and setAnim would otherwise leave
-        // it running rather than start it again.
-        setAnim(rem.playback, 'attack', { loop: false, force: true, fade: 0.06 });
-        rem.swinging = clipDuration(rem.playback, 'attack') ?? 0;
+        // A swing that arrives while the last one is still playing is dropped,
+        // not started. An ally can swing every ATTACK_CD — 0.45s — and the
+        // knight's slash runs about 1.5s; restarting on every edge meant that
+        // at a normal cadence the clip never got past its first third and the
+        // sword never came down. One full slash per clip-length reads as
+        // swinging; a sword that jerks back to the top every half second reads
+        // as broken. This is the opposite call from the creatures', whose clips
+        // are scaled to the length of the swing they report.
+        if (rem.swinging <= 0) {
+          // Forced anyway: setAnim will not restart the clip that is already
+          // the current action, and after a finished slash it still is.
+          setAnim(rem.playback, 'attack', { loop: false, force: true, fade: REMOTE_SWING_FADE });
+          rem.swinging = clipDuration(rem.playback, 'attack') ?? 0;
+        }
       }
       if (rem.swinging > 0) {
         rem.swinging -= dt;
