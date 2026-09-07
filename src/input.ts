@@ -174,6 +174,10 @@ export const GUARD_SRC = { key: 1, mouse: 2, touch: 4 } as const;
 
 export function guardDown(src: number): void {
   if (state.gameOver) return;
+  // A musket takes both hands. With it up there is no shield to raise, and
+  // letting the guard work anyway meant the musket was strictly better than
+  // the sword: the same block, plus a ranged shot.
+  if (state.weapon === 'musket') return;
   const wasHeld = state.guardHeld !== 0;
   state.guardHeld |= src;
   if (wasHeld || state.guarding) return;

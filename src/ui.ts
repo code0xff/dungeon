@@ -90,7 +90,10 @@ export function updateHUD(): void {
   );
   atkLabel.textContent = attackLabel();
   dashBtn.classList.add('show');
-  guardBtn.classList.add('show');
+  // Sword only, the same rule guardDown() applies to the key and the mouse —
+  // a button for a block the game refuses would be the phone's version of a
+  // rule the keyboard does not have.
+  guardBtn.classList.toggle('show', state.weapon === 'sword');
   potBtn.classList.toggle('show', state.potions > 0);
   lampBtn.classList.toggle('show', state.lanterns > 0);
   // Only while the sword is in hand: a whetstone does nothing for the musket,

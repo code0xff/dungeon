@@ -1,4 +1,4 @@
-import { musket, sword } from './scene';
+import { handShield, musket, sword } from './scene';
 import { state } from './state';
 import type { WeaponKind } from './types';
 import { crosshairEl, reloadBarEl, showMsg, updateHUD } from './ui';
@@ -7,6 +7,16 @@ export function setWeapon(w: WeaponKind): void {
   state.weapon = w;
   sword.visible = w === 'sword';
   musket.visible = w === 'musket';
+  // The shield goes with the sword. A musket is two-handed, so it is not drawn
+  // beside one — and a guard held through the swap is dropped here, because
+  // guardDown() refuses to start one with the musket up and a block that
+  // survived the swap would be the one way round that.
+  handShield.visible = w === 'sword';
+  if (w === 'musket') {
+    state.guarding = false;
+    state.guardHeld = 0;
+    state.parryT = 0;
+  }
   crosshairEl.style.display = w === 'musket' ? 'block' : 'none';
   // Switching to the sword aborts a reload in progress.
   if (w !== 'musket') {
