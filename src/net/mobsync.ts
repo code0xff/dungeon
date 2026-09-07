@@ -7,7 +7,9 @@ import {
   isAuthority, net, onNetKill, onNetMobHit, onNetMobs, onNetParry, onNetRemoteHit,
   sendHit, sendKill, sendMobHit, sendMobs, sendParry,
 } from './client';
-import { ANIM_ATTACK, ANIM_ATTACK_START, ANIM_DEAD, ANIM_IDLE, ANIM_WALK, TICK_HZ } from './protocol';
+import {
+  ANIM_ATTACK, ANIM_ATTACK_START, ANIM_DEAD, ANIM_IDLE, ANIM_STAGGER, ANIM_STAGGER_START, ANIM_WALK, TICK_HZ,
+} from './protocol';
 import type { MobRow } from './protocol';
 import type { Monster } from '../types';
 import { remotePosition } from './remote';
@@ -57,6 +59,10 @@ interface Target {
    * it to the one frame that is actually an edge.
    */
   freshSwing: boolean;
+  /** Whether the body is already acting out the stagger being reported. */
+  staggering: boolean;
+  /** As freshSwing, for the stagger: true for the one frame it begins. */
+  freshStagger: boolean;
 }
 
 const targets = new Map<number, Target>();
@@ -74,12 +80,20 @@ const killed = new Set<number>();
  * that changed.
  */
 const publishedSwing = new Map<number, number>();
+/**
+ * Creatures whose current stagger has been announced. A stagger cannot start
+ * twice without ending in between — staggerCreature() is only reached through a
+ * parry, and a staggered creature is not attacking — so presence is enough
+ * where the swing needed a counter.
+ */
+const publishedStagger = new Set<number>();
 
 /** Drops everything. buildWorld() calls it: these creatures no longer exist. */
 export function clearMobSync(): void {
   targets.clear();
   killed.clear();
   publishedSwing.clear();
+  publishedStagger.clear();
   sinceSend = 0;
 }
 
@@ -94,7 +108,10 @@ export function mobAnim(index: number): number | null {
   const t = targets.get(index);
   if (!t) return null;
   if (t.freshSwing) return ANIM_ATTACK_START;
-  return t.row.a === ANIM_ATTACK_START ? ANIM_ATTACK : t.row.a;
+  if (t.freshStagger) return ANIM_STAGGER_START;
+  if (t.row.a === ANIM_ATTACK_START) return ANIM_ATTACK;
+  if (t.row.a === ANIM_STAGGER_START) return ANIM_STAGGER;
+  return t.row.a;
 }
 
 onNetMobs((rows) => {
@@ -108,7 +125,15 @@ onNetMobs((rows) => {
     // ANIM_ATTACK_START always begins a new swing; ANIM_ATTACK continues
     // whatever was already going.
     const was = targets.get(row.i)?.swinging ?? false;
-    targets.set(row.i, { row, quiet: 0, swinging: was && row.a === ANIM_ATTACK, freshSwing: false });
+    // The stagger level carries across like the swing's does; the edge is found
+    // in followMobs(), on the frame it is read.
+    const wasStaggering = targets.get(row.i)?.staggering ?? false;
+    const staggered = row.a === ANIM_STAGGER || row.a === ANIM_STAGGER_START;
+    targets.set(row.i, {
+      row, quiet: 0,
+      swinging: was && row.a === ANIM_ATTACK, freshSwing: false,
+      staggering: wasStaggering && staggered, freshStagger: false,
+    });
   }
 });
 
@@ -239,6 +264,14 @@ function mobAnimFor(index: number, m: Monster): number {
     publishedSwing.delete(index);
     return ANIM_DEAD;
   }
+  // A stagger outranks a swing: staggerCreature() zeroes attackT, and a creature
+  // that was mid-swing when it was parried is rocked back, not swinging.
+  if (m.staggerT > 0) {
+    if (publishedStagger.has(index)) return ANIM_STAGGER;
+    publishedStagger.add(index);
+    return ANIM_STAGGER_START;
+  }
+  publishedStagger.delete(index);
   if (m.attackT > 0) {
     if (publishedSwing.get(index) === m.swingSeq) return ANIM_ATTACK;
     publishedSwing.set(index, m.swingSeq);
@@ -332,6 +365,13 @@ export function followMobs(dt: number): number {
     m.mesh.position.z += (row.z - m.mesh.position.z) * k;
     m.mesh.rotation.y = turnTo(m.mesh.rotation.y, row.r, k);
     m.moving = row.a === ANIM_WALK;
+
+    // The stagger's edge, found here so it is exactly one frame wide: the
+    // report lasts STAGGER_TIME and restarting the clip on each packet would
+    // stutter it, while never restarting it would miss a second parry.
+    const staggered = row.a === ANIM_STAGGER || row.a === ANIM_STAGGER_START;
+    target.freshStagger = staggered && !target.staggering;
+    target.staggering = staggered;
 
     // attackT is rebuilt from the wire because the *fallback* creature model
     // needs it: animProcedural() poses the arms from how far through attackT is,

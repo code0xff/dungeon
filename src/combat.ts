@@ -440,7 +440,12 @@ export function staggerCreature(m: Monster, awayX: number, awayZ: number): void 
   // Cannot immediately swing again on recovering, or the stagger buys nothing.
   m.atkCd = Math.max(m.atkCd, STAGGER_TIME + m.type.atkCd * 0.5);
   m.hurtT = 0.18;
-  if (m.playback) setAnim(m.playback, 'idle', { force: true, fade: 0.06 });
+  // With a stagger clip the body acts it out; without one it snaps to idle and
+  // the frame loop leans the whole mesh back (STAGGER_LEAN), which is the
+  // fallback every creature had until the clips arrived.
+  if (m.playback) {
+    setAnim(m.playback, m.playback.clips.stagger ? 'stagger' : 'idle', { loop: false, force: true, fade: 0.06 });
+  }
 }
 
 /** How far a staggered creature has been pushed by now, as a fraction of STAGGER_PUSH. */

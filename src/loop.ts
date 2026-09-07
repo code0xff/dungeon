@@ -22,7 +22,7 @@ import { finishDrink, openChest } from './loot';
 import { setTrapJaws } from './props';
 import { nearestPlayer, sendOwnPose, updateRemotes } from './net/remote';
 import { followMobs, mobAnim, publishMobs, reportMobHit } from './net/mobsync';
-import { ANIM_ATTACK, ANIM_ATTACK_START, ANIM_WALK } from './net/protocol';
+import { ANIM_ATTACK, ANIM_ATTACK_START, ANIM_STAGGER, ANIM_STAGGER_START, ANIM_WALK } from './net/protocol';
 import { isAuthority } from './net/client';
 import { coop } from './net/session';
 import { mayOpen, tellTrapSprung } from './net/worldsync';
@@ -377,7 +377,10 @@ function updateMonsters(dt: number, now: number): number {
       m.alert = Math.max(0, m.alert - dt);
       m.groanT -= dt;
       const k = m.staggerT / STAGGER_TIME;
-      m.mesh.rotation.x = -STAGGER_LEAN * k * k;
+      // The lean is the fallback for a body with no stagger clip. Tilting a body
+      // that is already acting out its own stumble would fold it in half.
+      const acted = !!m.playback?.clips.stagger;
+      m.mesh.rotation.x = acted ? 0 : -STAGGER_LEAN * k * k;
       const push = staggerPush(m, dt);
       const nx = m.mesh.position.x + m.staggerX * push;
       const nz = m.mesh.position.z + m.staggerZ * push;
@@ -385,7 +388,15 @@ function updateMonsters(dt: number, now: number): number {
       // back cannot shove one through a wall.
       if (!collides(nx, m.mesh.position.z, t.clearance)) m.mesh.position.x = nx;
       if (!collides(m.mesh.position.x, nz, t.clearance)) m.mesh.position.z = nz;
-      if (m.playback) animLoaded(m, m.playback, dt);
+      // While the clip acts the stagger out, the usual pass must not run: it
+      // would read "not moving, not attacking" and switch the clip to idle on
+      // the first frame. Flash and advance the mixer, nothing else.
+      if (m.playback && acted) {
+        const flash = m.hurtT > 0;
+        if (flash) m.hurtT -= dt;
+        flashLoadedMesh(m.mesh, flash);
+        m.playback.mixer.update(dt);
+      } else if (m.playback) animLoaded(m, m.playback, dt);
       else if (m.rig) animProcedural(m, m.rig, dt, now);
       // It still turns to face you as it recovers, so the counter lands on its
       // front and it is visibly still coming.
@@ -519,7 +530,17 @@ function animFollowed(m: Monster, pb: MonsterPlayback, dt: number, anim: number 
   if (flash) m.hurtT -= dt;
   flashLoadedMesh(m.mesh, flash);
 
-  if (anim === ANIM_ATTACK || anim === ANIM_ATTACK_START) {
+  if (anim === ANIM_STAGGER || anim === ANIM_STAGGER_START) {
+    // Started once, on the edge, then left to play out — the same rule as the
+    // swing. A body with no clip leans instead, the way the authority's does.
+    if (pb.clips.stagger) {
+      if (anim === ANIM_STAGGER_START) setAnim(pb, 'stagger', { loop: false, force: true, fade: 0.06 });
+      m.mesh.rotation.x = 0;
+    } else {
+      m.mesh.rotation.x = -STAGGER_LEAN * 0.6;
+    }
+  } else if (anim === ANIM_ATTACK || anim === ANIM_ATTACK_START) {
+    m.mesh.rotation.x = 0;
     // force, because the report repeats every tick for as long as the swing
     // lasts and setAnim would otherwise refuse to restart the clip it is on.
     // It is not forced *again* mid-swing: setAnim already ignores a request for
@@ -543,6 +564,7 @@ function animFollowed(m: Monster, pb: MonsterPlayback, dt: number, anim: number 
       pb.action.timeScale = Math.max(lo, Math.min(hi, scale));
     }
   } else {
+    m.mesh.rotation.x = 0;
     setAnim(pb, restClip(m, pb));
   }
   pb.mixer.update(dt);
