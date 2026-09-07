@@ -95,7 +95,11 @@ export function updateHUD(): void {
   lampBtn.classList.toggle('show', state.lanterns > 0);
   // Only while the sword is in hand: a whetstone does nothing for the musket,
   // and the column is already three deep on a phone.
-  whetBtn.classList.toggle('show', state.whetstones > 0 && state.weapon === 'sword');
+  // Whenever one is carried, whichever weapon is in hand. The key never checked
+  // the weapon — pressing 5 with the musket up has always ground the sword —
+  // so hiding the button behind the sword gave touch a rule the keyboard did
+  // not have. A sword does not need to be drawn to be sharpened.
+  whetBtn.classList.toggle('show', state.whetstones > 0);
   potCount.textContent = String(state.potions);
   lampCount.textContent = String(state.lanterns);
   whetCount.textContent = String(state.whetstones);
