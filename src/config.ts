@@ -194,12 +194,12 @@ export const TP_SHOULDER = 0.5;
 /**
  * A faint neutral emissive on the player's own body in third person.
  *
- * The player's light sits at their eyes, inside the model, so the surface the
- * camera sees — the back — is lit from behind and reads as a cut-out. The
- * allies have REMOTE_TINT for the same problem; this is the same lift without
- * a colour, because your own body is the one that is not somebody else.
+ * Small. The light held overhead (TP_LIGHT_UP) does the real work of shaping
+ * the armour; this only keeps the folds under the shoulders from going to pure
+ * black. At 0.06 it flattened the plate into an even grey — a white emissive
+ * is the one thing that shows no form at all.
  */
-export const TP_BODY_LIFT = 0.06;
+export const TP_BODY_LIFT = 0.025;
 export const TP_CLEAR = 0.3;
 export const TP_MIN_DIST = 0.7;
 /**
@@ -210,6 +210,38 @@ export const TP_MIN_DIST = 0.7;
  * the instant a corner is cleared, which read as a jolt every time you turned.
  */
 export const TP_EASE = 6;
+/**
+ * In third person the player's light is held up: this far ahead of the eyes,
+ * and this far above them.
+ *
+ * At the eyes it is inside the helmet, and the metal 30cm from it blew out.
+ * Ahead of the body it lit the corridor and nothing of the player — the camera
+ * sees the *back*, the one side a light in front can never reach, and the
+ * armour showed only the environment map: flat, neutral grey. Held high and
+ * just ahead, like a lantern raised, it rakes down over the helmet and the
+ * shoulders and still reaches the floor ahead. 0.9 up puts it at 2.5m under a
+ * 3.4m ceiling.
+ */
+export const TP_LIGHT_AHEAD = 0.35;
+export const TP_LIGHT_UP = 0.9;
+/**
+ * How fast the body turns to face the way it is walking, radians per second.
+ *
+ * The body walks where the stick points, not where the camera looks — a knight
+ * sliding sideways while its legs march forward is the single most artificial
+ * thing an over-the-shoulder camera can show. It turns back to the look
+ * direction to attack or guard, because those are aimed.
+ */
+export const TP_TURN_RATE = 11;
+/**
+ * The most a body's walk clip may be sped up to keep the feet on the floor.
+ *
+ * The creatures cap at WALK_TIMESCALE_RANGE's 1.9, but the knight's walk is
+ * authored at 1.40m/s and the player moves at SPEED 5.2 — 3.7x. Without a run
+ * clip the choice is legs that blur or legs that slide, and blurring is the
+ * lesser lie. A run clip is the real fix.
+ */
+export const BODY_WALK_MAX = 3.8;
 
 export const WALL_TEX_DIR = 'textures/wall';
 export const FLOOR_TEX_DIR = 'textures/floor';

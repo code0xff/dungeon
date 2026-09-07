@@ -13,7 +13,7 @@ import {
   SWAY_DAMP, TYPES,
   LUNGE_HIT_GLOW, LUNGE_HIT_KICK, LUNGE_HIT_LIGHT, LUNGE_HIT_TIME, LUNGE_WINDOW, SWING_IMPACT,
   SWING_SPEED, SWING_WINDUP, TURN_RATE, WALK_CLIP_SPEED, WALK_TIMESCALE_RANGE, WALL_H,
-  TRAP_SPRING_TIME,
+  TP_LIGHT_AHEAD, TP_LIGHT_UP, TRAP_SPRING_TIME,
 } from './config';
 import { playerHurt, releaseQueuedAttack, resolveSwing, springTrap, staggerPush } from './combat';
 import { findPath } from './dungeon';
@@ -24,7 +24,7 @@ import { nearestPlayer, sendOwnPose, updateRemotes } from './net/remote';
 import { followMobs, mobAnim, publishMobs, reportMobHit } from './net/mobsync';
 import { ANIM_ATTACK, ANIM_ATTACK_START, ANIM_STAGGER, ANIM_STAGGER_START, ANIM_WALK } from './net/protocol';
 import { isAuthority } from './net/client';
-import { updateView } from './view';
+import { thirdPersonActive, updateView } from './view';
 import { coop } from './net/session';
 import { mayOpen, tellTrapSprung } from './net/worldsync';
 import {
@@ -183,10 +183,12 @@ function updatePlayer(dt: number, now: number): boolean {
     // Braced behind a shield you shuffle rather than walk. This is most of what
     // the guard costs — it is why holding it up crossing a room is not free.
     const sp = SPEED * (state.guarding ? GUARD_SLOW : 1);
-    step(
-      (Math.sin(state.yaw) * f - Math.cos(state.yaw) * s) * sp * dt,
-      (Math.cos(state.yaw) * f + Math.sin(state.yaw) * s) * sp * dt,
-    );
+    state.moveDirX = Math.sin(state.yaw) * f - Math.cos(state.yaw) * s;
+    state.moveDirZ = Math.cos(state.yaw) * f + Math.sin(state.yaw) * s;
+    step(state.moveDirX * sp * dt, state.moveDirZ * sp * dt);
+  } else {
+    state.moveDirX = 0;
+    state.moveDirZ = 0;
   }
   state.pos.y = EYE_H + (moving ? Math.sin(now * 0.012) * 0.045 : 0);
   return moving;
@@ -875,7 +877,12 @@ function updateHeldGear(dt: number, now: number, moving: boolean): void {
 }
 
 function updateAmbience(dt: number, now: number): void {
-  playerLight.position.set(state.pos.x, state.pos.y + 0.25, state.pos.z);
+  // Held up and just ahead in third person — see TP_LIGHT_AHEAD / TP_LIGHT_UP.
+  const tp = thirdPersonActive();
+  const ahead = tp ? TP_LIGHT_AHEAD : 0, up = tp ? TP_LIGHT_UP : 0.25;
+  playerLight.position.set(
+    state.pos.x + Math.sin(state.yaw) * ahead, state.pos.y + up, state.pos.z + Math.cos(state.yaw) * ahead,
+  );
   // Two sines plus noise, so the flicker never settles into a pattern.
   // A lantern running out of fuel gutters before it dies, which is the warning
   // the player actually reads — the HUD countdown is easy to miss in a fight.

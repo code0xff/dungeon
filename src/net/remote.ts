@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 import { clipDuration, setAnim, spawnPlayerModel } from '../assets';
 import {
-  NAME_TAG_W, NAME_TAG_Y, REMOTE_FADE, REMOTE_LERP, REMOTE_SWING_FADE, REMOTE_TINT, REMOTE_TINTS,
+  BODY_WALK_MAX, NAME_TAG_W, NAME_TAG_Y, REMOTE_FADE, REMOTE_LERP, REMOTE_SWING_FADE, REMOTE_TINT,
+  REMOTE_TINTS, WALK_CLIP_SPEED,
 } from '../config';
 import { scene } from '../scene';
 import { state } from '../state';
@@ -42,6 +43,8 @@ interface Remote {
   anim: number;
   /** Seconds since the last snapshot mentioned this player. */
   quiet: number;
+  /** How fast the drawn body is actually moving, smoothed, for the walk clip. */
+  groundSpeed: number;
   /**
    * Seconds left on a swing the body is committed to.
    *
@@ -164,7 +167,7 @@ function createRemote(id: number, x: number, z: number, r: number): Remote {
   scene.add(group);
   const rem: Remote = {
     id, group, tag, tagName, ownsGeometry: !spawned, playback: spawned?.playback ?? null,
-    x, z, r, tx: x, tz: z, tr: r, anim: ANIM_IDLE, quiet: 0, swinging: 0, swingStart: false,
+    x, z, r, tx: x, tz: z, tr: r, anim: ANIM_IDLE, quiet: 0, swinging: 0, swingStart: false, groundSpeed: 0,
   };
   if (rem.playback) setAnim(rem.playback, 'idle', { fade: 0 });
   return rem;
@@ -296,8 +299,12 @@ export function updateRemotes(dt: number): void {
     // Frame-rate independent: at 144Hz this must not converge four times faster
     // than at 40Hz, or a fast machine's bodies snap while a slow one's glide.
     const k = 1 - Math.exp(-REMOTE_LERP * dt);
+    const px = rem.x, pz = rem.z;
     rem.x += (rem.tx - rem.x) * k;
     rem.z += (rem.tz - rem.z) * k;
+    // Measured off the body as drawn, which is the only speed a follower has —
+    // and the one the legs should match.
+    if (dt > 0) rem.groundSpeed += (Math.hypot(rem.x - px, rem.z - pz) / dt - rem.groundSpeed) * Math.min(1, dt * 12);
     rem.r += angleTo(rem.r, rem.tr) * k;
     rem.group.position.set(rem.x, 0, rem.z);
     // No +PI. The camera adds PI to yaw because a camera looks down its own
@@ -336,6 +343,12 @@ export function updateRemotes(dt: number): void {
         // readable. A swing the wire is still reporting after the clip has
         // finished is left as idle — the blow has landed either way.
         if (want !== 'attack') setAnim(rem.playback, want, want === 'death' ? { loop: false } : {});
+        // The same retiming the player's own body gets; an ally gliding along
+        // on slow legs was the other half of the same lie.
+        if (want === 'walk' && rem.playback.action) {
+          const scale = rem.groundSpeed / (rem.playback.walkClipSpeed ?? WALK_CLIP_SPEED);
+          rem.playback.action.timeScale = Math.max(0.5, Math.min(BODY_WALK_MAX, scale));
+        }
       }
       rem.playback.mixer.update(dt);
     }

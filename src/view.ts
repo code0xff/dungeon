@@ -1,11 +1,11 @@
 import * as THREE from 'three';
 import { clipDuration, setAnim, spawnPlayerModel } from './assets';
 import {
-  REMOTE_SWING_FADE, THIRD_PERSON_KEY, TP_BODY_LIFT, TP_CLEAR, TP_DISTANCE, TP_EASE, TP_HEIGHT, TP_MIN_DIST,
-  TP_SHOULDER, WALL_H,
+  BODY_WALK_MAX, REMOTE_SWING_FADE, THIRD_PERSON_KEY, TP_BODY_LIFT, TP_CLEAR, TP_DISTANCE, TP_EASE, TP_HEIGHT,
+  TP_MIN_DIST, TP_SHOULDER, TP_TURN_RATE, WALK_CLIP_SPEED, WALL_H,
 } from './config';
 import { animName, makeFallbackBody, ownAnim } from './net/remote';
-import { ANIM_ATTACK, ANIM_DEAD } from './net/protocol';
+import { ANIM_ATTACK, ANIM_DEAD, ANIM_GUARD } from './net/protocol';
 import { gearBob, handShield, scene } from './scene';
 import { state } from './state';
 import type { MonsterPlayback } from './types';
@@ -38,6 +38,10 @@ let wasAttacking = false;
 let died = false;
 /** The camera's current distance from the eye, eased — see TP_EASE. */
 let camDist = 0;
+/** Where the body is facing, which is not always where the camera is. */
+let bodyYaw = 0;
+/** Last frame's feet, for measuring how fast they actually moved. */
+let lastX = NaN, lastZ = NaN, groundSpeed = 0;
 const clear = new THREE.Vector3();
 
 try {
@@ -167,12 +171,30 @@ export function updateView(camera: THREE.PerspectiveCamera, dt: number, moving: 
   b.visible = camDist >= TP_MIN_DIST;
 
   b.position.set(state.pos.x, 0, state.pos.z);
-  // The look direction is (sin yaw, cos yaw) and a Mixamo body faces its own
-  // +Z, so yaw alone turns it to face where the player looks — see remote.ts.
-  b.rotation.y = state.yaw;
+
+  // How fast the feet really moved, smoothed. Measured rather than taken from
+  // SPEED because a dodge, a wall slide and the guard shuffle all move the body
+  // at something other than SPEED, and the legs should match the floor.
+  if (Number.isNaN(lastX)) { lastX = state.pos.x; lastZ = state.pos.z; }
+  const stepLen = Math.hypot(state.pos.x - lastX, state.pos.z - lastZ);
+  lastX = state.pos.x; lastZ = state.pos.z;
+  if (dt > 0) groundSpeed += (stepLen / dt - groundSpeed) * Math.min(1, dt * 12);
+
+  // The body faces the way it walks, and the way it looks when it is doing
+  // something aimed. The look direction is (sin yaw, cos yaw), a Mixamo body
+  // faces its own +Z, so a yaw is a facing with no correction — see remote.ts.
+  const anim = ownAnim(moving);
+  const aimed = anim === ANIM_ATTACK || anim === ANIM_GUARD || swinging > 0;
+  let want = state.yaw;
+  if (moving && !aimed && Math.hypot(state.moveDirX, state.moveDirZ) > 0.01) {
+    want = Math.atan2(state.moveDirX, state.moveDirZ);
+  }
+  const d = Math.atan2(Math.sin(want - bodyYaw), Math.cos(want - bodyYaw));
+  const maxStep = TP_TURN_RATE * dt;
+  bodyYaw = Math.abs(d) <= maxStep ? want : bodyYaw + Math.sign(d) * maxStep;
+  b.rotation.y = bodyYaw;
 
   if (playback) {
-    const anim = ownAnim(moving);
     if (anim === ANIM_DEAD) {
       if (!died) {
         died = true;
@@ -192,8 +214,15 @@ export function updateView(camera: THREE.PerspectiveCamera, dt: number, moving: 
       wasAttacking = attacking;
       if (swinging > 0) swinging -= dt;
       else {
-        const want = animName(anim, playback);
-        if (want !== 'attack') setAnim(playback, want);
+        const clip = animName(anim, playback);
+        if (clip !== 'attack') setAnim(playback, clip);
+        // Legs to floor. The clip was authored at walkClipSpeed; anything else
+        // and the feet slide. Capped by BODY_WALK_MAX rather than the creatures'
+        // range, because the player is far faster than any of them.
+        if (clip === 'walk' && playback.action) {
+          const scale = groundSpeed / (playback.walkClipSpeed ?? WALK_CLIP_SPEED);
+          playback.action.timeScale = Math.max(0.5, Math.min(BODY_WALK_MAX, scale));
+        }
       }
     }
     playback.mixer.update(dt);

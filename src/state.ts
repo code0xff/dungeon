@@ -55,6 +55,14 @@ export const state = {
    * to first person. Remembered in localStorage by view.ts.
    */
   thirdPerson: false,
+  /**
+   * The direction the player is walking this frame, in world space, or zero.
+   * Written by updatePlayer() so the third-person body can face the way it
+   * walks without view.ts reaching into input.ts — which imports view.ts for
+   * the key, and would have made a cycle.
+   */
+  moveDirX: 0,
+  moveDirZ: 0,
 
   // ---- Sword ----
   /** Durability, 0..SWORD_DUR_MAX. Damage falls with it. */
