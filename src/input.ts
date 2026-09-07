@@ -2,13 +2,14 @@ import { initAudio, isMuted, setMuted, sfxDash } from './audio';
 import {
   DASH_CD, GUARD_KEY, LANTERN_KEY, LUNGE_AIM, LUNGE_WINDOW, PARRY_CD, PARRY_WINDOW, POTION_KEY,
   SOUND_KEY,
-  WHETSTONE_KEY,
+  THIRD_PERSON_KEY, WHETSTONE_KEY,
 } from './config';
 import { el, queryChild } from './dom';
 import { canvasEl } from './scene';
 import { state } from './state';
 import { tryAttack } from './combat';
 import { startLoot, useLantern, usePotion, useWhetstone } from './loot';
+import { toggleView } from './view';
 import {
   atkBtn, dashBtn, guardBtn, lampBtn, lockHintEl, lootBtn, potBtn, showMsg,
   soundBtn, whetBtn, wpnBtn,
@@ -105,6 +106,7 @@ addEventListener('keydown', (e) => {
   if (e.code === `Digit${POTION_KEY}` || e.key === POTION_KEY) usePotion();
   if (e.code === `Digit${LANTERN_KEY}` || e.key === LANTERN_KEY) useLantern();
   if (e.code === `Digit${WHETSTONE_KEY}` || e.key === WHETSTONE_KEY) useWhetstone();
+  if (e.code === `Key${THIRD_PERSON_KEY}`) toggleView();
 });
 addEventListener('keyup', (e) => {
   keys[e.code] = false;

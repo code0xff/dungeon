@@ -65,7 +65,7 @@ const remotes = new Map<number, Remote>();
  * useful thing is knowing where your ally is standing, and a bad humanoid reads
  * as a bug where an obvious placeholder reads as a placeholder.
  */
-function makeFallbackBody(colour: number): THREE.Group {
+export function makeFallbackBody(colour: number): THREE.Group {
   const g = new THREE.Group();
   const mat = new THREE.MeshStandardMaterial({ color: colour, roughness: 0.7 });
   const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.28, 0.9, 4, 8), mat);
@@ -261,7 +261,7 @@ function angleTo(a: number, b: number): number {
   return d;
 }
 
-function animName(a: number, pb: MonsterPlayback): ClipName {
+export function animName(a: number, pb: MonsterPlayback): ClipName {
   if (a === ANIM_WALK) return 'walk';
   if (a === ANIM_ATTACK) return 'attack';
   if (a === ANIM_DEAD) return 'death';
@@ -300,9 +300,14 @@ export function updateRemotes(dt: number): void {
     rem.z += (rem.tz - rem.z) * k;
     rem.r += angleTo(rem.r, rem.tr) * k;
     rem.group.position.set(rem.x, 0, rem.z);
-    // +PI because the model faces down its own -Z, the same correction the
-    // camera makes for the player's yaw.
-    rem.group.rotation.y = rem.r + Math.PI;
+    // No +PI. The camera adds PI to yaw because a camera looks down its own
+    // -Z; a Mixamo character faces its own +Z, which is why the creatures turn
+    // with a bare atan2 and look at what they are chasing. The knight comes
+    // through the same pipeline. It carried the camera's correction for a
+    // while, and every ally stood with its back to whatever it was facing —
+    // hard to tell in the dark until a body was stood in front of a camera
+    // and showed it the visor.
+    rem.group.rotation.y = rem.r;
 
     if (rem.playback) {
       if (rem.swingStart) {
@@ -366,7 +371,7 @@ export function remotePosition(id: number): { x: number; z: number } | null {
 }
 
 /** What this player's body is doing, for the others to draw. */
-function ownAnim(moving: boolean): number {
+export function ownAnim(moving: boolean): number {
   if (state.gameOver) return ANIM_DEAD;
   if (state.swingT >= 0) return ANIM_ATTACK;
   // Over walking: the guard clip is a held pose, and a body creeping along at

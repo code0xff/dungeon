@@ -31,7 +31,7 @@ higher one, and there are no cycles.
 ```
 main                        entry
 loop                        frame loop, creature AI
-world  input  combat  loot  weapons        systems
+world  input  combat  loot  weapons  view  net/*   systems
 props                       world content built from assets
 assets                      external model and texture loading
 scene  ui  shop  guide  textures  dungeon   presentation and generation
@@ -470,6 +470,30 @@ bundle included. The game came back from that with a loading screen and no error
 in the console. One durable `dungeon-v1` cache, pruned on activate of entries
 whose `?v=` no longer matches, has no such window: the shell and the
 content-hashed bundles are never touched, only superseded assets are.
+
+## Third person
+
+`src/view.ts`. Off by default, `V` or the menu; remembered in localStorage.
+
+The player's body is the same knight the other players see, driven by the same
+`ownAnim()` that reports the player to them, so what you watch yourself do is
+exactly what your allies watch. First-person gear — the camera's own hands —
+is hidden while the body is drawn.
+
+The camera is over the right shoulder and looks where the player looks; it is
+not an orbit. `thirdPersonCamera()` is pure: it walks from the eye toward the
+wanted spot and keeps the furthest sample clear of the walls by `TP_CLEAR`,
+which is checked with numbers rather than by walking into corners. The distance
+snaps in and eases out, because easing toward a wall spends the ease inside it.
+
+Sword only. The knight has no musket and no clip that aims one, so drawing the
+musket drops the view back to the eyes — that is the aiming view, not a
+fallback.
+
+One thing found here that mattered elsewhere: a Mixamo body faces its own +Z.
+The remote bodies had been given the camera's `+PI` and stood with their backs
+to whatever they faced, which nobody could see in the dark until a body was
+stood in front of a camera.
 
 ## Frame loop
 

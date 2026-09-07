@@ -24,6 +24,7 @@ import { nearestPlayer, sendOwnPose, updateRemotes } from './net/remote';
 import { followMobs, mobAnim, publishMobs, reportMobHit } from './net/mobsync';
 import { ANIM_ATTACK, ANIM_ATTACK_START, ANIM_STAGGER, ANIM_STAGGER_START, ANIM_WALK } from './net/protocol';
 import { isAuthority } from './net/client';
+import { updateView } from './view';
 import { coop } from './net/session';
 import { mayOpen, tellTrapSprung } from './net/worldsync';
 import {
@@ -935,8 +936,10 @@ export function animate(): void {
   // corner: the attack button is where the player is about to press anyway.
   atkBtn.classList.toggle('armed', armed > 0);
 
+  let movedThisFrame = false;
   if (!state.gameOver && !state.paused) {
     const moving = updatePlayer(dt, now);
+    movedThisFrame = moving;
     // Sent before anything else this frame so allies see where the player
     // actually is, not where they were after a death or an extraction resolved.
     sendOwnPose(dt, moving);
@@ -990,7 +993,10 @@ export function animate(): void {
     if (state.hasMap) drawMinimap();
   }
 
-  camera.position.copy(state.pos);
+  // Camera position is view.ts's: behind the body in third person, at the eyes
+  // otherwise. The rotation below is the same in both — third person here is
+  // an over-the-shoulder camera that looks where the player looks, not an orbit.
+  updateView(camera, dt, movedThisFrame, Math.max(armed, discharge));
   // A sideways dodge rolls the view into it and back out. Straight dodges do not
   // roll, because rolling a forward lunge reads as a stumble.
   const dashK = state.dashT >= 0 ? Math.sin((state.dashT / DASH_TIME) * Math.PI) : 0;

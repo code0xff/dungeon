@@ -5,6 +5,7 @@ import { progress, resetProgress } from './progress';
 import { closeLobbyPanel, leaveLobby, openLobbyPanel } from './net/lobby';
 import { coop } from './net/session';
 import { closeShop } from './shop';
+import { toggleView } from './view';
 import { state } from './state';
 import { guideBtn, guideCloseBtn, overlayEl } from './ui';
 import { buildWorld } from './world';
@@ -31,6 +32,7 @@ const resumeBtn = el('menuResume');
 const guideItem = el('menuGuide');
 const newBtn = el('menuNew');
 const coopItem = el('menuCoop');
+const viewItem = el('menuView');
 const coopCloseBtn = el('coopClose');
 const coopPanelEl = el('coop');
 
@@ -96,6 +98,7 @@ export function openMenu(): void {
   el('menuNote').textContent = coop.active
     ? 'A multiplayer run banks nothing and changes nothing you have saved. The dungeon does not stop while you read this.'
     : 'A new game wipes the bank and starts again at stage 1.';
+  labelView();
   menuEl.style.display = 'flex';
   syncUi();
 }
@@ -137,6 +140,16 @@ function back(): void {
 }
 
 resumeBtn.addEventListener('click', closeMenu);
+
+/** The label says what you will get, not what you have. */
+function labelView(): void {
+  viewItem.textContent = state.thirdPerson ? 'View: third person' : 'View: first person';
+}
+
+viewItem.addEventListener('click', () => {
+  toggleView();
+  labelView();
+});
 
 coopItem.addEventListener('click', () => {
   disarm();

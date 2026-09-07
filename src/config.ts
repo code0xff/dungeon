@@ -166,6 +166,51 @@ export const BLACK_KNIGHT_SHADE = 0.22;
  */
 export const BLOCK_ARC = 0.5;
 
+// ---- Third person ----
+/** Toggles the view. */
+export const THIRD_PERSON_KEY = 'V';
+/**
+ * Where the camera sits behind the player, in metres: back along the look
+ * direction, up from eye height, and out over the right shoulder.
+ *
+ * 2.3 back is far enough to see the whole body swing and close enough that a
+ * 4m corridor does not put the camera in the wall behind you every time you
+ * turn round — the sweep below handles the times it would. The shoulder offset
+ * is what keeps your own back from being the middle of the screen: the body
+ * sits left of centre and the corridor ahead stays visible past it. 0.45 up
+ * looks slightly down onto the fight, which is where the parry tell is.
+ */
+export const TP_DISTANCE = 2.3;
+export const TP_HEIGHT = 0.45;
+export const TP_SHOULDER = 0.5;
+/**
+ * The camera's own radius against walls, and how close it may come to the
+ * player before the body is hidden.
+ *
+ * The sweep pulls the camera in along its line until it clears the walls by
+ * TP_CLEAR; below TP_MIN_DIST the near plane would be cutting through the
+ * model's back, and a headless torso is worse than a moment of first person.
+ */
+/**
+ * A faint neutral emissive on the player's own body in third person.
+ *
+ * The player's light sits at their eyes, inside the model, so the surface the
+ * camera sees — the back — is lit from behind and reads as a cut-out. The
+ * allies have REMOTE_TINT for the same problem; this is the same lift without
+ * a colour, because your own body is the one that is not somebody else.
+ */
+export const TP_BODY_LIFT = 0.06;
+export const TP_CLEAR = 0.3;
+export const TP_MIN_DIST = 0.7;
+/**
+ * How fast the camera eases back out after a wall pushed it in, per second.
+ *
+ * Pulling *in* is never eased: a camera that lerps toward a wall spends the
+ * lerp inside it. Easing out is what stops the camera snapping to full length
+ * the instant a corner is cleared, which read as a jolt every time you turned.
+ */
+export const TP_EASE = 6;
+
 export const WALL_TEX_DIR = 'textures/wall';
 export const FLOOR_TEX_DIR = 'textures/floor';
 /**

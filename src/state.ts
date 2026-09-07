@@ -49,6 +49,12 @@ export const state = {
    * looking at a menu.
    */
   uiOpen: false,
+  /**
+   * The player wants to see their own body. Only honoured with the sword in
+   * hand — the knight has no musket and no aiming clip, so the musket goes back
+   * to first person. Remembered in localStorage by view.ts.
+   */
+  thirdPerson: false,
 
   // ---- Sword ----
   /** Durability, 0..SWORD_DUR_MAX. Damage falls with it. */
