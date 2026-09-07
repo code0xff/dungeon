@@ -168,7 +168,14 @@ export const BLOCK_ARC = 0.5;
 
 export const WALL_TEX_DIR = 'textures/wall';
 export const FLOOR_TEX_DIR = 'textures/floor';
-export const CLIP_NAMES = ['idle', 'walk', 'attack', 'death'] as const;
+/**
+ * Every clip the loader looks for. idle carries the body; the rest are motion
+ * only. guard and stagger are newer and most creatures do not have them —
+ * guard is the knight's block (an ally's raised shield, the Black Knight's
+ * resting pose), stagger the reaction to being parried. A missing one is not an
+ * error: idle stands in for guard, and the root-transform lean for stagger.
+ */
+export const CLIP_NAMES = ['idle', 'walk', 'attack', 'death', 'guard', 'stagger'] as const;
 
 /**
  * Prop models. Without them the primitives in src/props.ts are used.

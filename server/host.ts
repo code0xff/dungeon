@@ -491,7 +491,10 @@ wss.on('connection', (sock: WebSocket) => {
       // Authority and validation are different things. This does not simulate
       // anyone — it only refuses the impossible.
       if (!onFloor(runs.get(me.runId), msg.x, msg.z)) return;
-      me.pose = { id: me.id, x: msg.x, z: msg.z, r: msg.r, a: (msg.a | 0) & 3 };
+      // & 7, not & 3: the animation codes ran past four the moment guarding
+      // became reportable, and a two-bit mask would have turned every raised
+      // shield into a walk.
+      me.pose = { id: me.id, x: msg.x, z: msg.z, r: msg.r, a: (msg.a | 0) & 7 };
       return;
     }
 

@@ -5,9 +5,9 @@ import {
 } from '../config';
 import { scene } from '../scene';
 import { state } from '../state';
-import type { MonsterPlayback } from '../types';
+import type { ClipName, MonsterPlayback } from '../types';
 import { net, onNetChange, onNetSnap, sendPose } from './client';
-import { ANIM_ATTACK, ANIM_DEAD, ANIM_IDLE, ANIM_WALK, TICK_HZ } from './protocol';
+import { ANIM_ATTACK, ANIM_DEAD, ANIM_GUARD, ANIM_IDLE, ANIM_WALK, TICK_HZ } from './protocol';
 import { coop } from './session';
 
 /**
@@ -261,10 +261,14 @@ function angleTo(a: number, b: number): number {
   return d;
 }
 
-function animName(a: number): 'idle' | 'walk' | 'attack' | 'death' {
+function animName(a: number, pb: MonsterPlayback): ClipName {
   if (a === ANIM_WALK) return 'walk';
   if (a === ANIM_ATTACK) return 'attack';
   if (a === ANIM_DEAD) return 'death';
+  // A body whose knight has no guard clip stands rather than walks in place:
+  // setAnim() ignores a clip it does not have and would leave whatever was
+  // playing — a walk, for a player who guarded while moving.
+  if (a === ANIM_GUARD) return pb.clips.guard ? 'guard' : 'idle';
   return 'idle';
 }
 
@@ -321,7 +325,7 @@ export function updateRemotes(dt: number): void {
       if (rem.swinging > 0) {
         rem.swinging -= dt;
       } else {
-        const want = animName(rem.anim);
+        const want = animName(rem.anim, rem.playback);
         // death does not loop: a body that replayed its own collapse every
         // second would be the funniest thing in the dungeon and the least
         // readable. A swing the wire is still reporting after the clip has
@@ -365,6 +369,9 @@ export function remotePosition(id: number): { x: number; z: number } | null {
 function ownAnim(moving: boolean): number {
   if (state.gameOver) return ANIM_DEAD;
   if (state.swingT >= 0) return ANIM_ATTACK;
+  // Over walking: the guard clip is a held pose, and a body creeping along at
+  // GUARD_SLOW with its shield up says more than legs do.
+  if (state.guarding) return ANIM_GUARD;
   return moving ? ANIM_WALK : ANIM_IDLE;
 }
 

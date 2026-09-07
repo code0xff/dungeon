@@ -34,7 +34,7 @@
  * tunnel: that page and the host are separately deployed and routinely
  * different versions of the game.
  *
- * 7: the Black Knight spawns from stage 5, so a seed builds a different
+ * 8: a body can be reported as guarding. 7: the Black Knight spawns from stage 5, so a seed builds a different
  * dungeon there. 6: no wire change — the seed turns into a different dungeon (safe chests
  * for the key and the map), and an old client would build a different one from
  * the same number. 5: a player can say they are watching a dungeon they are no
@@ -51,7 +51,7 @@
  * cannot read, which here would have meant every party total discarded by a
  * filter reading a field the sender never sent.
  */
-export const PROTOCOL_VERSION = 7;
+export const PROTOCOL_VERSION = 8;
 
 /** The port the host listens on for both the game page and the socket. */
 export const COOP_PORT = 5848;
@@ -268,6 +268,12 @@ export const ANIM_DEAD = 3;
  * without adding a field to the row that repeats 20 times a second per creature.
  */
 export const ANIM_ATTACK_START = 4;
+/**
+ * Holding the shield up. Reported by a player while guarding, so allies see the
+ * block before the blow that tests it — which is most of what makes a parry
+ * legible from the outside.
+ */
+export const ANIM_GUARD = 5;
 
 // ---- Host to client ----
 

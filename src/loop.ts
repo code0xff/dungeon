@@ -34,7 +34,8 @@ import {
 } from './scene';
 import { state } from './state';
 import { collides } from './world';
-import type { CreatureRig, Monster, MonsterPlayback } from './types';
+import type {
+  ClipName, CreatureRig, Monster, MonsterPlayback } from './types';
 import {
   atkBtn, cancelLoot, drawMinimap, drinkFillEl, endRun, lootBtn, lootFillEl,
   promptEl, reloadBarEl, reloadFillEl, showMsg, updateHUD,
@@ -58,11 +59,20 @@ function animLoaded(m: Monster, pb: MonsterPlayback, dt: number): void {
       pb.action.timeScale = Math.max(lo, Math.min(hi, scale));
     }
   } else {
-    setAnim(pb, 'idle');
+    setAnim(pb, restClip(m, pb));
   }
 
   m.moving = false;
   pb.mixer.update(dt);
+}
+
+/**
+ * What a creature plays when it is doing nothing: idle, or for one with a
+ * shield and the clip for it, the guard — so the Black Knight is seen holding
+ * the block it will actually make. Falls back to idle without the clip.
+ */
+function restClip(m: Monster, pb: MonsterPlayback): ClipName {
+  return m.type.block && pb.clips.guard ? 'guard' : 'idle';
 }
 
 /** Fallback box model: swing the limbs on a sine wave. */
@@ -533,7 +543,7 @@ function animFollowed(m: Monster, pb: MonsterPlayback, dt: number, anim: number 
       pb.action.timeScale = Math.max(lo, Math.min(hi, scale));
     }
   } else {
-    setAnim(pb, 'idle');
+    setAnim(pb, restClip(m, pb));
   }
   pb.mixer.update(dt);
 }
