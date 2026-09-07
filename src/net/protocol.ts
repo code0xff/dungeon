@@ -34,7 +34,8 @@
  * tunnel: that page and the host are separately deployed and routinely
  * different versions of the game.
  *
- * 6: no wire change — the seed turns into a different dungeon (safe chests
+ * 7: the Black Knight spawns from stage 5, so a seed builds a different
+ * dungeon there. 6: no wire change — the seed turns into a different dungeon (safe chests
  * for the key and the map), and an old client would build a different one from
  * the same number. 5: a player can say they are watching a dungeon they are no
  * longer in. 4: a
@@ -50,7 +51,7 @@
  * cannot read, which here would have meant every party total discarded by a
  * filter reading a field the sender never sent.
  */
-export const PROTOCOL_VERSION = 6;
+export const PROTOCOL_VERSION = 7;
 
 /** The port the host listens on for both the game page and the socket. */
 export const COOP_PORT = 5848;

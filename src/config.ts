@@ -16,6 +16,12 @@ export const CREATURE_ASSETS: Record<CreatureKey, CreatureAsset> = {
   brute: { dir: 'creatures/brute', height: 2.35 },
   // WhiteClown. Its walk slot holds a sprint, not a walk — see TYPES.lunatic.
   lunatic: { dir: 'creatures/lunatic', height: 1.78 },
+  // The player's own body, loaded a second time under its own key and darkened
+  // at spawn (BLACK_KNIGHT_SHADE). Loaded twice rather than shared because the
+  // loader keys everything — clips, walk speed, materials — by creature, and
+  // a shared template would tie the ally's body to the enemy's tint. It costs
+  // about 1MB once.
+  blackknight: { dir: 'creatures/knight', height: 1.95 },
 };
 /**
  * The other players' body: a Mixamo knight, idle/walk/attack/death like a
@@ -144,6 +150,21 @@ export const WALK_REPORT_SPEED = 0.05;
  * a creature does not linger at the edge of the light after you have left it.
  */
 export const MOB_STALE = 1.2;
+
+/**
+ * How dark the Black Knight's armour is drawn: the knight texture's colour is
+ * multiplied by this. 0.22 is black plate that still has edges in torchlight;
+ * lower and it is a hole in the corridor, higher and it is a grey ally.
+ */
+export const BLACK_KNIGHT_SHADE = 0.22;
+/**
+ * The cone in front of a shielded creature that its shield covers, as a dot
+ * product against its facing. 0.5 is 120 degrees across — wide enough that
+ * standing "a bit to the side" is not enough and a real flank is needed, narrow
+ * enough that a flank exists. The player's own GUARD_ARC is wider on purpose;
+ * the player has to hold the direction with a mouse and the creature does not.
+ */
+export const BLOCK_ARC = 0.5;
 
 export const WALL_TEX_DIR = 'textures/wall';
 export const FLOOR_TEX_DIR = 'textures/floor';
@@ -900,6 +921,40 @@ export const TYPES: Record<CreatureKey, CreatureType> = {
    * player from beyond the reach of the lantern, so the first warning is the
    * sound of one already coming.
    */
+  /**
+   * The Black Knight. Stage 5 and up, and the reason a run stops being about
+   * numbers.
+   *
+   * Everything else in here is beaten by hitting it more. This one blocks:
+   * `block` 0.7 means a swing from its front does 30% — a fresh blade does 0.3
+   * of its 10 hp, and a lunge 1.66, so there is no front-on fight to be had.
+   * The shield drops while it is staggered or mid-swing, and a parry does both:
+   * it staggers the knight *and* opens the lunge window, so the fight is bait
+   * the swing, parry it, lunge into the open body for 5.52 — twice. Or get
+   * behind it. Or shoot it in the back three times. What it is not is a sponge.
+   *
+   * hp 10 rather than more, because the block already makes it take four to
+   * five times longer to kill head-on than a brute, and adding hp on top would
+   * turn "learn the parry" into "learn the parry and then do it eight times".
+   *
+   * dmg 26 is under the brute's 32 and the swing is faster (the knight's clip
+   * is 1.56s at attackSpeed 2 — 0.78s), so it is the swing you have to actually
+   * read rather than the one you have to survive. speed 3.4 is well over the
+   * zombie's 2.9 and under the player's 5.2: it can be walked away from, not
+   * walked past. reward 120 because two clean parries deserve it.
+   *
+   * clearance 1.3 is a guess between the zombie's measured 1.15 and the brute's
+   * 1.6, not a measurement — the knight's attack clip has not been stepped
+   * through the way theirs were.
+   */
+  blackknight: {
+    name: 'Black Knight',
+    hp: 10, dmg: 26, speed: 3.4, atkCd: 1.1, attackSpeed: 2.0,
+    reach: 1.9, r: 0.5, clearance: 1.3, reward: 120, aggro: 16,
+    groan: [7, 13], voice: 0.62,
+    animSpeed: 3.6, swing: 0.4,
+    block: 0.7,
+  },
   lunatic: {
     name: 'Lunatic',
     hp: 3, dmg: 14, speed: 4.5, atkCd: 0.7, attackSpeed: 3.6,
@@ -945,6 +1000,12 @@ export const SPAWN: Readonly<Record<CreatureKey, SpawnRate>> = {
   zombie: { base: 34, perStage: 1.5 },
   lunatic: { base: 4, perStage: 2.4 },
   brute: { base: 2, perStage: 2.6 },
+  /**
+   * One at stage 5, one more every two stages, four and a half at the peak —
+   * and none at all before 5. It counts from fromStage, so the number does not
+   * have to be smuggled in as a negative base.
+   */
+  blackknight: { base: 1, perStage: 0.5, fromStage: 5 },
 };
 /**
  * Stage at which the counts stop growing.

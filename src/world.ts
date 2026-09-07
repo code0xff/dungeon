@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 import { floorPBR, spawnCreature, wallPBR } from './assets';
 import {
-  CEIL_TILES_PER_CELL, CELL, CHEST_COUNT, CHEST_ITEMS, CHEST_SAFE_ITEMS, CHEST_TRAP_FRAC, EYE_H,
+  BLACK_KNIGHT_SHADE, CEIL_TILES_PER_CELL, CELL, CHEST_COUNT, CHEST_ITEMS, CHEST_SAFE_ITEMS,
+  CHEST_TRAP_FRAC, EYE_H,
   FLOOR_TILES_PER_CELL, PLAYER_R, REF_FLOOR_CELLS, SCALE_VARIANCE, SPAWN, SPAWN_PEAK_STAGE,
   SPEED_VARIANCE, TRAP_COUNT, TRAP_JITTER, TYPES, WALL_H,
 } from './config';
@@ -199,11 +200,12 @@ function areaScale(): number {
 
 /** How many of one creature this stage gets. See SPAWN in config.ts. */
 function spawnCount(key: CreatureKey, stage: number): number {
-  const { base, perStage } = SPAWN[key];
+  const { base, perStage, fromStage = 1 } = SPAWN[key];
   // Clamping the stage rather than the total keeps the mix intact at the peak —
   // capping the sum would have quietly changed which creatures got dropped.
   const s = Math.min(Math.max(stage, 1), SPAWN_PEAK_STAGE);
-  return Math.floor(base + perStage * (s - 1));
+  if (s < fromStage) return 0;
+  return Math.floor(base + perStage * (s - fromStage));
 }
 
 function spawnMonsters(scale: number): void {
@@ -211,7 +213,12 @@ function spawnMonsters(scale: number): void {
     // At least one of each, so the mix does not lose its rarer half to rounding
     // in a small dungeon — meeting no brutes at all on stage 1 would teach the
     // wrong lesson about what is down there.
-    const count = Math.max(1, Math.round(spawnCount(key, runLevel(progress.stage)) * scale));
+    const raw = spawnCount(key, runLevel(progress.stage));
+    // Zero means "not on this stage", and the one-of-each floor below must not
+    // override it — that floor exists to keep a mix intact, not to put a
+    // creature on a stage it was kept off.
+    if (raw === 0) continue;
+    const count = Math.max(1, Math.round(raw * scale));
     for (let i = 0; i < count; i++) spawnOne(key);
   }
 }
@@ -225,6 +232,20 @@ function spawnOne(key: CreatureKey): void {
   // facing rather than along the world X axis — turnToward() writes rotation.y
   // every frame, and the default XYZ order would tilt a side-on creature sideways.
   sp.mesh.rotation.order = 'YXZ';
+  // The Black Knight wears the player's body. Its materials are already cloned
+  // per creature (for the hit flash), so darkening the colour here reaches only
+  // this one. Colour, not emissive: the hit flash owns emissive and would wipe
+  // an emissive tint on the first hit.
+  if (key === 'blackknight') {
+    sp.mesh.traverse((o) => {
+      const mesh = o as THREE.Mesh;
+      if (!mesh.isMesh) return;
+      for (const mat of Array.isArray(mesh.material) ? mesh.material : [mesh.material]) {
+        const std = mat as THREE.MeshStandardMaterial;
+        if (std.color) std.color.multiplyScalar(BLACK_KNIGHT_SHADE);
+      }
+    });
+  }
   // Vary the size per creature so the crowd stops looking like clones.
   const scale = rand(SCALE_VARIANCE);
   sp.mesh.scale.setScalar(scale);

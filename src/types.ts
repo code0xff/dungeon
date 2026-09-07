@@ -6,7 +6,7 @@ export type Maze = number[][];
 export type GridCell = readonly [x: number, z: number];
 
 // ================= Creatures =================
-export type CreatureKey = 'zombie' | 'brute' | 'lunatic';
+export type CreatureKey = 'zombie' | 'brute' | 'lunatic' | 'blackknight';
 export type ClipName = 'idle' | 'walk' | 'attack' | 'death';
 
 export interface CreatureType {
@@ -29,6 +29,12 @@ export interface CreatureType {
   attackSpeed: number;
   /** Reach of the attack, in metres. */
   reach: number;
+  /**
+   * Fraction of a hit its shield takes when the hit comes from its front,
+   * while it is neither staggered nor mid-swing. Absent for creatures with no
+   * shield. See TYPES.blackknight for what this does to a fight.
+   */
+  block?: number;
   /** Collision radius, in metres. Used for the player's attack cone. */
   r: number;
   /**
@@ -95,6 +101,11 @@ export interface SpawnRate {
   base: number;
   /** Added per stage after the first. Fractional; the total is floored. */
   perStage: number;
+  /**
+   * First stage this creature appears on. Below it there are none, not even the
+   * one-of-each minimum. `base` and `perStage` count from here, not from 1.
+   */
+  fromStage?: number;
 }
 
 /** Where a creature's model and clips come from. See CREATURE_ASSETS in config.ts. */

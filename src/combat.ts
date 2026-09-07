@@ -2,7 +2,7 @@ import { clipDuration, setAnim } from './assets';
 import { sfxHit, sfxLunge, sfxParry, sfxShot, sfxSwing, sfxTrap } from './audio';
 import {
   ATTACK_BUFFER, ATTACK_CD, ATTACK_RANGE, CORPSE_LINGER, GUARD_ARC, GUARD_LEAK, GUARD_LEAK_HEAVY,
-  LUNGE_DMG, LUNGE_WINDOW, MUSKET_DMG, MUSKET_RANGE,
+  BLOCK_ARC, LUNGE_DMG, LUNGE_WINDOW, MUSKET_DMG, MUSKET_RANGE,
   LUNGE_HIT_LIGHT, LUNGE_HIT_TIME, REWARD_SPREAD, STAGGER_PUSH, STAGGER_TIME,
   TRAP_ALERT_RADIUS, TRAP_ALERT_TIME, TRAP_DMG,
   SHOT_ALERT_RADIUS, SHOT_ALERT_TIME,
@@ -143,13 +143,15 @@ export function fireMusket(): void {
   }
   if (best) {
     best.hurtT = 0.25;
-    sfxHit(false);
+    const shielded = shieldedFraction(best, state.pos.x, state.pos.z);
+    sfxHit(shielded > 0);
+    if (shielded > 0) showMsg('The shield takes the ball');
     // The flash and the sound are drawn regardless — a shot that looked like it
     // missed while the ball was in flight to the authority would feel broken.
     // The hp is not: whether it died is not this client's to decide unless it
     // is the one simulating.
     if (isAuthority()) {
-      best.hp -= MUSKET_DMG;
+      best.hp -= MUSKET_DMG * (1 - shielded);
       if (best.hp <= 0) {
         const g = killMonster(best);
         announceKill(state.monsters.indexOf(best), g);
@@ -225,6 +227,27 @@ export function releaseQueuedAttack(): void {
  * Damage resolved at the moment the blade comes down. loop.ts calls this once mid-swing.
  * Landing the hit during the windup would divorce the animation from the impact.
  */
+/**
+ * How much of a hit a creature's shield takes, given where the hit came from.
+ *
+ * Only the Black Knight has one. It covers BLOCK_ARC in front of the creature's
+ * facing, and it is down while the creature is staggered or mid-swing — those
+ * two are the whole fight: a parry gives both at once, and the opening it
+ * leaves is what the lunge is for.
+ *
+ * Facing is (sin ry, cos ry) because turnToward() aims rotation.y with
+ * atan2(dx, dz) toward its target, so that vector points where the creature
+ * is looking.
+ */
+export function shieldedFraction(m: Monster, fromX: number, fromZ: number): number {
+  const block = m.type.block ?? 0;
+  if (block <= 0 || m.staggerT > 0 || m.attackT > 0) return 0;
+  const fx = Math.sin(m.mesh.rotation.y), fz = Math.cos(m.mesh.rotation.y);
+  const dx = fromX - m.mesh.position.x, dz = fromZ - m.mesh.position.z;
+  const d = Math.hypot(dx, dz) || 1;
+  return (dx * fx + dz * fz) / d > BLOCK_ARC ? block : 0;
+}
+
 export function resolveSwing(): void {
   if (state.gameOver) return;
 
@@ -273,9 +296,14 @@ export function resolveSwing(): void {
     // Charged per creature cut, so a cleave that catches two costs two. Charged
     // whoever is simulating, because the blade was swung either way.
     state.swordDur = Math.max(0, state.swordDur - SWORD_WEAR);
-    sfxHit(false);
+    // A shielded hit sounds like one — the low thud, not the cut — and says so
+    // once, because a player who does not know why the knight will not die
+    // has no way to find out the shield is the reason.
+    const shielded = shieldedFraction(m, state.pos.x, state.pos.z);
+    sfxHit(shielded > 0);
+    if (shielded > 0 && !lines.includes('The shield takes it')) lines.push('The shield takes it');
     if (isAuthority()) {
-      m.hp -= dmg;
+      m.hp -= dmg * (1 - shielded);
       if (m.hp <= 0) {
         const g = killMonster(m);
         announceKill(state.monsters.indexOf(m), g);
@@ -285,6 +313,7 @@ export function resolveSwing(): void {
       // Reported, not applied. The hit feedback above is already on screen; the
       // hp comes back in the next snapshot and the kill in its own message, so
       // a creature the authority disagrees about never dies twice or pays twice.
+      // The authority applies the shield itself, from the reporter's pose.
       reportHit(state.monsters.indexOf(m), dmg);
     }
   }

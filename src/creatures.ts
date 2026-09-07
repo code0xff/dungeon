@@ -120,4 +120,10 @@ export const MAKERS: Record<CreatureKey, () => ProceduralCreature> = {
     skin: 0xd8d2c4, rag: 0x6b2230, eye: 0xff2a2a,
     size: 0.96, bulk: 0.78, hunch: 0.55, armBase: [-0.9, -0.9], limp: 1, shackle: false,
   }),
+  // Upright, broad and near-black, with the reddest eyes of the four: without
+  // a texture the silhouette has to say "the one that stands like a man".
+  blackknight: () => makeHumanoid({
+    skin: 0x1a1a1f, rag: 0x0c0c10, eye: 0xff2020,
+    size: 1.1, bulk: 1.15, hunch: 0.05, armBase: [-0.4, -0.4], limp: 1, shackle: false,
+  }),
 };

@@ -1,5 +1,5 @@
 import { FALLBACK_ATTACK_TIME, MOB_LERP, MOB_STALE, TYPES, WALK_REPORT_SPEED } from '../config';
-import { killMonster, playerHurt, staggerCreature } from '../combat';
+import { killMonster, playerHurt, shieldedFraction, staggerCreature } from '../combat';
 import { scene } from '../scene';
 import { state } from '../state';
 import { showMsg } from '../ui';
@@ -123,7 +123,11 @@ onNetRemoteHit((i, d, by) => {
   if (!isAuthority()) return;
   const m = state.monsters[i];
   if (!m || m.hp <= 0) return;
-  m.hp -= d;
+  // The reporter drew the hit; whether the shield took it is decided here, from
+  // where the reporter is standing — the same test the local swing uses.
+  const who = remotePosition(by);
+  const shielded = who ? shieldedFraction(m, who.x, who.z) : 0;
+  m.hp -= d * (1 - shielded);
   m.hurtT = 0.18;
   if (m.hp <= 0) {
     // Not paid here: the authority is not the one who swung. The roll is made
