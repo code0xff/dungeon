@@ -390,6 +390,17 @@ export const CHEST_COUNT = 14;
 export const CHEST_ITEMS: readonly ItemKind[] = [
   'key', 'lantern', 'map', 'ammo', 'ammo', 'potion', 'potion', 'whetstone',
 ];
+/**
+ * Items that are never put in a trapped chest.
+ *
+ * A trapped chest is a bet: the tell on the lid says "this one costs", and the
+ * player decides whether the contents are worth it. The key is not a bet — the
+ * run cannot end without it, so a trap on it is not a choice, it is a toll. The
+ * map is on the list for the same reason at lower stakes: it is the thing that
+ * makes the rest of the chests findable. Everything else stays fair game;
+ * gambling a potion is the whole point of the tell.
+ */
+export const CHEST_SAFE_ITEMS: readonly ItemKind[] = ['key', 'map'];
 
 /**
  * Number keys for the consumable slots. 1 and 2 are the weapons, so the pack

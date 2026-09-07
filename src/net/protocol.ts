@@ -34,18 +34,23 @@
  * tunnel: that page and the host are separately deployed and routinely
  * different versions of the game.
  *
- * 5: a player can say they are watching a dungeon they are no longer in. 4: a
+ * 6: no wire change — the seed turns into a different dungeon (safe chests
+ * for the key and the map), and an old client would build a different one from
+ * the same number. 5: a player can say they are watching a dungeon they are no
+ * longer in. 4: a
  * parry travels to whoever is simulating the creature. 3: the party total
  * carries the run it belongs to, and a swing announces its first tick
  * separately. 2: poses, creature snapshots, hits, kills, world
  * events, chest claims and the party total. 1 knew only the lobby.
  *
- * Bump this with *any* change to a shape below, including adding a field. A
+ * Bump this with *any* change to a shape below, including adding a field — and
+ * with any change to how a seed becomes a dungeon, which is the other way two
+ * clients silently disagree. A
  * client one version behind does not fail loudly — it quietly drops what it
  * cannot read, which here would have meant every party total discarded by a
  * filter reading a field the sender never sent.
  */
-export const PROTOCOL_VERSION = 5;
+export const PROTOCOL_VERSION = 6;
 
 /** The port the host listens on for both the game page and the socket. */
 export const COOP_PORT = 5848;

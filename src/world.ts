@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { floorPBR, spawnCreature, wallPBR } from './assets';
 import {
-  CEIL_TILES_PER_CELL, CELL, CHEST_COUNT, CHEST_ITEMS, CHEST_TRAP_FRAC, EYE_H,
+  CEIL_TILES_PER_CELL, CELL, CHEST_COUNT, CHEST_ITEMS, CHEST_SAFE_ITEMS, CHEST_TRAP_FRAC, EYE_H,
   FLOOR_TILES_PER_CELL, PLAYER_R, REF_FLOOR_CELLS, SCALE_VARIANCE, SPAWN, SPAWN_PEAK_STAGE,
   SPEED_VARIANCE, TRAP_COUNT, TRAP_JITTER, TYPES, WALL_H,
 } from './config';
@@ -20,7 +20,7 @@ import { coop, coopKit, runLevel } from './net/session';
 import { random, setSeed, mixSeed, shuffle } from './rng';
 import { state } from './state';
 import { ceilTex, floorTex, wallTex } from './textures';
-import type { CreatureKey, GridCell, Monster } from './types';
+import type { CreatureKey, GridCell, ItemKind, Monster } from './types';
 import { cancelLoot, drinkBarEl, minimapEl, objectiveEl, overlayEl, updateHUD, wpnBtn } from './ui';
 import { pointerLock } from './input';
 import { lockHintEl } from './ui';
@@ -277,18 +277,26 @@ function spawnChests(scale: number): void {
   // with the key first because the run cannot end without it, and a dungeon too
   // small to hold the list would have indexed off the end of the chest array.
   const count = Math.max(CHEST_ITEMS.length, Math.round(CHEST_COUNT * scale));
+  // Which chest holds which item is settled *before* the chests are built,
+  // because a chest is trapped at construction — the tell goes on the lid then
+  // — and one that will hold the key or the map has to be built untrapped. See
+  // CHEST_SAFE_ITEMS for why those two and not the rest.
+  const order = shuffle(Array.from({ length: count }, (_, i) => i));
+  const itemAt = new Map<number, ItemKind>();
+  CHEST_ITEMS.forEach((it, i) => itemAt.set(order[i], it));
   for (let i = 0; i < count; i++) {
     const [gx, gz] = randomFloorCell(4);
-    const c = createChest(20 + ((random() * 60) | 0), random() < CHEST_TRAP_FRAC);
+    const item = itemAt.get(i) ?? null;
+    // The trap is rolled either way, so the number of draws does not depend on
+    // what the chest holds and the rest of the layout stays where it was.
+    const rolled = random() < CHEST_TRAP_FRAC;
+    const trapped = rolled && !(item !== null && CHEST_SAFE_ITEMS.includes(item));
+    const c = createChest(20 + ((random() * 60) | 0), trapped);
     c.mesh.position.set(gx * CELL + (random() - 0.5) * 1.2, 0, gz * CELL + (random() - 0.5) * 1.2);
     c.mesh.rotation.y = random() * Math.PI * 2;
     scene.add(c.mesh);
-    state.chests.push({ ...c, item: null });
+    state.chests.push({ ...c, item });
   }
-  const order = shuffle(state.chests.map((_, i) => i));
-  CHEST_ITEMS.forEach((it, i) => {
-    state.chests[order[i]].item = it;
-  });
 }
 
 /**
