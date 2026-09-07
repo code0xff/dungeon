@@ -1,8 +1,8 @@
 import * as THREE from 'three';
-import { clipDuration, setAnim, spawnPlayerModel } from './assets';
+import { clipDuration, gait, setAnim, spawnPlayerModel } from './assets';
 import {
   BODY_WALK_MAX, REMOTE_SWING_FADE, THIRD_PERSON_KEY, TP_BODY_LIFT, TP_CLEAR, TP_DISTANCE, TP_EASE, TP_HEIGHT,
-  TP_MIN_DIST, TP_SHOULDER, TP_TURN_RATE, WALK_CLIP_SPEED, WALL_H,
+  TP_MIN_DIST, TP_SHOULDER, TP_TURN_RATE, WALL_H,
 } from './config';
 import { animName, makeFallbackBody, ownAnim } from './net/remote';
 import { ANIM_ATTACK, ANIM_DEAD, ANIM_GUARD } from './net/protocol';
@@ -214,15 +214,14 @@ export function updateView(camera: THREE.PerspectiveCamera, dt: number, moving: 
       wasAttacking = attacking;
       if (swinging > 0) swinging -= dt;
       else {
-        const clip = animName(anim, playback);
-        if (clip !== 'attack') setAnim(playback, clip);
-        // Legs to floor. The clip was authored at walkClipSpeed; anything else
-        // and the feet slide. Capped by BODY_WALK_MAX rather than the creatures'
+        let clip = animName(anim, playback);
+        // Legs to floor: walk or run by speed, retimed to the clip's own
+        // authored pace. Capped by BODY_WALK_MAX rather than the creatures'
         // range, because the player is far faster than any of them.
-        if (clip === 'walk' && playback.action) {
-          const scale = groundSpeed / (playback.walkClipSpeed ?? WALK_CLIP_SPEED);
-          playback.action.timeScale = Math.max(0.5, Math.min(BODY_WALK_MAX, scale));
-        }
+        const g = clip === 'walk' ? gait(playback, groundSpeed, BODY_WALK_MAX) : null;
+        if (g) clip = g.clip;
+        if (clip !== 'attack') setAnim(playback, clip);
+        if (g && playback.action) playback.action.timeScale = g.scale;
       }
     }
     playback.mixer.update(dt);

@@ -12,7 +12,7 @@ export type CreatureKey = 'zombie' | 'brute' | 'lunatic' | 'blackknight';
  * without them plays idle for the one and the procedural lean for the other.
  * See CLIP_NAMES.
  */
-export type ClipName = 'idle' | 'walk' | 'attack' | 'death' | 'guard' | 'stagger';
+export type ClipName = 'idle' | 'walk' | 'attack' | 'death' | 'guard' | 'stagger' | 'run';
 
 export interface CreatureType {
   name: string;
@@ -130,6 +130,8 @@ export interface CreatureTemplate {
    * there was nothing to measure — then WALK_CLIP_SPEED is the only estimate.
    */
   walkClipSpeed: number | null;
+  /** As walkClipSpeed, for the run clip. null without one. */
+  runClipSpeed: number | null;
 }
 
 /** Animation playback state for a creature spawned from an external model. */
@@ -140,6 +142,7 @@ export interface MonsterPlayback {
   animName: ClipName | null;
   /** See CreatureTemplate.walkClipSpeed. */
   walkClipSpeed: number | null;
+  runClipSpeed: number | null;
 }
 
 export interface Monster {

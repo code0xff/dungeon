@@ -113,7 +113,7 @@ let totalBefore = 0, totalAfter = 0;
 for (const key of keys) {
   console.log(`\n[${key}]`);
   // Mirrors CLIP_NAMES in src/config.ts. guard and stagger are usually missing.
-  for (const clip of ['idle', 'walk', 'attack', 'death', 'guard', 'stagger']) {
+  for (const clip of ['idle', 'walk', 'attack', 'death', 'guard', 'stagger', 'run']) {
     const r = await convert(key, clip);
     if (!r) { console.log(`  ${clip.padEnd(7)} missing`); continue; }
     totalBefore += r.before;

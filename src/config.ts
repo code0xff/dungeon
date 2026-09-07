@@ -242,6 +242,16 @@ export const TP_TURN_RATE = 11;
  * lesser lie. A run clip is the real fix.
  */
 export const BODY_WALK_MAX = 3.8;
+/**
+ * Ground speed, m/s, above which a body with a run clip runs.
+ *
+ * Between the knight's walk (authored at 1.40) and the player's SPEED of 5.2,
+ * and above the guard shuffle at 5.2 × GUARD_SLOW = 2.86 — so a shielded
+ * advance still walks, and only an actual sprint runs. The clip chosen is then
+ * retimed to the real speed either way, so the switch is a change of gait,
+ * not a change of pace.
+ */
+export const RUN_AT = 3.0;
 
 export const WALL_TEX_DIR = 'textures/wall';
 export const FLOOR_TEX_DIR = 'textures/floor';
@@ -252,7 +262,7 @@ export const FLOOR_TEX_DIR = 'textures/floor';
  * resting pose), stagger the reaction to being parried. A missing one is not an
  * error: idle stands in for guard, and the root-transform lean for stagger.
  */
-export const CLIP_NAMES = ['idle', 'walk', 'attack', 'death', 'guard', 'stagger'] as const;
+export const CLIP_NAMES = ['idle', 'walk', 'attack', 'death', 'guard', 'stagger', 'run'] as const;
 
 /**
  * Prop models. Without them the primitives in src/props.ts are used.

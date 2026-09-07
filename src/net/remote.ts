@@ -1,8 +1,8 @@
 import * as THREE from 'three';
-import { clipDuration, setAnim, spawnPlayerModel } from '../assets';
+import { clipDuration, gait, setAnim, spawnPlayerModel } from '../assets';
 import {
   BODY_WALK_MAX, NAME_TAG_W, NAME_TAG_Y, REMOTE_FADE, REMOTE_LERP, REMOTE_SWING_FADE, REMOTE_TINT,
-  REMOTE_TINTS, WALK_CLIP_SPEED,
+  REMOTE_TINTS,
 } from '../config';
 import { scene } from '../scene';
 import { state } from '../state';
@@ -337,18 +337,17 @@ export function updateRemotes(dt: number): void {
       if (rem.swinging > 0) {
         rem.swinging -= dt;
       } else {
-        const want = animName(rem.anim, rem.playback);
+        let want = animName(rem.anim, rem.playback);
+        // The same gait and retiming the player's own body gets; an ally
+        // gliding along on slow legs was the other half of the same lie.
+        const g = want === 'walk' ? gait(rem.playback, rem.groundSpeed, BODY_WALK_MAX) : null;
+        if (g) want = g.clip;
         // death does not loop: a body that replayed its own collapse every
         // second would be the funniest thing in the dungeon and the least
         // readable. A swing the wire is still reporting after the clip has
         // finished is left as idle — the blow has landed either way.
         if (want !== 'attack') setAnim(rem.playback, want, want === 'death' ? { loop: false } : {});
-        // The same retiming the player's own body gets; an ally gliding along
-        // on slow legs was the other half of the same lie.
-        if (want === 'walk' && rem.playback.action) {
-          const scale = rem.groundSpeed / (rem.playback.walkClipSpeed ?? WALK_CLIP_SPEED);
-          rem.playback.action.timeScale = Math.max(0.5, Math.min(BODY_WALK_MAX, scale));
-        }
+        if (g && rem.playback.action) rem.playback.action.timeScale = g.scale;
       }
       rem.playback.mixer.update(dt);
     }

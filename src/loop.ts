@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { clipDuration, flashLoadedMesh, setAnim } from './assets';
+import { clipDuration, flashLoadedMesh, gait, setAnim } from './assets';
 import { audioReady, lastBeat, setLastBeat, sfxCreature, sfxHeartbeat, sfxReloadStep } from './audio';
 import {
   ATTACK_IMPACT, ATTACK_IMPACT_REACH, CELL, CHEST_LID_OPEN, CREATURE_DRAW_DISTANCE,
@@ -12,7 +12,7 @@ import {
   STRIDE_RATE,
   SWAY_DAMP, TYPES,
   LUNGE_HIT_GLOW, LUNGE_HIT_KICK, LUNGE_HIT_LIGHT, LUNGE_HIT_TIME, LUNGE_WINDOW, SWING_IMPACT,
-  SWING_SPEED, SWING_WINDUP, TURN_RATE, WALK_CLIP_SPEED, WALK_TIMESCALE_RANGE, WALL_H,
+  SWING_SPEED, SWING_WINDUP, TURN_RATE, WALK_TIMESCALE_RANGE, WALL_H,
   TP_LIGHT_AHEAD, TP_LIGHT_UP, TRAP_SPRING_TIME,
 } from './config';
 import { playerHurt, releaseQueuedAttack, resolveSwing, springTrap, staggerPush } from './combat';
@@ -52,13 +52,11 @@ function animLoaded(m: Monster, pb: MonsterPlayback, dt: number): void {
   if (m.attackT > 0) {
     // startAttack already began the attack clip. Leave it alone until it finishes.
   } else if (m.moving) {
-    setAnim(pb, 'walk');
-    // Match playback rate to actual ground speed so the feet stop sliding.
-    if (pb.action) {
-      const [lo, hi] = WALK_TIMESCALE_RANGE;
-      const scale = m.groundSpeed / (pb.walkClipSpeed ?? WALK_CLIP_SPEED);
-      pb.action.timeScale = Math.max(lo, Math.min(hi, scale));
-    }
+    // Match playback rate to actual ground speed so the feet stop sliding, and
+    // break into a run above RUN_AT for the one creature that has the clip.
+    const g = gait(pb, m.groundSpeed, WALK_TIMESCALE_RANGE[1]);
+    setAnim(pb, g.clip);
+    if (pb.action) pb.action.timeScale = Math.max(WALK_TIMESCALE_RANGE[0], g.scale);
   } else {
     setAnim(pb, restClip(m, pb));
   }
@@ -560,12 +558,9 @@ function animFollowed(m: Monster, pb: MonsterPlayback, dt: number, anim: number 
       loop: false, fade: 0.08, speed: m.type.attackSpeed, force: anim === ANIM_ATTACK_START,
     });
   } else if (anim === ANIM_WALK) {
-    setAnim(pb, 'walk');
-    if (pb.action) {
-      const [lo, hi] = WALK_TIMESCALE_RANGE;
-      const scale = m.groundSpeed / (pb.walkClipSpeed ?? WALK_CLIP_SPEED);
-      pb.action.timeScale = Math.max(lo, Math.min(hi, scale));
-    }
+    const g = gait(pb, m.groundSpeed, WALK_TIMESCALE_RANGE[1]);
+    setAnim(pb, g.clip);
+    if (pb.action) pb.action.timeScale = Math.max(WALK_TIMESCALE_RANGE[0], g.scale);
   } else {
     m.mesh.rotation.x = 0;
     setAnim(pb, restClip(m, pb));

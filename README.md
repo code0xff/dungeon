@@ -322,6 +322,11 @@ With the character selected, go to the **Animations** tab and grab four clips:
 | `attack.fbx` | `zombie attack`, `punch`, `swing` |
 | `death.fbx` | `zombie death`, `dying`, `death` |
 
+Three more slots are optional, and only the knight fills them: `guard.fbx`
+(held shield, loops while blocking), `stagger.fbx` (a recoil, played on a
+parry) and `run.fbx` (used above `RUN_AT` m/s instead of stretching the walk).
+A creature without them falls back to idle, idle and walk respectively.
+
 For the brute and the lunatic, a heavier and a leaner character and the same four
 slots. The four do not have to come off one download: Mixamo numbers the rig
 differently every time (`mixamorig5:Hips` on one, `mixamorig:Hips` on another)

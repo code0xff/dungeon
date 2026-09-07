@@ -4,7 +4,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import {
   CLIP_NAMES, CREATURE_ASSETS, ENV_INTENSITY, FLOOR_TEX_DIR, PLAYER_ASSET, PLAYER_KEY,
-  PROP_ASSETS, WALL_TEX_DIR,
+  PROP_ASSETS, RUN_AT, WALK_CLIP_SPEED, WALL_TEX_DIR,
   WEAPON_ASSETS,
 } from './config';
 import { MAKERS } from './creatures';
@@ -445,8 +445,13 @@ async function loadCreature(key: string, cfg: CreatureAsset): Promise<string> {
   const walkDrift = drift.get('walk') ?? 0;
   const walkDur = clips.walk?.duration ?? 0;
   const walkClipSpeed = walkDrift > 0.05 && walkDur > 0 ? walkDrift / walkDur : null;
+  // The run, measured the same way, so the two gaits are retimed against
+  // their own authored speeds rather than the walk's.
+  const runDrift = drift.get('run') ?? 0;
+  const runDur = clips.run?.duration ?? 0;
+  const runClipSpeed = runDrift > 0.05 && runDur > 0 ? runDrift / runDur : null;
 
-  templates[key] = { root, clips, walkClipSpeed };
+  templates[key] = { root, clips, walkClipSpeed, runClipSpeed };
 
   // Worst binding rate across the clips. Anything under 100% means this body and
   // these clips came off different rigs, and the creature will barely move.
@@ -456,7 +461,8 @@ async function loadCreature(key: string, cfg: CreatureAsset): Promise<string> {
 
   const note = bindNote
     + (stripped.length ? ` · root motion removed: ${stripped.join(', ')}` : '')
-    + (walkClipSpeed ? ` · walk authored at ${walkClipSpeed.toFixed(2)}m/s` : '');
+    + (walkClipSpeed ? ` · walk authored at ${walkClipSpeed.toFixed(2)}m/s` : '')
+    + (runClipSpeed ? ` · run at ${runClipSpeed.toFixed(2)}m/s` : '');
   return `${key}: loaded [${Object.keys(clips).join(', ')}] · ${describeSkin(root)}${note}`;
 }
 
@@ -537,6 +543,7 @@ function spawnFromTemplate(key: string): SpawnedCreature {
       action: null,
       animName: null,
       walkClipSpeed: t.walkClipSpeed,
+      runClipSpeed: t.runClipSpeed,
     },
     rig: null,
   };
@@ -605,6 +612,23 @@ export function setAnim(pb: MonsterPlayback, name: ClipName, opts: SetAnimOption
 }
 
 /** Clip duration in seconds, or null when there is no such clip. */
+/**
+ * Which locomotion clip a body should play at a ground speed, and how fast to
+ * play it so the feet stay on the floor.
+ *
+ * Run above RUN_AT when there is a run clip; walk otherwise. The chosen clip
+ * is retimed against its *own* authored speed — the run was measured from its
+ * root motion the same way the walk was — and clamped to [0.5, maxScale]. One
+ * place for this, because the player's body, the allies' bodies and the
+ * creatures all had their own copy of the walk retiming and only the creatures
+ * had it right.
+ */
+export function gait(pb: MonsterPlayback, speed: number, maxScale: number): { clip: 'walk' | 'run'; scale: number } {
+  const run = speed > RUN_AT && !!pb.clips.run;
+  const authored = run ? (pb.runClipSpeed ?? WALK_CLIP_SPEED * 2.5) : (pb.walkClipSpeed ?? WALK_CLIP_SPEED);
+  return { clip: run ? 'run' : 'walk', scale: Math.max(0.5, Math.min(maxScale, speed / authored)) };
+}
+
 export function clipDuration(pb: MonsterPlayback, name: ClipName): number | null {
   return pb.clips[name]?.duration ?? null;
 }
