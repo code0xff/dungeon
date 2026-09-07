@@ -309,9 +309,12 @@
              border:1px solid rgba(212,178,90,.55); color:#efdca6;
              background:radial-gradient(circle at 50% 32%, rgba(150,118,44,.55), rgba(64,50,18,.5) 72%);
              box-shadow:0 6px 22px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,230,160,.16); }
-  /* A row rather than a column, ordered right to left by how fast the hand has
-     to reach it: potion, lantern, whetstone, then the weapon swap. Nothing here
-     is needed in a hurry, which is what lets it sit inboard of the thumb cluster.
+  /* A row rather than a column, reading left to right in the order the keys
+     are numbered — potion 3, lantern 4, whetstone 5 — with the unnumbered swap
+     last, nearest the thumb. It used to run the other way, fastest reach on the
+     right, and the row then read backwards against the numbers in the HUD.
+     Nothing here is needed in a hurry, which is what lets it sit inboard of the
+     thumb cluster.
      
      It runs at bottom:158px for one reason — the move stick is at left:24px and
      114px tall, so it occupies 24-138px up from the bottom edge. Sitting above
@@ -322,13 +325,13 @@
                       border:1px solid rgba(201,192,174,.4); color:#c9c0ae;
                       background:radial-gradient(circle at 50% 32%, rgba(70,66,58,.62), rgba(28,26,22,.5) 72%);
                       box-shadow:0 5px 18px rgba(0,0,0,.45); }
-  #potBtn { right:calc(100px + env(safe-area-inset-right)); }
-  #lampBtn { right:calc(154px + env(safe-area-inset-right)); }
-  #whetBtn { right:calc(208px + env(safe-area-inset-right)); }
+  #wpnBtn { right:calc(100px + env(safe-area-inset-right)); }
+  #whetBtn { right:calc(154px + env(safe-area-inset-right)); }
+  #lampBtn { right:calc(208px + env(safe-area-inset-right)); }
   /* Furthest out, at 262px + 46px = 308px from the right edge. On the narrowest
      phone this targets that is still 52px in from the left, and it clears the
      move stick by height rather than by width. */
-  #wpnBtn { right:calc(262px + env(safe-area-inset-right)); }
+  #potBtn { right:calc(262px + env(safe-area-inset-right)); }
   /* Directly above attack. Guarding is a reflex like dodging, so it sits one
      short reach from where the thumb already rests rather than up a stack. */
   #guardBtn { right:calc(31px + env(safe-area-inset-right)); bottom:calc(112px + env(safe-area-inset-bottom));
