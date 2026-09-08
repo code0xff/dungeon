@@ -84,6 +84,13 @@ interface Lesson {
   text: string;
   enter?: () => void;
   done: () => boolean;
+  /**
+   * Brings another zombie in when the last one died without the lesson being
+   * learned — killed with the sword in the musket lesson, or cut down before
+   * it ever swung in the parry lesson. Without it the room is empty and the
+   * lesson can never end.
+   */
+  refill?: () => void;
 }
 
 /** Where a lesson's zombie stands up: across the room from the door. */
@@ -102,6 +109,7 @@ let lastX = 0, lastZ = 0;
 let dodges = 0;
 let wasDodging = false;
 let wasLungeHit = false;
+let lunged = false;
 let parried = false;
 let staggerSeen = false;
 
@@ -152,8 +160,12 @@ const LESSONS: Lesson[] = [
     enter: () => {
       current = zombieAt(1, far);
       wasLungeHit = false;
+      lunged = false;
     },
-    done: () => dead(current),
+    done: () => lunged && dead(current),
+    refill: () => {
+      current = zombieAt(1, far);
+    },
   },
   {
     text: touch
@@ -165,6 +177,10 @@ const LESSONS: Lesson[] = [
       staggerSeen = false;
     },
     done: () => parried && dead(current),
+    refill: () => {
+      current = zombieAt(far, far);
+      staggerSeen = false;
+    },
   },
   {
     text: touch
@@ -258,7 +274,10 @@ export function updateTutorial(): void {
   wasDodging = dodging;
 
   const lungeHit = state.lungeHitT > 0;
-  if (lungeHit && !wasLungeHit && step === 4) showMsg('That is a lunge');
+  if (lungeHit && !wasLungeHit && step === 4) {
+    lunged = true;
+    showMsg('That is a lunge');
+  }
   wasLungeHit = lungeHit;
 
   // A stagger only ever comes from a parry, so the zombie rocking back is the
@@ -271,7 +290,17 @@ export function updateTutorial(): void {
   }
   if (current && current.staggerT <= 0) staggerSeen = false;
 
-  if (LESSONS[step].done()) show(step + 1);
+  const lesson = LESSONS[step];
+  if (lesson.done()) {
+    show(step + 1);
+    return;
+  }
+  // The zombie is gone and the lesson is not: somebody killed it the wrong
+  // way, or the right way before the lesson could see it. Another comes in.
+  if (lesson.refill && dead(current)) {
+    lesson.refill();
+    showMsg('Another one — try it on this');
+  }
 }
 
 skipBtn.addEventListener('click', endTutorial);
