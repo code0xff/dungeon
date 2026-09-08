@@ -2,7 +2,7 @@ import { sfxCreak, sfxPickup } from './audio';
 import { alertCreatures, springTrap } from './combat';
 import {
   AMMO_PICKUP, CHEST_ALERT_RADIUS, CHEST_ALERT_TIME, LANTERN_FUEL, LANTERN_KEY, MAX_HP,
-  MUSKET_AMMO, POTION_HEAL, POTION_KEY, SWORD_DUR_MAX, WHETSTONE_KEY, WHETSTONE_REPAIR,
+  MUSKET_AMMO, POTION_HEAL, POTION_KEY, SWORD_DUR_MAX, TRAP_SWORD_WEAR, WHETSTONE_KEY, WHETSTONE_REPAIR,
 } from './config';
 import { tellChestOpened, tellCreak, tellLantern } from './net/worldsync';
 import { setLampLit, setPortalOpen } from './scene';
@@ -57,6 +57,9 @@ export function openChest(c: Chest): void {
   // loot you started still avoids it. That is what makes the tell on the lid
   // worth reading: seeing it is only useful if there is still a choice left.
   const trapLine = c.trapped ? springTrap() : null;
+  // The lid springs on the blade that pried it. Charged before the death check
+  // for the same reason the trap is: it happened.
+  if (c.trapped) state.swordDur = Math.max(0, state.swordDur - TRAP_SWORD_WEAR);
   // A trap can be what kills you. Banking the gold and announcing the contents
   // over the death screen would be answering a question nobody is asking.
   if (state.gameOver) return;

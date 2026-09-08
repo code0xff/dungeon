@@ -155,6 +155,15 @@ Skip is always on screen; the menu can start it again, and a checkbox there
 stops new games opening on it. Nothing done in the room counts, and nothing in
 it can kill you.
 
+**Then a choice: normal or hard.** Asked once, before stage 1, and again only
+on New game — a save is one mode for its life. Hard is the same dungeon with
+one chest in it, and the key inside: no map, no potions, lanterns or
+whetstones anywhere, and a shop of wounds, blade and musket balls at half
+again the price. The HUD says which you are in.
+
+**A trapped chest springs on the blade that pried it**, in every mode: 6
+points of durability along with the 10 HP and the noise.
+
 `H` opens a pause menu — resume, the controls, or a new game. It used to open the
 control list directly, which meant the only thing reachable mid-run was a
 reference card and there was no way to abandon a run short of clearing the

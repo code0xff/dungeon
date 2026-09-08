@@ -65,7 +65,7 @@ export function updateHUD(): void {
     stageEl.textContent = `Level ${coop.level}`;
     bankEl.textContent = 'Multiplayer';
   } else {
-    stageEl.textContent = `Stage ${progress.stage}`;
+    stageEl.textContent = progress.hard ? `Stage ${progress.stage} · Hard` : `Stage ${progress.stage}`;
     bankEl.textContent = `Bank: ${progress.bankGold} G`;
   }
 
@@ -324,7 +324,7 @@ export function endRun(extracted: boolean): void {
       // The ending. Not the end: the button still says Descend, and does.
       title.textContent = 'You have seen the bottom';
       title.className = 'win';
-      desc.textContent = `Stage ${FINAL_STAGE} cleared with ${progress.bankGold} G in the bank. `
+      desc.textContent = `Stage ${FINAL_STAGE} cleared${progress.hard ? ' on hard' : ''} with ${progress.bankGold} G in the bank. `
         + 'The dungeon goes on below, and everything in it grows with every stage. Go down if you dare.';
       el('ovCredit').style.display = 'block';
     } else {

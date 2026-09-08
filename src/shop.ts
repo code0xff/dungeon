@@ -1,5 +1,5 @@
 import {
-  AMMO_PICKUP, LANTERN_FUEL, MAX_HP, POTION_HEAL, SHOP, SHOP_INFLATION, SPAWN_PEAK_STAGE,
+  AMMO_PICKUP, HARD_PRICE, LANTERN_FUEL, MAX_HP, POTION_HEAL, SHOP, SHOP_INFLATION, SPAWN_PEAK_STAGE,
   SWORD_DUR_MAX, WHETSTONE_REPAIR,
 } from './config';
 import { el } from './dom';
@@ -39,6 +39,8 @@ interface Stock {
   buy: () => void;
   /** Starts the carried-goods group: drawn with a heavier rule above it. */
   divide?: boolean;
+  /** Not stocked in hard mode. */
+  soft?: boolean;
 }
 
 /**
@@ -51,7 +53,7 @@ interface Stock {
  */
 function atStage(base: number): number {
   const stage = Math.min(Math.max(progress.stage, 1), SPAWN_PEAK_STAGE);
-  return Math.ceil(base * (1 + SHOP_INFLATION * (stage - 1)));
+  return Math.ceil(base * (1 + SHOP_INFLATION * (stage - 1)) * (progress.hard ? HARD_PRICE : 1));
 }
 
 /**
@@ -96,6 +98,7 @@ const STOCK: Stock[] = [
   },
   {
     id: 'Potion',
+    soft: true,
     name: 'Potion',
     divide: true,
     held: () => `${progress.potions} held  ·  +${POTION_HEAL} HP`,
@@ -106,6 +109,7 @@ const STOCK: Stock[] = [
   },
   {
     id: 'Whetstone',
+    soft: true,
     name: 'Whetstone',
     held: () => `${progress.whetstones} held  ·  +${WHETSTONE_REPAIR}%`,
     price: () => atStage(SHOP.whetstone),
@@ -115,6 +119,7 @@ const STOCK: Stock[] = [
   },
   {
     id: 'Lantern',
+    soft: true,
     name: 'Lantern oil',
     held: () => `${progress.lanterns} held  ·  ${Math.round(LANTERN_FUEL / 60)} min`,
     price: () => atStage(SHOP.lantern),
@@ -154,7 +159,7 @@ const rows = STOCK.map((item) => {
   });
   row.append(name, held, btn);
   shopEl.append(row);
-  return { item, held, btn };
+  return { item, held, btn, row };
 });
 
 /**
@@ -181,7 +186,12 @@ export function render(): void {
   headEl.textContent = `Outfitting · Stage ${progress.stage}`;
   bankEl.textContent = `${progress.bankGold} G`;
   summaryBankEl.textContent = `Bank balance: ${progress.bankGold} G`;
-  for (const { item, held, btn } of rows) {
+  for (const { item, held, btn, row } of rows) {
+    // Hard mode's shop is wounds, blade and musket balls. The rest are not
+    // greyed out but gone: a row that can never be bought is not information.
+    row.style.display = progress.hard && item.soft ? 'none' : 'flex';
+    // The rule between services and stock moves to the first row still stocked.
+    row.classList.toggle('divide', !!item.divide || (progress.hard && item.id === 'Ammo'));
     const price = item.price();
     held.textContent = item.held();
     btn.textContent = label(price);

@@ -492,6 +492,16 @@ in the console. One durable `dungeon-v1` cache, pruned on activate of entries
 whose `?v=` no longer matches, has no such window: the shell and the
 content-hashed bundles are never touched, only superseded assets are.
 
+## Hard mode
+
+`progress.hard`, set by `src/mode.ts` — a panel asked once before stage 1
+(after the tutorial, or straight away when it is skipped) and on New game,
+because the answer is for the life of the save. Three places read it:
+`spawnChests()` builds one untrapped chest with the key and nothing else, the
+shop hides its `soft` rows and multiplies every price by `HARD_PRICE`, and the
+HUD and menu say so. Co-op ignores it: the party's dungeon is the host's level,
+not anyone's save.
+
 ## The tutorial
 
 `src/tutorial.ts`. One open room and a list of lessons, each a line of text,

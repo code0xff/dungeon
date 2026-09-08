@@ -239,8 +239,12 @@ function show(i: number): void {
   l.enter?.();
 }
 
-/** Builds the room and starts at the first lesson. */
-export function startTutorial(): void {
+/** What leaving the room does — building stage 1, or asking the mode first. */
+let onEnd: () => void = buildWorld;
+
+/** Builds the room and starts at the first lesson; `next` runs when it ends. */
+export function startTutorial(next: () => void = buildWorld): void {
+  onEnd = next;
   if (!tutorialPref.seen) {
     tutorialPref.seen = true;
     savePref(tutorialPref);
@@ -262,7 +266,7 @@ export function startTutorial(): void {
 export function endTutorial(): void {
   if (!state.tutorial) return;
   leaveTutorial();
-  buildWorld();
+  onEnd();
 }
 
 /**

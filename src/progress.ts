@@ -37,6 +37,12 @@ export interface Progress {
    * quietly regenerating the dungeon underneath the player.
    */
   seed: number;
+  /**
+   * Hard mode: one chest and it holds the key, no map, no potions, lanterns
+   * or whetstones anywhere, and a shop of wounds, blade and musket balls at
+   * HARD_PRICE. Chosen once, before stage 1; a save is one mode for its life.
+   */
+  hard: boolean;
 }
 
 const KEY = 'dungeon.progress.v1';
@@ -48,6 +54,7 @@ function fresh(): Progress {
     // Drawn here rather than at the first buildWorld() so that death and New
     // game — the two callers of fresh() — are exactly what changes the dungeon.
     seed: randomSeed(),
+    hard: false,
   };
 }
 
@@ -76,6 +83,7 @@ function merge(raw: unknown): void {
   if (typeof o.swordDur === 'number' && Number.isFinite(o.swordDur)) {
     progress.swordDur = Math.min(SWORD_DUR_MAX, Math.max(0, o.swordDur));
   }
+  if (typeof o.hard === 'boolean') progress.hard = o.hard;
   // A save written before seeds existed has none, and keeping the one fresh()
   // already drew is the right answer: that run gets a seed from here on.
   if (typeof o.seed === 'number' && Number.isFinite(o.seed)) progress.seed = o.seed >>> 0;
@@ -112,6 +120,12 @@ export function loadProgress(): void {
  */
 export function setRunSeed(seed: number): void {
   progress.seed = seed >>> 0;
+}
+
+/** The mode for this save. Picked before stage 1 and never again until New game. */
+export function setHard(hard: boolean): void {
+  progress.hard = hard;
+  saveProgress();
 }
 
 export function saveProgress(): void {

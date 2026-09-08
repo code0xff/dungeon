@@ -9,6 +9,7 @@ import { state } from './state';
 import { setSkipTutorial, startTutorial, tutorialPref, wantsTutorial } from './tutorial';
 import { guideBtn, guideCloseBtn, overlayEl } from './ui';
 import { buildWorld } from './world';
+import { pickMode } from './mode';
 
 /**
  * The pause menu, on GUIDE_KEY.
@@ -103,7 +104,7 @@ export function openMenu(): void {
     ? 'Tutorial'
     : coop.active
       ? `Multiplayer  ·  level ${coop.level}`
-      : `Stage ${progress.stage}  ·  Bank ${progress.bankGold} G`;
+      : `${progress.hard ? 'Hard  ·  ' : ''}Stage ${progress.stage}  ·  Bank ${progress.bankGold} G`;
   el('menuNote').textContent = coop.active
     ? 'A multiplayer run banks nothing and changes nothing you have saved. The dungeon does not stop while you read this.'
     : 'A new game wipes the bank and starts again at stage 1.';
@@ -180,12 +181,13 @@ newBtn.addEventListener('click', () => {
   overlayEl.style.display = 'none';
   state.gameOver = false;
   closeMenu();
-  // A new game opens on the lesson unless the player has asked it not to. A
-  // tutorial already up is simply rebuilt from its first lesson.
-  if (wantsTutorial()) startTutorial();
+  // A new game opens on the lesson unless the player has asked it not to,
+  // then asks the mode, then builds stage 1. A tutorial already up is simply
+  // rebuilt from its first lesson.
+  if (wantsTutorial()) startTutorial(() => pickMode(buildWorld));
   else {
     state.tutorial = false;
-    buildWorld();
+    pickMode(buildWorld);
   }
 });
 

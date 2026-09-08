@@ -323,6 +323,18 @@ export function spawnAt(key: CreatureKey, wx: number, wz: number): Monster {
 }
 
 function spawnChests(scale: number): void {
+  // Hard mode: one chest, the key, never trapped. No map to find and nothing
+  // else to open — the dungeon is the maze and the creatures, and the key is
+  // the only reason to go anywhere in it.
+  if (progress.hard && !coop.active) {
+    const [gx, gz] = randomFloorCell(4);
+    const c = createChest(20 + ((random() * 60) | 0), false);
+    c.mesh.position.set(gx * CELL + (random() - 0.5) * 1.2, 0, gz * CELL + (random() - 0.5) * 1.2);
+    c.mesh.rotation.y = random() * Math.PI * 2;
+    scene.add(c.mesh);
+    state.chests.push({ ...c, item: 'key' });
+    return;
+  }
   // Never fewer chests than there are guaranteed items: CHEST_ITEMS is ordered
   // with the key first because the run cannot end without it, and a dungeon too
   // small to hold the list would have indexed off the end of the chest array.

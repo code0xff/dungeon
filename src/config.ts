@@ -963,6 +963,26 @@ export const CHEST_TRAP_FRAC = 0.3;
  */
 export const SHOP_INFLATION = 0.15;
 
+// ---- Hard mode ----
+/**
+ * What hard mode multiplies every shop price by.
+ *
+ * Hard mode's shop is three rows — wounds, blade, musket balls — so gold has
+ * far less to do, and at normal prices a run would bank more than it could
+ * ever spend. 1.5 keeps the bank a decision rather than a score.
+ */
+export const HARD_PRICE = 1.5;
+/**
+ * Durability a trapped chest takes off the sword, in points of SWORD_DUR_MAX.
+ *
+ * The lid springs on the blade that pried it. 6 is about thirteen swings'
+ * worth (SWORD_WEAR 0.45) — enough that a run of trapped chests is felt in the
+ * next fight, small enough that one is not a whetstone. Every mode; in hard
+ * mode there is only one chest and it is never trapped, so it is felt where
+ * chests are plentiful.
+ */
+export const TRAP_SWORD_WEAR = 6;
+
 export const SHOP = {
   /** Per point of durability restored, so a barely-nicked sword is cheap. */
   repairPerPoint: 2,

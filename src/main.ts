@@ -1,6 +1,7 @@
 import { loadAssets } from './assets';
 import { loadProgress, setRunSeed } from './progress';
 import { startTutorial, tutorialPref, wantsTutorial } from './tutorial';
+import { pickMode } from './mode';
 import { el } from './dom';
 import { animate } from './loop';
 import { buildWorld } from './world';
@@ -84,7 +85,11 @@ loadAssets((msg) => {
     // The first visit opens on the lesson. After that it is New game and the
     // menu that start it — a save that died and came back does not need to
     // learn the sword again.
-    if (!tutorialPref.seen && wantsTutorial()) startTutorial();
+    // The first visit: the lesson if it is wanted, then the mode, then stage
+    // 1. A returning save has already answered both.
+    const fresh = !tutorialPref.seen;
+    if (fresh && wantsTutorial()) startTutorial(() => pickMode(buildWorld));
+    else if (fresh) pickMode(buildWorld);
     else buildWorld();
     animate();
   })
