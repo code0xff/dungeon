@@ -122,6 +122,7 @@ rules, with the detail in [docs/](docs/). `CLAUDE.md` is a symlink to it.
 | Drink potion / light lantern / sharpen sword | `3` / `4` / `5` — a potion takes a moment to go down |
 | Menu | `H` — resume, controls, or start a new game. Pauses while it is open |
 | Sound on / off | `M` — remembered between runs |
+| First / third person | `V`, or the eye button at the top — sword only; the musket always aims first-person. Remembered between runs |
 
 `H` opens a pause menu — resume, the controls, or a new game. It used to open the
 control list directly, which meant the only thing reachable mid-run was a
