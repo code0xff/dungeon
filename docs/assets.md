@@ -85,6 +85,13 @@ wrong on idle is the one failure that costs a round trip: an FBX marked
 `MotionOnlyScene` has no mesh at all, so the game falls back to the box model and
 says `no mesh (re-download idle with "With Skin")`.
 
+Three further slots are optional: `guard` (loops while a shielded creature is
+not swinging), `stagger` (played on a parry, retimed to `STAGGER_TIME`) and
+`run` (used above `RUN_AT` m/s instead of stretching the walk). A body without
+one falls back to idle, the mesh lean, and the walk respectively, and nothing
+warns — they are optional by design. Only the knight fills all three; the
+creatures have `stagger`.
+
 The four filenames are **slots, not descriptions**. `walk.fbx` is whatever the
 creature does to cover ground: the zombie's is a 0.35m/s shamble and the
 lunatic's is a 3.96m/s sprint downloaded as `forward.fbx`, renamed on the way in.

@@ -154,6 +154,16 @@ dungeon's dimensions and change every stage. Floor and ceiling texture repeats
 are set per build for the same reason — a fixed repeat stretches the cobbles by
 whatever the stage changed the map to.
 
+**Stage 12 is the ending.** `FINAL_STAGE` is the same stage the spawn curve
+peaks at, on purpose: the dungeon is as full as it gets, so it is the natural
+bottom. Extracting from it shows the one ending screen — with the credit — and
+the bank as the score. The stages below go on; since the counts are at their
+ceiling, `stageType()` in `world.ts` grows each creature instead, compounding
+`BEYOND_HP`, `BEYOND_DMG` and `BEYOND_REWARD` per stage past the bottom. It
+copies the type rather than mutating `TYPES`, because two places must not see
+the growth: the heavy-creature guard leak decides "heavy" off the base hp, and
+the co-op follower retimes its walk off the base speed.
+
 Growth stops at `SPAWN_PEAK_STAGE`, and the **stage** is clamped rather than the
 total. Capping the sum would have silently changed the mix at the top by
 dropping whichever creature was counted last; clamping the input keeps the ratio
@@ -351,13 +361,24 @@ Missing the timing still blocks. In a dungeon this dark, with three creatures on
 you, a mistimed parry that got you hit would make it a coin flip; costing only
 the reward makes it cheap to attempt.
 
-**There is no stagger clip** — the creatures ship idle, walk, attack and death
-and nothing else — so it is built from the root transform: the attack is cut, the
-body leans back and is pushed away over `STAGGER_TIME`, easing out on the square
-so it snaps and settles rather than returning like a door. The mesh's
+**The stagger is a clip and a lean together.** Every creature ships a
+`stagger` clip, retimed by `staggerSpeed()` so its last frame lands at
+`STAGGER_TIME` — the clips are 2.17s as authored and at their own pace only the
+first third was ever seen. The clip alone is a hit reaction (25° at the hips,
+most of it arms) and at three metres in the dark it read as nothing, so half of
+the old whole-body lean stays under it (`STAGGER_LEAN_ACTED`); a body with no
+clip gets the full lean. The lean is built from the root transform: the body
+leans back and is pushed away over `STAGGER_TIME`, easing out on the square so
+it snaps and settles rather than returning like a door. The mesh's
 `rotation.order` is set to `'YXZ'` at spawn for this: `turnToward()` writes
 `rotation.y` every frame, and under the default XYZ order the lean would be about
 the world axis, tilting a side-on creature sideways instead of backwards.
+
+**Acting plants you.** `SWING_SLOW` and `DRINK_SLOW` cut movement to 35% while
+a swing or a potion is in progress, multiplied with `GUARD_SLOW`. The swing one
+came from third person: at full speed a swing carried the player 1.7m in a
+standing attack pose, which the first-person hands had hidden and every ally's
+screen had not.
 
 **The lunge** is the one place attack timing matters. An attack pressed within
 `LUNGE_WINDOW` of a *forward* dodge does `LUNGE_DMG`x damage. 5.52 is set so a
@@ -473,7 +494,9 @@ content-hashed bundles are never touched, only superseded assets are.
 
 ## Third person
 
-`src/view.ts`. Off by default, `V` or the menu; remembered in localStorage.
+`src/view.ts`. Off by default, `V` or the eye button in the top strip;
+remembered in localStorage. It was a menu item too, and three ways was one too
+many — it read as a mode rather than a camera.
 
 The player's body is the same knight the other players see, driven by the same
 `ownAnim()` that reports the player to them, so what you watch yourself do is
@@ -489,6 +512,13 @@ snaps in and eases out, because easing toward a wall spends the ease inside it.
 Sword only. The knight has no musket and no clip that aims one, so drawing the
 musket drops the view back to the eyes — that is the aiming view, not a
 fallback.
+
+The body walks where the stick points and turns to the aim when one is given,
+and its legs are retimed to the speed it is actually covering ground at:
+`gait()` in `assets.ts` picks walk or run at `RUN_AT` and scales either to its
+own authored speed, capped at `BODY_WALK_MAX`. One function, because the
+player's body, the allies' bodies and the creatures each had a copy of the walk
+retiming and only the creatures' was right.
 
 One thing found here that mattered elsewhere: a Mixamo body faces its own +Z.
 The remote bodies had been given the camera's `+PI` and stood with their backs

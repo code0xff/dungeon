@@ -50,11 +50,12 @@ dungeon/
 │  ├─ optimize-assets.mjs   raw/ FBX → assets/ GLB, textures shrunk
 │  └─ fetch-assets.mjs      pull textures and weapons from Poly Haven
 ├─ raw/                     Mixamo FBX sources (never served, git-ignored)
-│  └─ creatures/<key>/      idle.fbx  walk.fbx  attack.fbx  death.fbx
+│  └─ creatures/<key>/      idle.fbx  walk.fbx  attack.fbx  death.fbx  (+ guard, stagger, run)
 └─ assets/                  served assets (committed)
-   ├─ creatures/zombie/     idle.glb  walk.glb  attack.glb  death.glb
-   ├─ creatures/brute/      idle.glb  walk.glb  attack.glb  death.glb
-   ├─ creatures/lunatic/    idle.glb  walk.glb  attack.glb  death.glb
+   ├─ creatures/zombie/     idle.glb  walk.glb  attack.glb  death.glb  stagger.glb
+   ├─ creatures/brute/      idle.glb  walk.glb  attack.glb  death.glb  stagger.glb
+   ├─ creatures/lunatic/    idle.glb  walk.glb  attack.glb  death.glb  stagger.glb
+   ├─ creatures/knight/     the player's body, other players, and the Black Knight — all seven clips
    ├─ weapons/              sword.glb  musket.glb
    ├─ props/                chest.glb  lantern.glb
    ├─ fonts/                Cinzel + EB Garamond (woff2, SIL OFL)
@@ -66,7 +67,7 @@ dungeon/
       └─ floor/             diffuse.webp  normal.webp  rough.webp
 ```
 
-Three creatures, each built around one idea. Without a creature's files the game
+Four creatures, each built around one idea. Without a creature's files the game
 falls back to a box model for it.
 
 | | HP | Damage | Speed | Notices you | Reward | Stage 1 → 12 |
@@ -74,6 +75,13 @@ falls back to a box model for it.
 | **Zombie** | 4 | 17 | 2.9 | 13m | 8-16 G | 12 → 49 |
 | **Brute** | 9 | 32 | 2.0 | 13m | 36-74 G | 1 → 29 |
 | **Lunatic** | 3 | 14 | 4.5 | 18m | 20-40 G | 1 → 29 |
+| **Black Knight** | 10 | 26 | 3.4 | 16m | 78-162 G | 0 → 5, from stage 3 |
+
+The Black Knight wears the player's own body and carries a shield: it blocks
+70% of anything that comes at its front, holds the guard when it is not
+swinging, and drops it while staggered — so it is the one creature that has to
+be parried or flanked rather than out-traded. It arrives at stage 3, once the
+shield has been learned on things that do not have one.
 
 **The dungeon grows as well as filling up.** Stage 1 is a 76m maze with 14
 creatures in it; by stage 12 it is 124m and 109, where both stop. Dungeons are
@@ -156,13 +164,19 @@ would strand you with no way back to the exit. A **whetstone** from a chest or
 the shop grinds 45 points back, spent with `5` — the only repair available while
 you are still down there.
 
+**You are planted when you act.** A swing drops you to 35% speed for the third
+of a second it takes; so does a potion for the 0.9s it takes to go down. Neither
+stops you, because the fight is built on distance, but neither is free to do
+on the run either.
+
 **Guarding** covers a 70-degree arc in front and nothing behind, slows you to
 just over half speed, and stops you swinging. A brute still puts a third of its
 blow through it. Holding it up is safe and buys nothing.
 
 **Parrying** is the same button, timed: raise the shield as the blow lands and it
-costs nothing, staggers whatever swung — interrupted, rocked back, knocked away —
-and opens the same window a lunge does. The telegraphs are long enough to read:
+costs nothing, staggers whatever swung for 1.2s — its stagger clip plays out,
+the body rocks back, it is knocked away — and opens the same window a lunge
+does. The telegraphs are long enough to read:
 905ms for a brute, 703ms for a zombie, 521ms for a lunatic, so the heavy hitter
 is the one worth learning and the fast one is still better dodged. Miss the
 timing and you simply block, which makes trying it cheap.
