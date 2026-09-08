@@ -12,7 +12,7 @@ import { startLoot, useLantern, usePotion, useWhetstone } from './loot';
 import { toggleView } from './view';
 import {
   atkBtn, dashBtn, guardBtn, lampBtn, lockHintEl, lootBtn, potBtn, showMsg,
-  soundBtn, whetBtn, wpnBtn,
+  soundBtn, viewBtn, whetBtn, wpnBtn,
 } from './ui';
 import { setWeapon, toggleWeapon } from './weapons';
 
@@ -364,6 +364,7 @@ export function toggleSound(): void {
 soundBtn.classList.toggle('muted', isMuted());
 for (const [btn, action] of [
   [soundBtn, toggleSound],
+  [viewBtn, toggleView],
 ] as const) {
   // pointerdown rather than click so a phone does not wait for the tap delay,
   // and stopPropagation so it never reaches the canvas as an attack.

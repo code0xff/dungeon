@@ -9,7 +9,7 @@ import { ANIM_ATTACK, ANIM_DEAD, ANIM_GUARD } from './net/protocol';
 import { gearBob, handShield, scene } from './scene';
 import { state } from './state';
 import type { MonsterPlayback } from './types';
-import { showMsg } from './ui';
+import { showMsg, viewBtn } from './ui';
 import { collides } from './world';
 
 /**
@@ -49,6 +49,9 @@ try {
 } catch {
   // Storage unavailable; first person is the default and the game still runs.
 }
+// The remembered view has to reach the button too, or it shows an eye over a
+// body until the first toggle.
+viewBtn.classList.toggle('third', state.thirdPerson);
 
 /** True when the body is drawn and the camera is behind it. */
 export function thirdPersonActive(): boolean {
@@ -57,6 +60,7 @@ export function thirdPersonActive(): boolean {
 
 export function toggleView(): void {
   state.thirdPerson = !state.thirdPerson;
+  viewBtn.classList.toggle('third', state.thirdPerson);
   try {
     localStorage.setItem(PREF_KEY, state.thirdPerson ? 'third' : 'first');
   } catch {

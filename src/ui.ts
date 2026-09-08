@@ -41,6 +41,7 @@ export const atkBtn = el('atkBtn');
 export const guideBtn = el('guideBtn');
 export const guideCloseBtn = el('guideClose');
 export const soundBtn = el('soundBtn');
+export const viewBtn = el('viewBtn');
 const atkLabel = queryChild(atkBtn, 'span');
 export const minimapEl = el<HTMLCanvasElement>('minimap');
 

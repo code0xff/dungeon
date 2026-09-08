@@ -187,6 +187,12 @@
   #soundBtn .off { display:none; }
   #soundBtn.muted .ico { display:none; }
   #soundBtn.muted .off { display:block; }
+  /* Same trick for the view: the icon shows the view you are in. It lives up
+     here rather than in the thumb cluster because it is a setting, not a
+     reflex — nobody switches camera mid-parry — and the keyboard has V. */
+  #viewBtn .third { display:none; }
+  #viewBtn.third .ico { display:none; }
+  #viewBtn.third .third { display:block; }
 
   /* The menu sits above the end-of-run overlay (z-index 20) so a run can be
      abandoned from the death screen, which is exactly where you want to. */
@@ -429,6 +435,16 @@
     <path d="M4 9.5h3.5L12 5.5v13L7.5 14.5H4z"/>
     <path d="M15.8 9.2a4 4 0 0 1 0 5.6M18.4 6.6a7.6 7.6 0 0 1 0 10.8"/>
   </symbol>
+  <!-- An eye for the view toggle: open when looking through the knight's own,
+       and a small figure when looking at him from behind. -->
+  <symbol id="i-eye" viewBox="0 0 24 24">
+    <path d="M2.5 12c2.6-4 5.8-6 9.5-6s6.9 2 9.5 6c-2.6 4-5.8 6-9.5 6s-6.9-2-9.5-6z"/>
+    <circle cx="12" cy="12" r="2.6"/>
+  </symbol>
+  <symbol id="i-figure" viewBox="0 0 24 24">
+    <circle cx="12" cy="5.5" r="2.5"/>
+    <path d="M12 8v7m0 0-3.2 5.5M12 15l3.2 5.5M7.5 11l4.5-1.5 4.5 1.5"/>
+  </symbol>
   <symbol id="i-mute" viewBox="0 0 24 24">
     <path d="M4 9.5h3.5L12 5.5v13L7.5 14.5H4z"/>
     <path d="m16 9.5 5 5m0-5-5 5"/>
@@ -485,6 +501,10 @@
   <div id="soundBtn" class="topBtn" role="button" aria-label="Sound">
     <svg class="ico"><use href="#i-sound"/></svg>
     <svg class="ico off"><use href="#i-mute"/></svg>
+  </div>
+  <div id="viewBtn" class="topBtn" role="button" aria-label="View">
+    <svg class="ico"><use href="#i-eye"/></svg>
+    <svg class="ico third"><use href="#i-figure"/></svg>
   </div>
 </div>
 
