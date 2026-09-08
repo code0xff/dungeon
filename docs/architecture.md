@@ -74,7 +74,7 @@ resets all of it. Anything that has to outlive a run lives in
 
 | | Extraction | Death |
 |---|---|---|
-| `bankGold` | run gold added | kept |
+| `bankGold` | run gold added | back to 0 |
 | `swordDur` | carried as-is | back to full — a new blade |
 | `stage` | +1 | back to 1 |
 | `hp` | carried as-is | back to 100 |
@@ -195,10 +195,9 @@ than being driven from `input.ts` — `world.ts` imports `input.ts`, and the men
 needs `buildWorld()` for New game, which through `input.ts` would have been a
 cycle.
 
-New game is the only thing in the game that clears `bankGold`, since that is
-exactly what death spares. It arms on the first click and names the sum it is
-about to erase; leaving the menu disarms it, so a stray click on the way past
-cannot wipe a run's savings.
+New game is the same wipe as a death, chosen rather than suffered. It arms on
+the first click and names the sum it is about to erase; leaving the menu disarms
+it, so a stray click on the way past cannot wipe a run's savings.
 
 It is deliberately separate from `gameOver`. That one means the run is over and
 the shop is up; this one means the world is on hold and will carry on.
@@ -215,9 +214,10 @@ reaches the next dungeon; buying into `state` would be spending gold on a run
 about to be overwritten. Nothing has to be handed across as a result — the shop
 writes, `buildWorld()` reads.
 
-It opens after death as well as after extraction. The bank survives death, and
-being able to kit out a fresh stage 1 with it is what turns banking into a
-decision.
+It opens after extraction only. Death takes the bank with the run, so there is
+nothing to spend and the death screen goes straight back to stage 1. It used to
+open after death too, on the grounds that the bank survived — but kitting out
+stage 1 was never a decision worth a screen.
 
 Prices rise with the stage and flatten at `SPAWN_PEAK_STAGE`, the same point the
 spawns do — income stops growing there, so prices that kept climbing would

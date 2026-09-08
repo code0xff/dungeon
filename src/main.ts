@@ -70,6 +70,8 @@ el('restart').addEventListener('click', () => {
   // The shop wrote straight into progress, so buildWorld() picks up whatever
   // was bought without anything having to be handed across.
   closeShop();
+  // Put back after a death renamed it.
+  el('restart').textContent = 'Descend';
   buildWorld();
 });
 

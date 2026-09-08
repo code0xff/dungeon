@@ -7,9 +7,10 @@ up this run stays down there.
 **▶ [Play it](https://code0xff.github.io/dungeon/)**
 
 Extract and your health, lantern fuel and ammo carry into the next stage — the
-map does not, because the next dungeon is a different one. Die and the run's
-gold and everything you were carrying stays down there. Only the bank survives,
-and it is saved to the browser.
+map does not, because the next dungeon is a different one. Die and everything
+goes — the run's gold, what you were carrying, and the bank with it — and you
+start again at stage 1. The bank is saved to the browser between sessions, but
+only staying alive keeps it.
 
 The lantern is the clock: about two and a half minutes of light per pickup, and
 whatever is left burns on into the next stage.
@@ -126,7 +127,7 @@ rules, with the detail in [docs/](docs/). `CLAUDE.md` is a symlink to it.
 | Parry | raise the guard *as the blow lands* |
 | Open chest | `E` |
 | Swap weapon | `Q` |
-| Drink potion / light lantern / sharpen sword | `3` / `4` / `5` — a potion takes a moment to go down |
+| Drink potion / light lantern / sharpen sword | `3` / `4` / `5` — a potion takes a moment to go down, and slows you while it does |
 | Menu | `H` — resume, controls, or start a new game. Pauses while it is open |
 | Sound on / off | `M` — remembered between runs |
 | First / third person | `V`, or the eye button at the top — sword only; the musket always aims first-person. Remembered between runs |
@@ -215,13 +216,13 @@ walking away cancels the loot but not the noise. About one creature hears an
 average chest on stage 1 and two by stage 12, and roughly half of stage-1 chests
 open in silence against one in eight at the peak.
 
-**Between stages you outfit.** Extraction — or death — opens a shop that spends
-banked gold on binding wounds, repairs, whetstones, potions, lantern oil and musket balls. Prices climb 15%
-a stage and flatten where the spawns do, so deeper is dearer but never outruns
-what a run can earn. That is what the
-bank is *for*; before it existed, gold was a score with no sink and no reason to
-walk out rather than push on until something killed you. The shop opens after
-death too, because the bank is the one thing death does not take.
+**Between stages you outfit.** Extraction opens a shop that spends banked gold
+on binding wounds, repairs, whetstones, potions, lantern oil and musket balls.
+Prices climb 15% a stage and flatten where the spawns do, so deeper is dearer
+but never outruns what a run can earn. That is what the bank is *for*; before it
+existed, gold was a score with no sink and no reason to walk out rather than
+push on until something killed you. There is no shop after a death: the bank
+went with the run, and stage 1 needs no kit.
 
 The dodge has no invulnerability frames. It gets you out of a creature's reach
 before the blow lands, which sets the floor on the distance — the brute swings

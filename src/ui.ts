@@ -335,11 +335,12 @@ export function endRun(extracted: boolean): void {
         `Banked ${state.runGold} G. Your gear carries to stage ${progress.stage}.${deeper}`;
     }
   } else {
-    // Everything the run was carrying, named before loseRun() wipes it. The list
-    // used to stop at the lantern and the ammo, so a player who died with a
-    // packful of potions was never told they were gone — and then the shop
-    // showing zero of them looked like the shop had lost them.
+    // Everything the run was carrying, named before loseRun() wipes it — the
+    // bank first, because it is the one the player will miss. The list used to
+    // stop at the lantern and the ammo, so a player who died with a packful of
+    // potions was never told they were gone.
     const lost = [
+      progress.bankGold > 0 && `${progress.bankGold} G banked`,
       `${state.runGold} G`,
       state.potions > 0 && `${state.potions} potion${state.potions > 1 ? 's' : ''}`,
       state.lanterns > 0 && `${state.lanterns} lantern${state.lanterns > 1 ? 's' : ''}`,
@@ -348,18 +349,20 @@ export function endRun(extracted: boolean): void {
     ].filter(Boolean) as string[];
     // "a, b and c" — the last item joins with "and", the rest with commas.
     const tail = lost.length > 1 ? `${lost.slice(0, -1).join(', ')} and ${lost[lost.length - 1]}` : lost[0];
-    // Worn kit is lost with the rest, so the next run opens on a new blade. Said
-    // outright because the shop offering "Full" straight after a death otherwise
-    // reads as a bug.
-    const blade = state.swordDur < SWORD_DUR_MAX ? ' You start again with a fresh blade.' : '';
     loseRun();
     title.textContent = 'Killed';
     title.className = 'dead';
-    desc.textContent = `Your ${tail} stayed down there...${blade}`;
+    desc.textContent = `Your ${tail} stayed down there. It starts again at stage 1.`;
+    // No shop after a death: there is nothing left to spend and nothing stage 1
+    // needs. The button takes the player straight back down.
+    el('ovBank').textContent = '';
+    el('restart').textContent = 'Start again';
+    closeShop();
+    overlayEl.style.display = 'flex';
+    updateHUD();
+    return;
   }
   el('ovBank').textContent = `Bank balance: ${progress.bankGold} G`;
-  // Shown after death as well as after extraction: the bank is the one thing
-  // death does not take, and spending it is what makes banking a decision.
   openShop();
   overlayEl.style.display = 'flex';
   updateHUD();

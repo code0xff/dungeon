@@ -590,6 +590,15 @@ export const GUARD_SLOW = 0.55;
  * swing would hand it to anything faster than a zombie.
  */
 export const SWING_SLOW = 0.35;
+/**
+ * Movement speed while a potion goes down, as a fraction of SPEED.
+ *
+ * The same figure as the swing, for the same reason: drinking is a thing you
+ * stop for. Sprinting through a POTION_DRINK at full pace made the potion
+ * free — the only cost was a moment of not swinging, and a moment spent
+ * running away is not a cost at all.
+ */
+export const DRINK_SLOW = SWING_SLOW;
 /** How fast the shield comes up and down, in units of 1/second. */
 export const GUARD_RAISE = 11;
 /** Fraction of a blocked hit that still gets through, by creature weight. */
@@ -1130,11 +1139,13 @@ export const SPAWN: Readonly<Record<CreatureKey, SpawnRate>> = {
   lunatic: { base: 4, perStage: 2.4 },
   brute: { base: 2, perStage: 2.6 },
   /**
-   * One at stage 5, one more every two stages, four and a half at the peak —
-   * and none at all before 5. It counts from fromStage, so the number does not
-   * have to be smuggled in as a negative base.
+   * One at stage 3, one more every two stages, five and a half at the peak —
+   * and none at all before 3. It counts from fromStage, so the number does not
+   * have to be smuggled in as a negative base. It started at 5; by then the
+   * player has met everything else twice over and the one creature that
+   * demands the shield was arriving after the shield had been learned.
    */
-  blackknight: { base: 1, perStage: 0.5, fromStage: 5 },
+  blackknight: { base: 1, perStage: 0.5, fromStage: 3 },
 };
 /**
  * Stage at which the counts stop growing.

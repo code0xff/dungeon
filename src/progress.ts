@@ -147,18 +147,25 @@ export function bankRun(
 /**
  * New game: everything, bank included.
  *
- * The one thing in here that `loseRun()` deliberately spares, so this is the
- * only way to actually start over — which is why the menu asks before calling it
- * and names the number it is about to destroy.
+ * The same wipe as a death, chosen instead of suffered — which is why the menu
+ * asks before calling it and names the number it is about to destroy.
  */
 export function resetProgress(): void {
   Object.assign(progress, fresh());
   saveProgress();
 }
 
-/** Death: the run's gold and everything carried is gone. The bank is not. */
+/**
+ * Death: everything is gone — the run, the gear, and the bank with it.
+ *
+ * The bank used to survive, and the shop opened over the death screen to spend
+ * it on a fresh stage 1. In practice that was gold with nothing worth buying:
+ * stage 1 does not need a kit, and outfitting for it only delayed the run that
+ * was actually going to matter. Now a death is a clean start, and the bank is
+ * a number you keep by staying alive — which is what makes it worth extracting
+ * with, and what puts the ending's score in reach of one life only.
+ */
 export function loseRun(): void {
-  const { bankGold } = progress;
-  Object.assign(progress, fresh(), { bankGold });
+  Object.assign(progress, fresh());
   saveProgress();
 }
