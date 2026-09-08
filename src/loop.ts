@@ -5,7 +5,7 @@ import {
   ATTACK_IMPACT, ATTACK_IMPACT_REACH, CELL, CHEST_LID_OPEN, CREATURE_DRAW_DISTANCE,
   DASH_ROLL, DASH_SPEED, DASH_TIME, EYE_H, GROUND_SPEED_SMOOTH,
   FALLBACK_ATTACK_TIME, GEAR_BOB, GEAR_BOB_ROLL, LAMP_SWAY, LAMP_SWAY_LAG,
-  CREATURE_PUSH, GUARD_RAISE, GUARD_SLOW, LANTERN_WARN, LOOT_TIME, MUSKET_RELOAD, PLAYER_R,
+  CREATURE_PUSH, GUARD_RAISE, GUARD_SLOW, LANTERN_WARN, SWING_SLOW, LOOT_TIME, MUSKET_RELOAD, PLAYER_R,
   PORTAL_RADIUS, POTION_DRINK, STAGGER_LEAN, STAGGER_TIME,
   SPEED,
   TRAP_RADIUS,
@@ -180,7 +180,9 @@ function updatePlayer(dt: number, now: number): boolean {
     s /= Math.max(len, 1);
     // Braced behind a shield you shuffle rather than walk. This is most of what
     // the guard costs — it is why holding it up crossing a room is not free.
-    const sp = SPEED * (state.guarding ? GUARD_SLOW : 1);
+    // And mid-swing you are planted; see SWING_SLOW. Multiplied, not
+    // minimised: a guarded swing is not a thing the sword allows anyway.
+    const sp = SPEED * (state.guarding ? GUARD_SLOW : 1) * (state.swingT >= 0 ? SWING_SLOW : 1);
     state.moveDirX = Math.sin(state.yaw) * f - Math.cos(state.yaw) * s;
     state.moveDirZ = Math.cos(state.yaw) * f + Math.sin(state.yaw) * s;
     step(state.moveDirX * sp * dt, state.moveDirZ * sp * dt);

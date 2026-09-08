@@ -578,6 +578,18 @@ export const CHEST_LID_OPEN = -1.5;
 export const GUARD_ARC = 0.35;
 /** Movement speed while the shield is up, as a fraction of SPEED. */
 export const GUARD_SLOW = 0.55;
+/**
+ * Movement speed while the sword is mid-swing, as a fraction of SPEED.
+ *
+ * A swing is planted: you do not sprint through one. At full SPEED a swing
+ * carried the player 1.7m, which in first person passed unnoticed and in third
+ * person — and on every ally's screen — was a body sliding across the floor in
+ * an attack pose that stands still. 0.35 × 5.2 = 1.8 m/s is about what the
+ * attack clip's own root motion was authored at, so the feet keep up. Not a
+ * full stop: the fight is built on distance, and freezing for 0.33s every
+ * swing would hand it to anything faster than a zombie.
+ */
+export const SWING_SLOW = 0.35;
 /** How fast the shield comes up and down, in units of 1/second. */
 export const GUARD_RAISE = 11;
 /** Fraction of a blocked hit that still gets through, by creature weight. */
