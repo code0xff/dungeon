@@ -296,6 +296,7 @@ export function endRun(extracted: boolean): void {
     // straight into progress, so leaving it visible behind a co-op result is a
     // live path from co-op into the solo bank.
     closeShop();
+    el('ovCredit').style.display = 'none';
     overlayEl.style.display = 'flex';
     updateHUD();
     return;
@@ -303,6 +304,8 @@ export function endRun(extracted: boolean): void {
 
   // Put back after a co-op run renamed it.
   el('restart').textContent = 'Descend';
+  // The credit belongs to the ending alone; every other screen puts it away.
+  el('ovCredit').style.display = 'none';
 
   if (extracted) {
     // Captured before buildWorld() resets the run, which is why this runs here
@@ -320,6 +323,7 @@ export function endRun(extracted: boolean): void {
       title.className = 'win';
       desc.textContent = `Stage ${FINAL_STAGE} cleared with ${progress.bankGold} G in the bank. `
         + 'The dungeon goes on below, and everything in it grows with every stage. Go down if you dare.';
+      el('ovCredit').style.display = 'block';
     } else {
       title.textContent = 'Extracted';
       title.className = 'win';

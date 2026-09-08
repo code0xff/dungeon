@@ -122,6 +122,11 @@
   #overlay h1.win { color:var(--portal); text-shadow:0 0 34px rgba(106,159,216,.4); }
   #overlay h1.dead { color:var(--blood); text-shadow:0 0 34px rgba(142,43,43,.45); }
   #overlay p { font-size:18px; margin-bottom:8px; opacity:.8; line-height:1.5; max-width:min(92vw,540px); }
+  /* The one credit in the game, shown once: on the ending. Display face, spaced
+     like the title, so it reads as a sign-off rather than another status line. */
+  #overlay p.credit { display:none; font-family:var(--display); font-size:13px; letter-spacing:.28em;
+                      text-transform:uppercase; opacity:.55; margin:6px 0 18px; }
+  #overlay p.credit span { display:inline-block; margin-top:6px; letter-spacing:.18em; text-transform:none; font-size:14px; }
   #overlay .bankline { color:var(--gold); margin-bottom:26px; font-size:17px; }
   #shop { display:none; width:min(470px, 90vw); margin:0 0 24px; padding:14px 18px 8px;
           border:1px solid rgba(201,192,174,.16); border-radius:3px;
@@ -578,6 +583,7 @@
   <h1 id="ovTitle"></h1>
   <p id="ovDesc"></p>
   <p class="bankline" id="ovBank"></p>
+  <p id="ovCredit" class="credit">In the Bone Dark<br><span>by code0xff</span></p>
   <div id="shop">
     <div class="shopHead"><span id="shopHead">Outfitting</span> <span id="shopBank"></span></div>
   </div>
