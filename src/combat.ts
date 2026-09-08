@@ -3,7 +3,7 @@ import { sfxHit, sfxLunge, sfxParry, sfxShot, sfxSwing, sfxTrap } from './audio'
 import {
   ATTACK_BUFFER, ATTACK_CD, ATTACK_RANGE, CORPSE_LINGER, GUARD_ARC, GUARD_LEAK, GUARD_LEAK_HEAVY,
   BLOCK_ARC, LUNGE_DMG, LUNGE_WINDOW, MUSKET_DMG, MUSKET_RANGE,
-  LUNGE_HIT_LIGHT, LUNGE_HIT_TIME, REWARD_SPREAD, STAGGER_PUSH, STAGGER_TIME,
+  LUNGE_HIT_LIGHT, LUNGE_HIT_TIME, REWARD_SPREAD, STAGGER_PUSH, STAGGER_TIME, staggerSpeed,
   TRAP_ALERT_RADIUS, TRAP_ALERT_TIME, TRAP_DMG,
   SHOT_ALERT_RADIUS, SHOT_ALERT_TIME,
   SWORD_ARC, SWORD_CLEAVE, SWORD_DMG_WORN, SWORD_DUR_MAX, SWORD_WARN_AT, SWORD_WEAR, TYPES,
@@ -446,7 +446,10 @@ export function staggerCreature(m: Monster, awayX: number, awayZ: number): void 
   // the frame loop leans the whole mesh back (STAGGER_LEAN), which is the
   // fallback every creature had until the clips arrived.
   if (m.playback) {
-    setAnim(m.playback, m.playback.clips.stagger ? 'stagger' : 'idle', { loop: false, force: true, fade: 0.06 });
+    const clip = m.playback.clips.stagger;
+    setAnim(m.playback, clip ? 'stagger' : 'idle', {
+      loop: false, force: true, fade: 0.06, speed: clip ? staggerSpeed(clip.duration) : 1,
+    });
   }
 }
 

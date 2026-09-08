@@ -6,7 +6,7 @@ import {
   DASH_ROLL, DASH_SPEED, DASH_TIME, EYE_H, GROUND_SPEED_SMOOTH,
   FALLBACK_ATTACK_TIME, GEAR_BOB, GEAR_BOB_ROLL, LAMP_SWAY, LAMP_SWAY_LAG,
   CREATURE_PUSH, GUARD_RAISE, GUARD_SLOW, LANTERN_WARN, SWING_SLOW, LOOT_TIME, MUSKET_RELOAD, PLAYER_R,
-  PORTAL_RADIUS, POTION_DRINK, STAGGER_LEAN, STAGGER_TIME,
+  PORTAL_RADIUS, POTION_DRINK, STAGGER_LEAN, STAGGER_TIME, staggerSpeed,
   SPEED,
   TRAP_RADIUS,
   STRIDE_RATE,
@@ -537,7 +537,9 @@ function animFollowed(m: Monster, pb: MonsterPlayback, dt: number, anim: number 
     // Started once, on the edge, then left to play out — the same rule as the
     // swing. A body with no clip leans instead, the way the authority's does.
     if (pb.clips.stagger) {
-      if (anim === ANIM_STAGGER_START) setAnim(pb, 'stagger', { loop: false, force: true, fade: 0.06 });
+      if (anim === ANIM_STAGGER_START) {
+        setAnim(pb, 'stagger', { loop: false, force: true, fade: 0.06, speed: staggerSpeed(pb.clips.stagger.duration) });
+      }
       m.mesh.rotation.x = 0;
     } else {
       m.mesh.rotation.x = -STAGGER_LEAN * 0.6;

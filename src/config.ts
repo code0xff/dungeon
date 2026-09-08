@@ -638,7 +638,18 @@ export const PARRY_CD = 0.55;
  * swing takes SWING_IMPACT / SWING_SPEED = 0.2s to land, so this covers the
  * whole exchange with room to spare.
  */
-export const STAGGER_TIME = 0.8;
+export const STAGGER_TIME = 1.2;
+/**
+ * Seconds of stagger clip that fit in STAGGER_TIME.
+ *
+ * The clips are 2.17s as authored, with a long settle after the recoil. Played
+ * at their own pace only the first third was ever seen before the creature
+ * recovered and the walk faded in over it. staggerSpeed() below retimes each
+ * clip to land its last frame at STAGGER_TIME — about 1.8x on these — so the
+ * stumble and the recovery both play and the walk picks up from a standing
+ * body. A shorter STAGGER_TIME would only make that faster.
+ */
+export const staggerSpeed = (clipDuration: number): number => Math.max(1, clipDuration / STAGGER_TIME);
 /** How far back a staggered creature rocks, in radians. Eases back over STAGGER_TIME. */
 export const STAGGER_LEAN = 0.52;
 /** How far it is knocked back, in metres. */
