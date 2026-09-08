@@ -492,6 +492,30 @@ in the console. One durable `dungeon-v1` cache, pruned on activate of entries
 whose `?v=` no longer matches, has no such window: the shell and the
 content-hashed bundles are never touched, only superseded assets are.
 
+## The tutorial
+
+`src/tutorial.ts`. One open room and a list of lessons, each a line of text,
+an optional `enter` and a `done` polled every live frame. It runs on top of
+the ordinary game rather than beside it: `buildWorld()` builds the room when
+`state.tutorial` is set — a `TUTORIAL_ROOM` square with walls only at the
+edge, no chests, traps or spawns, a fixed seed for the sconces — and the
+lessons bring in real zombies through `spawnAt()`, so what is learned is the
+actual sword and the actual parry. A tutorial that simulated the fight would
+teach a fight that does not exist.
+
+The checks are measured, not asked about: metres walked, dodge edges on
+`dashT`, a lunge on `lungeHitT`, and the parry off the *zombie's* `staggerT`
+rather than the shield — a stagger only ever comes from a parry, and the shield
+going up on its own is exactly what a parry is not. `playerHurt()` floors hp at
+1 while the room is up. The portal at the end goes to `endTutorial()`, not
+`endRun()`, because nothing in the room is a run; `progress` is never touched.
+
+It opens on the first visit and on New game, unless the menu's checkbox says
+not to; the menu can start it any time. The preference lives in its own
+localStorage key so a new game does not forget it. The host's start calls
+`leaveTutorial()` first, or `buildWorld()` would build the party's dungeon as a
+practice room.
+
 ## Third person
 
 `src/view.ts`. Off by default, `V` or the eye button in the top strip;

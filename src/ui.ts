@@ -58,7 +58,10 @@ export function updateHUD(): void {
   // The bank is a solo idea. Showing it during co-op — where the run banks
   // nothing and starts from nothing — would say the opposite of what the mode
   // does, so it is replaced by the party rather than left sitting at 0 G.
-  if (coop.active) {
+  if (state.tutorial) {
+    stageEl.textContent = 'Tutorial';
+    bankEl.textContent = 'Nothing here counts';
+  } else if (coop.active) {
     stageEl.textContent = `Level ${coop.level}`;
     bankEl.textContent = 'Multiplayer';
   } else {

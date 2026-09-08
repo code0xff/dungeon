@@ -2,6 +2,7 @@ import { COOP_MAX_LEVEL, GUIDE_KEY } from '../config';
 import { el } from '../dom';
 import { progress } from '../progress';
 import { state } from '../state';
+import { leaveTutorial } from '../tutorial';
 import { overlayEl } from '../ui';
 import { buildWorld } from '../world';
 import { connect, disconnect, net, onNetChange, onNetStart, sendWatch, setLevel, startRun } from './client';
@@ -145,6 +146,9 @@ export function stopWatching(): void {
 
 onNetStart((seed, level) => {
   stopWatching();
+  // A player can be in the practice room when the host starts. The room is
+  // not the party's dungeon, and buildWorld() would build another room.
+  leaveTutorial();
   coop.active = true;
   coop.seed = seed;
   coop.level = level;

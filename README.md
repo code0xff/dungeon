@@ -147,6 +147,13 @@ rules, with the detail in [docs/](docs/). `CLAUDE.md` is a symlink to it.
 | Sound on / off | `M` — remembered between runs |
 | First / third person | `V`, or the eye button at the top — sword only; the musket always aims first-person. Remembered between runs |
 
+**The first visit opens on a tutorial**: one room, one lesson at a time —
+move, the sword, the musket, the dodge, the lunge, the parry, the potion, the
+lantern — each on a real zombie, and the portal at the end leads to stage 1.
+Skip is always on screen; the menu can start it again, and a checkbox there
+stops new games opening on it. Nothing done in the room counts, and nothing in
+it can kill you.
+
 `H` opens a pause menu — resume, the controls, or a new game. It used to open the
 control list directly, which meant the only thing reachable mid-run was a
 reference card and there was no way to abandon a run short of clearing the

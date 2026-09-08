@@ -38,6 +38,13 @@ export const state = {
 
   // ---- Progress ----
   gameOver: false,
+  /**
+   * The practice room is on screen instead of a dungeon. buildWorld() builds
+   * the room, tutorial.ts runs the lesson, and nothing that happens in it
+   * reaches `progress`. Read by the loop for the portal and by combat so the
+   * lesson cannot kill you.
+   */
+  tutorial: false,
   /** The guide is open. The frame loop still renders, it just stops advancing. */
   paused: false,
   /**

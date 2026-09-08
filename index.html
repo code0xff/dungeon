@@ -384,6 +384,24 @@
             color:var(--ink); background:rgba(201,192,174,.07); }
   .slot.empty { opacity:.35; }
 
+  /* The lesson's one line, under the top buttons where nothing else sits. It
+     is the only thing on screen that tells the player what to do, so it is
+     wider and plainer than a message and does not fade. */
+  #tutor { position:fixed; top:calc(50px + env(safe-area-inset-top)); left:50%; transform:translateX(-50%);
+           z-index:12; display:none; align-items:center; gap:14px; max-width:min(92vw,620px);
+           padding:11px 16px; border:1px solid rgba(212,178,90,.35); border-radius:3px;
+           background:linear-gradient(rgba(18,16,14,.86), rgba(5,6,8,.9)); color:var(--ink);
+           font-size:15px; line-height:1.5; box-shadow:0 8px 30px rgba(0,0,0,.5); }
+  #tutorText { flex:1; }
+  #tutorSkip { flex:0 0 auto; font-family:var(--display); font-size:11px; letter-spacing:.14em;
+               text-transform:uppercase; padding:6px 10px; border:1px solid rgba(201,192,174,.3);
+               border-radius:2px; color:var(--ink); background:rgba(201,192,174,.06); cursor:pointer;
+               -webkit-tap-highlight-color:transparent; }
+  #tutorSkip:hover { border-color:rgba(212,178,90,.6); color:var(--gold); }
+  /* A checkbox row in the menu's own face. */
+  .menuCheck { display:flex; align-items:center; justify-content:center; gap:8px; margin-top:12px;
+               font-size:13px; opacity:.75; cursor:pointer; user-select:none; }
+  .menuCheck input { accent-color:#d4b25a; width:15px; height:15px; margin:0; }
   #lockHint { position:fixed; inset:0; z-index:14; display:flex; align-items:center; justify-content:center; pointer-events:none; }
   #lockHint div { background:linear-gradient(rgba(18,16,14,.8), rgba(5,6,8,.85));
                   border:1px solid rgba(201,192,174,.22); color:var(--ink); padding:16px 26px;
@@ -508,6 +526,7 @@
 <canvas id="minimap" width="150" height="150"></canvas>
 
 <div id="msg"></div>
+<div id="tutor"><span id="tutorText"></span><button id="tutorSkip">Skip</button></div>
 <div id="topBtns">
   <div id="guideBtn" class="topBtn" role="button" aria-label="Menu">?</div>
   <div id="soundBtn" class="topBtn" role="button" aria-label="Sound">
@@ -528,6 +547,8 @@
     <button class="menuItem" id="menuNew">New game</button>
     <button class="menuItem" id="menuCoop">Multiplayer</button>
     <button class="menuItem" id="menuGuide">Controls</button>
+    <button class="menuItem" id="menuTutorial">Tutorial</button>
+    <label class="menuCheck" id="menuSkipRow"><input type="checkbox" id="menuSkip"> Skip the tutorial on new games</label>
     <p class="guideNote" id="menuNote">A new game wipes the bank and starts again at stage 1.</p>
   </div>
 </div>

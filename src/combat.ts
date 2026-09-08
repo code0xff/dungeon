@@ -414,6 +414,10 @@ export function playerHurt(dmg: number, from?: Monster): 'hit' | 'blocked' | 'pa
     return outcome;
   }
   state.hp -= dmg;
+  // The lesson hurts but does not kill: a death screen in the middle of
+  // learning the parry would send the player back to the start of the lesson,
+  // which is the one thing it has no reason to do.
+  if (state.tutorial) state.hp = Math.max(1, state.hp);
   sfxHit(true);
   if (state.looting) {
     cancelLoot();

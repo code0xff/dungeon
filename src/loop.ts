@@ -25,6 +25,7 @@ import { followMobs, mobAnim, publishMobs, reportMobHit } from './net/mobsync';
 import { ANIM_ATTACK, ANIM_ATTACK_START, ANIM_STAGGER, ANIM_STAGGER_START, ANIM_WALK } from './net/protocol';
 import { isAuthority } from './net/client';
 import { thirdPersonActive, updateView } from './view';
+import { endTutorial, updateTutorial } from './tutorial';
 import { coop } from './net/session';
 import { mayOpen, tellTrapSprung } from './net/worldsync';
 import {
@@ -971,9 +972,16 @@ export function animate(): void {
       }
     }
 
+    updateTutorial();
+
     const ex = portal.position.x - state.pos.x, ez = portal.position.z - state.pos.z;
     const atPortal = ex * ex + ez * ez < PORTAL_RADIUS ** 2;
-    if (atPortal && state.hasKey) endRun(true);
+    // The practice room's portal leads to stage 1, not to a bank: nothing done
+    // in there is a run.
+    if (atPortal && state.hasKey) {
+      if (state.tutorial) endTutorial();
+      else endRun(true);
+    }
     // Told once on arrival. The check runs every frame, so warning here without
     // the edge test would replace every other message in the game.
     else if (atPortal && !state.atPortal) showMsg('The portal is sealed — find the key');

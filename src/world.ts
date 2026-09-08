@@ -2,9 +2,9 @@ import * as THREE from 'three';
 import { floorPBR, spawnCreature, wallPBR } from './assets';
 import {
   BEYOND_DMG, BEYOND_HP, BEYOND_REWARD, BLACK_KNIGHT_SHADE, CEIL_TILES_PER_CELL, CELL, CHEST_COUNT, CHEST_ITEMS, CHEST_SAFE_ITEMS,
-  CHEST_TRAP_FRAC, EYE_H, FINAL_STAGE,
+  CHEST_TRAP_FRAC, EYE_H, FINAL_STAGE, MAX_HP, SWORD_DUR_MAX,
   FLOOR_TILES_PER_CELL, PLAYER_R, REF_FLOOR_CELLS, SCALE_VARIANCE, SPAWN, SPAWN_PEAK_STAGE,
-  SPEED_VARIANCE, TRAP_COUNT, TRAP_JITTER, TYPES, WALL_H,
+  SPEED_VARIANCE, TRAP_COUNT, TRAP_JITTER, TUTORIAL_KIT, TUTORIAL_ROOM, TUTORIAL_SEED, TYPES, WALL_H,
 } from './config';
 import { dungeonSize, generateDungeon } from './dungeon';
 import { createChest, makeSconce, makeTrap, rollProp } from './props';
@@ -244,10 +244,18 @@ function stageType(key: CreatureKey, level: number): CreatureType {
 }
 
 function spawnOne(key: CreatureKey): void {
-  const t = stageType(key, runLevel(progress.stage));
   const [gx, gz] = randomFloorCell(6);
+  spawnAt(key, gx * CELL, gz * CELL);
+}
+
+/**
+ * Puts one creature at a world position and returns it. The dungeon's spawns
+ * go through here from a random cell; the tutorial places its own by hand.
+ */
+export function spawnAt(key: CreatureKey, wx: number, wz: number): Monster {
+  const t = stageType(key, runLevel(progress.stage));
   const sp = spawnCreature(key);
-  sp.mesh.position.set(gx * CELL, 0, gz * CELL);
+  sp.mesh.position.set(wx, 0, wz);
   // Yaw first, so the stagger lean rocks the creature backwards along its own
   // facing rather than along the world X axis — turnToward() writes rotation.y
   // every frame, and the default XYZ order would tilt a side-on creature sideways.
@@ -311,6 +319,7 @@ function spawnOne(key: CreatureKey): void {
     deadT: 0,
   };
   state.monsters.push(m);
+  return m;
 }
 
 function spawnChests(scale: number): void {
@@ -415,18 +424,25 @@ export function buildWorld(): void {
   // land in the same dungeon, and mixing it with a level they all share would
   // only be the same function applied by four machines.
   const level = runLevel(progress.stage);
-  const seed = coop.active ? coop.seed : mixSeed(progress.seed, progress.stage);
+  const seed = state.tutorial ? TUTORIAL_SEED : coop.active ? coop.seed : mixSeed(progress.seed, progress.stage);
   setSeed(seed);
-  console.log(coop.active
+  console.log(state.tutorial ? '[world] tutorial room' : coop.active
     ? `[world] co-op seed ${seed} level ${level}`
     : `[world] seed ${progress.seed} stage ${progress.stage} -> ${seed}`);
 
   // The dungeon grows with the stage and is not always square, so its size has
   // to be settled before anything that indexes the grid runs.
-  const { gw, gh } = dungeonSize(level);
+  //
+  // The tutorial is one open room rather than a maze: every lesson in it wants
+  // the zombie in sight and the player with space to dodge, and a corridor
+  // gives neither.
+  const { gw, gh } = state.tutorial ? { gw: TUTORIAL_ROOM, gh: TUTORIAL_ROOM } : dungeonSize(level);
   state.gw = gw;
   state.gh = gh;
-  state.maze = generateDungeon(gw, gh);
+  state.maze = state.tutorial
+    ? Array.from({ length: gh }, (_, z) => Array.from({ length: gw }, (_, x) =>
+      (x === 0 || z === 0 || x === gw - 1 || z === gh - 1 ? 1 : 0)))
+    : generateDungeon(gw, gh);
   state.exitCell = { x: gw - 2, z: gh - 2 };
   state.maze[state.exitCell.z][state.exitCell.x] = 0;
 
@@ -444,10 +460,15 @@ export function buildWorld(): void {
   // Counted once and shared: both populations are scaled by the same area, and
   // recounting the floor twice would be the only way for them to disagree.
   const scale = areaScale();
-  spawnMonsters(scale);
-  spawnChests(scale);
-  placeTraps(scale);
-  scatterProps();
+  // The room starts empty; tutorial.ts brings each zombie in when its lesson
+  // comes. No chests or traps either — the lesson is the sword, the shield and
+  // the pack, and a trap under the first step would teach the wrong thing.
+  if (!state.tutorial) {
+    spawnMonsters(scale);
+    spawnChests(scale);
+    placeTraps(scale);
+    scatterProps();
+  }
   placeSconces();
 
   // ---- Reset player and items ----
@@ -458,7 +479,9 @@ export function buildWorld(): void {
 
   // Co-op brings nothing in from the solo save — see docs/coop.md. The kit is
   // handed out by level instead, because there is no shop between runs.
-  const kit = coop.active ? coopKit(level) : progress;
+  const kit = state.tutorial
+    ? { ...TUTORIAL_KIT, hp: MAX_HP, swordDur: SWORD_DUR_MAX, lanternT: 0 }
+    : coop.active ? coopKit(level) : progress;
   state.hp = kit.hp;
   state.runGold = 0;
   state.gameOver = false;

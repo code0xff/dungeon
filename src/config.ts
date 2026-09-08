@@ -1205,6 +1205,24 @@ export const SPAWN_PEAK_STAGE = 12;
  * number, not a wall.
  */
 export const FINAL_STAGE = 12;
+
+// ---- Tutorial ----
+/**
+ * The practice room's grid size, walls included, so the floor is two less a
+ * side. 7 is a 20m square: room to dodge and to see a zombie coming, small
+ * enough that nothing spawned in it is ever out of sight.
+ */
+export const TUTORIAL_ROOM = 7;
+/** What the lesson hands out. One of each thing it teaches, and a full blade. */
+export const TUTORIAL_KIT = { potions: 1, lanterns: 1, whetstones: 0, ammo: 6 };
+/** Metres walked before the movement lesson is satisfied. */
+export const TUTORIAL_MOVE_DIST = 4;
+/** Dodges before the dodge lesson is satisfied — one to see it, one to feel it. */
+export const TUTORIAL_DODGES = 2;
+/** Health the player is set to before the potion lesson, so there is something to heal. */
+export const TUTORIAL_POTION_HP = 50;
+/** The room is seeded once so its sconces land in the same places every time. */
+export const TUTORIAL_SEED = 7;
 /**
  * How the creatures grow per stage below FINAL_STAGE, as fractions of their
  * base hp, damage and reward.

@@ -6,6 +6,7 @@ import { closeLobbyPanel, leaveLobby, openLobbyPanel } from './net/lobby';
 import { coop } from './net/session';
 import { closeShop } from './shop';
 import { state } from './state';
+import { setSkipTutorial, startTutorial, tutorialPref, wantsTutorial } from './tutorial';
 import { guideBtn, guideCloseBtn, overlayEl } from './ui';
 import { buildWorld } from './world';
 
@@ -31,6 +32,9 @@ const resumeBtn = el('menuResume');
 const guideItem = el('menuGuide');
 const newBtn = el('menuNew');
 const coopItem = el('menuCoop');
+const tutorialItem = el('menuTutorial');
+const skipRow = el('menuSkipRow');
+const skipBox = el('menuSkip') as HTMLInputElement;
 const coopCloseBtn = el('coopClose');
 const coopPanelEl = el('coop');
 
@@ -90,9 +94,16 @@ export function openMenu(): void {
   // dungeon the host never announced — so it is not offered here at all.
   // Hidden rather than disabled: a greyed button invites a second click.
   newBtn.style.display = coop.active ? 'none' : 'block';
-  statusEl.textContent = coop.active
-    ? `Multiplayer  ·  level ${coop.level}`
-    : `Stage ${progress.stage}  ·  Bank ${progress.bankGold} G`;
+  // The lesson is a solo thing: starting it from a co-op run would build a
+  // room the party never announced.
+  tutorialItem.style.display = coop.active ? 'none' : 'block';
+  skipRow.style.display = coop.active ? 'none' : 'flex';
+  skipBox.checked = tutorialPref.skip;
+  statusEl.textContent = state.tutorial
+    ? 'Tutorial'
+    : coop.active
+      ? `Multiplayer  ·  level ${coop.level}`
+      : `Stage ${progress.stage}  ·  Bank ${progress.bankGold} G`;
   el('menuNote').textContent = coop.active
     ? 'A multiplayer run banks nothing and changes nothing you have saved. The dungeon does not stop while you read this.'
     : 'A new game wipes the bank and starts again at stage 1.';
@@ -169,8 +180,24 @@ newBtn.addEventListener('click', () => {
   overlayEl.style.display = 'none';
   state.gameOver = false;
   closeMenu();
-  buildWorld();
+  // A new game opens on the lesson unless the player has asked it not to. A
+  // tutorial already up is simply rebuilt from its first lesson.
+  if (wantsTutorial()) startTutorial();
+  else {
+    state.tutorial = false;
+    buildWorld();
+  }
 });
+
+tutorialItem.addEventListener('click', () => {
+  closeShop();
+  overlayEl.style.display = 'none';
+  state.gameOver = false;
+  closeMenu();
+  startTutorial();
+});
+
+skipBox.addEventListener('change', () => setSkipTutorial(skipBox.checked));
 
 guideCloseBtn.addEventListener('click', back);
 guideBtn.addEventListener('click', toggleMenu);
