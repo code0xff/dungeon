@@ -37,6 +37,8 @@ interface Stock {
   /** Gold for one purchase, or null when there is nothing to buy. */
   price: () => number | null;
   buy: () => void;
+  /** Starts the carried-goods group: drawn with a heavier rule above it. */
+  divide?: boolean;
 }
 
 /**
@@ -63,12 +65,15 @@ const repairCost = (): number =>
 const healCost = (): number => atStage((MAX_HP - progress.hp) * SHOP.healPerPoint);
 
 /**
- * Ordered in pairs: the thing that fixes you here, then the thing that carries
- * the same fix into the dungeon. Health, then blade, then the rest.
+ * Two groups: the things done to you here, once — wounds bound, blade
+ * repaired — and then the things carried into the dungeon.
  *
- * The pairing is the point. Both counter rows are priced per point and both
- * carried ones cost a premium over the same restoration, and putting them on
- * adjacent lines is the only way a player can see that rather than be told it.
+ * It was ordered in pairs (heal next to potion, repair next to whetstone) so
+ * the per-point counter price could be read against the carried premium. The
+ * pairs read as one list of six though, and a repair sitting between two
+ * consumables was taken for one. The split is what matters more: the top two
+ * are spent on the spot and cost nothing when there is nothing to fix; the
+ * rest stack. `divide` draws the line between them.
  */
 const STOCK: Stock[] = [
   {
@@ -81,21 +86,22 @@ const STOCK: Stock[] = [
     },
   },
   {
-    id: 'Potion',
-    name: 'Potion',
-    held: () => `${progress.potions} held  ·  +${POTION_HEAL} HP`,
-    price: () => atStage(SHOP.potion),
-    buy: () => {
-      progress.potions++;
-    },
-  },
-  {
     id: 'Repair',
     name: 'Repair sword',
     held: () => `${Math.round((progress.swordDur / SWORD_DUR_MAX) * 100)}%`,
     price: () => (progress.swordDur >= SWORD_DUR_MAX ? null : repairCost()),
     buy: () => {
       progress.swordDur = SWORD_DUR_MAX;
+    },
+  },
+  {
+    id: 'Potion',
+    name: 'Potion',
+    divide: true,
+    held: () => `${progress.potions} held  ·  +${POTION_HEAL} HP`,
+    price: () => atStage(SHOP.potion),
+    buy: () => {
+      progress.potions++;
     },
   },
   {
@@ -130,7 +136,7 @@ const STOCK: Stock[] = [
 /** Built once; only the text and the disabled state change per open. */
 const rows = STOCK.map((item) => {
   const row = document.createElement('div');
-  row.className = 'shopRow';
+  row.className = item.divide ? 'shopRow divide' : 'shopRow';
   const name = document.createElement('span');
   name.className = 'shopName';
   name.textContent = item.name;
