@@ -1,8 +1,8 @@
 import * as THREE from 'three';
 import { floorPBR, spawnCreature, wallPBR } from './assets';
 import {
-  BLACK_KNIGHT_SHADE, CEIL_TILES_PER_CELL, CELL, CHEST_COUNT, CHEST_ITEMS, CHEST_SAFE_ITEMS,
-  CHEST_TRAP_FRAC, EYE_H,
+  BEYOND_DMG, BEYOND_HP, BEYOND_REWARD, BLACK_KNIGHT_SHADE, CEIL_TILES_PER_CELL, CELL, CHEST_COUNT, CHEST_ITEMS, CHEST_SAFE_ITEMS,
+  CHEST_TRAP_FRAC, EYE_H, FINAL_STAGE,
   FLOOR_TILES_PER_CELL, PLAYER_R, REF_FLOOR_CELLS, SCALE_VARIANCE, SPAWN, SPAWN_PEAK_STAGE,
   SPEED_VARIANCE, TRAP_COUNT, TRAP_JITTER, TYPES, WALL_H,
 } from './config';
@@ -21,7 +21,7 @@ import { coop, coopKit, runLevel } from './net/session';
 import { random, setSeed, mixSeed, shuffle } from './rng';
 import { state } from './state';
 import { ceilTex, floorTex, wallTex } from './textures';
-import type { CreatureKey, GridCell, ItemKind, Monster } from './types';
+import type { CreatureKey, CreatureType, GridCell, ItemKind, Monster } from './types';
 import { cancelLoot, drinkBarEl, minimapEl, objectiveEl, overlayEl, updateHUD, wpnBtn } from './ui';
 import { pointerLock } from './input';
 import { lockHintEl } from './ui';
@@ -223,8 +223,28 @@ function spawnMonsters(scale: number): void {
   }
 }
 
-function spawnOne(key: CreatureKey): void {
+/**
+ * The creature type for this stage: the base one until the ending, and a
+ * heavier copy below it. See BEYOND_HP in config.ts.
+ *
+ * A copy rather than a mutation of TYPES: the base entry is read by name in
+ * places that must not see the growth — GUARD_LEAK_HEAVY decides "heavy" off
+ * it, and the co-op follower's walk retiming reads its speed.
+ */
+function stageType(key: CreatureKey, level: number): CreatureType {
   const t = TYPES[key];
+  const below = level - FINAL_STAGE;
+  if (below <= 0) return t;
+  return {
+    ...t,
+    hp: t.hp * (1 + BEYOND_HP) ** below,
+    dmg: t.dmg * (1 + BEYOND_DMG) ** below,
+    reward: Math.round(t.reward * (1 + BEYOND_REWARD) ** below),
+  };
+}
+
+function spawnOne(key: CreatureKey): void {
+  const t = stageType(key, runLevel(progress.stage));
   const [gx, gz] = randomFloorCell(6);
   const sp = spawnCreature(key);
   sp.mesh.position.set(gx * CELL, 0, gz * CELL);

@@ -6,7 +6,7 @@ import {
   LUNGE_HIT_LIGHT, LUNGE_HIT_TIME, REWARD_SPREAD, STAGGER_PUSH, STAGGER_TIME,
   TRAP_ALERT_RADIUS, TRAP_ALERT_TIME, TRAP_DMG,
   SHOT_ALERT_RADIUS, SHOT_ALERT_TIME,
-  SWORD_ARC, SWORD_CLEAVE, SWORD_DMG_WORN, SWORD_DUR_MAX, SWORD_WARN_AT, SWORD_WEAR,
+  SWORD_ARC, SWORD_CLEAVE, SWORD_DMG_WORN, SWORD_DUR_MAX, SWORD_WARN_AT, SWORD_WEAR, TYPES,
 } from './config';
 import { flashLight, muzzleFlash, scene, smoke } from './scene';
 import { isAuthority } from './net/client';
@@ -402,7 +402,9 @@ export function playerHurt(dmg: number, from?: Monster): 'hit' | 'blocked' | 'pa
         outcome = 'blocked';
         // A brute swings for nearly a third of MAX_HP. Stopping that dead would
         // make the shield the answer to the one creature meant to be frightening.
-        dmg *= from.type.hp >= 9 ? GUARD_LEAK_HEAVY : GUARD_LEAK;
+        // Off the base type, not the stage's: past FINAL_STAGE every creature
+        // grows, and a zombie that has grown to 9 hp is still a zombie.
+        dmg *= TYPES[from.key].hp >= 9 ? GUARD_LEAK_HEAVY : GUARD_LEAK;
       }
     }
   }

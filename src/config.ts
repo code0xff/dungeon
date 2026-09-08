@@ -1122,6 +1122,29 @@ export const SPAWN: Readonly<Record<CreatureKey, SpawnRate>> = {
  * rather than a queue.
  */
 export const SPAWN_PEAK_STAGE = 12;
+/**
+ * The stage the game is "beaten" at: walking out of it is the ending.
+ *
+ * The same stage the spawn curve peaks at, on purpose — that is where the
+ * dungeon is as full as it can get, so it is the natural bottom. The game does
+ * not stop there: the stages below keep counting, only the creatures grow
+ * instead of multiplying (BEYOND_HP, BEYOND_DMG). The ending is a screen and a
+ * number, not a wall.
+ */
+export const FINAL_STAGE = 12;
+/**
+ * How the creatures grow per stage below FINAL_STAGE, as fractions of their
+ * base hp, damage and reward.
+ *
+ * Counts are already at the ceiling by then (SPAWN_PEAK_STAGE), so the only
+ * room left for difficulty is in each body. Compound, so it gets steep: by
+ * stage 20 a zombie has 3.8x the health and hits for 2.5x, and the extra gold
+ * pays for roughly the potions it costs. Nobody is meant to hold out down
+ * there for long — that is what the ending is for.
+ */
+export const BEYOND_HP = 0.18;
+export const BEYOND_DMG = 0.12;
+export const BEYOND_REWARD = 0.12;
 
 /**
  * What a co-op player is handed at the start, per level of the host's choosing.

@@ -1,5 +1,5 @@
 import {
-  CELL, LANTERN_KEY, POTION_KEY, SPAWN_PEAK_STAGE, SWORD_DUR_MAX, WHETSTONE_KEY,
+  CELL, FINAL_STAGE, LANTERN_KEY, POTION_KEY, SPAWN_PEAK_STAGE, SWORD_DUR_MAX, WHETSTONE_KEY,
 } from './config';
 import { context2d, el, firstChild, queryChild } from './dom';
 import { bankRun, loseRun, progress } from './progress';
@@ -312,13 +312,24 @@ export function endRun(extracted: boolean): void {
       potions: state.potions, lanterns: state.lanterns, whetstones: state.whetstones,
       swordDur: state.swordDur,
     });
-    title.textContent = 'Extracted';
-    title.className = 'win';
-    // Told, because the stage number is otherwise just a label — the player has
-    // no way to know the dungeon fills up until something has already found them.
-    const deeper = progress.stage <= SPAWN_PEAK_STAGE ? ' It will be busier down there.' : '';
-    desc.textContent =
-      `Banked ${state.runGold} G. Your gear carries to stage ${progress.stage}.${deeper}`;
+    // bankRun() has already moved the stage on, so the one just left is one back.
+    const left = progress.stage - 1;
+    if (left === FINAL_STAGE) {
+      // The ending. Not the end: the button still says Descend, and does.
+      title.textContent = 'You have seen the bottom';
+      title.className = 'win';
+      desc.textContent = `Stage ${FINAL_STAGE} cleared with ${progress.bankGold} G in the bank. `
+        + 'The dungeon goes on below, and everything in it grows with every stage. Go down if you dare.';
+    } else {
+      title.textContent = 'Extracted';
+      title.className = 'win';
+      // Told, because the stage number is otherwise just a label — the player has
+      // no way to know the dungeon fills up until something has already found them.
+      const deeper = progress.stage <= SPAWN_PEAK_STAGE ? ' It will be busier down there.'
+        : progress.stage > FINAL_STAGE ? ' They are stronger down there.' : '';
+      desc.textContent =
+        `Banked ${state.runGold} G. Your gear carries to stage ${progress.stage}.${deeper}`;
+    }
   } else {
     // Everything the run was carrying, named before loseRun() wipes it. The list
     // used to stop at the lantern and the ammo, so a player who died with a

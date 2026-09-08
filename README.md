@@ -79,6 +79,13 @@ creatures in it; by stage 12 it is 124m and 109, where both stop. Dungeons are
 not square either — the shape is rolled per run, and the stretch keeps the area,
 so a long thin one is not an easy one.
 
+**Stage 12 is the bottom.** Walk out of it and the game is beaten — an ending
+screen, and the bank as your score. It does not stop there: stage 13 and below
+keep coming, and since the dungeon is already as full as it gets, the creatures
+grow instead — 18% more health, 12% more damage and 12% more gold per stage,
+compounding (`BEYOND_HP` and friends in `config.ts`). By stage 20 a zombie has
+3.8x the health and hits for 2.5x. Nobody is meant to last down there.
+
 Density is what is actually tuned, so the counts scale with the floor area
 carved: 12.5 floor cells per creature at the start, 4.5 at the peak. That is why
 a smaller stage 1 is a gentler one — the same creatures in a third of the space
