@@ -62,7 +62,7 @@ export function updateHUD(): void {
     stageEl.textContent = 'Tutorial';
     bankEl.textContent = 'Nothing here counts';
   } else if (coop.active) {
-    stageEl.textContent = `Level ${coop.level}`;
+    stageEl.textContent = coop.hard ? `Level ${coop.level} · Hard` : `Level ${coop.level}`;
     bankEl.textContent = 'Multiplayer';
   } else {
     stageEl.textContent = progress.hard ? `Stage ${progress.stage} · Hard` : `Stage ${progress.stage}`;

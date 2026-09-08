@@ -499,8 +499,9 @@ content-hashed bundles are never touched, only superseded assets are.
 because the answer is for the life of the save. Three places read it:
 `spawnChests()` builds one untrapped chest with the key and nothing else, the
 shop hides its `soft` rows and multiplies every price by `HARD_PRICE`, and the
-HUD and menu say so. Co-op ignores it: the party's dungeon is the host's level,
-not anyone's save.
+HUD and menu say so. In co-op the host chooses it in the lobby and it travels
+with the start message as `coop.hard`; `spawnChests()` and `coopKit()` read
+that rather than the save.
 
 ## The tutorial
 

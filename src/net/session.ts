@@ -16,6 +16,8 @@ export const coop = {
   level: 1,
   /** The seed the whole party generates its dungeon from. */
   seed: 0,
+  /** The host chose hard mode: one chest, the key, no pack. See progress.hard. */
+  hard: false,
   /**
    * Which dungeon this player's score belongs to.
    *
@@ -62,12 +64,14 @@ export function runLevel(soloStage: number): number {
  * The rates are in COOP_KIT rather than here so the whole ramp is one place in
  * config.ts, next to the spawn curve it is meant to keep pace with.
  */
-export function coopKit(level: number): {
+export function coopKit(level: number, hard: boolean): {
   hp: number; potions: number; lanterns: number; whetstones: number;
   ammo: number; swordDur: number; lanternT: number;
 } {
   const n = Math.max(1, Math.round(level));
-  const upTo = (per: number, cap: number): number => Math.min(cap, Math.floor(n / per));
+  // Hard mode's pack is empty, the same as solo: the level ramp is for the
+  // dungeon's difficulty, and hard mode is the difficulty of having nothing.
+  const upTo = (per: number, cap: number): number => (hard ? 0 : Math.min(cap, Math.floor(n / per)));
   return {
     // Full health and a fresh blade at every level: arriving wounded is a
     // consequence of a previous run, and in co-op there is no previous run.

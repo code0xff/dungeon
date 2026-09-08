@@ -26,6 +26,7 @@ const levelRow = el('coopLevelRow');
 const levelEl = el('coopLevel');
 const levelDown = el('coopLevelDown');
 const levelUp = el('coopLevelUp');
+const hardBtn = el('coopHard');
 const startBtn = el('coopStart');
 const formEl = el('coopForm');
 
@@ -83,6 +84,8 @@ function render(): void {
   }
 
   levelEl.textContent = `Level ${net.level}`;
+  hardBtn.textContent = net.hard ? 'Hard' : 'Normal';
+  hardBtn.classList.toggle('on', net.hard);
 
   const waiting = net.players.filter((p) => !p.inRun).length;
   if (net.error) statusEl.textContent = net.error;
@@ -98,7 +101,7 @@ function render(): void {
   } else if (net.host) {
     statusEl.textContent = `You are the host. ${net.players.length}/${MAX_PLAYERS} here.`;
   } else {
-    statusEl.textContent = `Waiting for the host to start. ${net.players.length}/${MAX_PLAYERS} here.`;
+    statusEl.textContent = `Waiting for the host to start level ${net.level}${net.hard ? ' on hard' : ''}. ${net.players.length}/${MAX_PLAYERS} here.`;
   }
 
   // Named by who it takes in, because it does not take everyone: players still
@@ -144,7 +147,7 @@ export function stopWatching(): void {
   el('ovWatch').style.display = 'none';
 }
 
-onNetStart((seed, level) => {
+onNetStart((seed, level, hard) => {
   stopWatching();
   // A player can be in the practice room when the host starts. The room is
   // not the party's dungeon, and buildWorld() would build another room.
@@ -152,6 +155,7 @@ onNetStart((seed, level) => {
   coop.active = true;
   coop.seed = seed;
   coop.level = level;
+  coop.hard = hard;
   // Each dungeon is its own score. Nothing carries between runs, so a total
   // left over from the last one would be the mode's only number, wrong.
   coop.partyGold = 0;
@@ -186,8 +190,9 @@ for (const field of [nameEl, serverEl]) {
   });
 }
 
-levelDown.addEventListener('click', () => setLevel(Math.max(1, net.level - 1)));
-levelUp.addEventListener('click', () => setLevel(Math.min(COOP_MAX_LEVEL, net.level + 1)));
+levelDown.addEventListener('click', () => setLevel(Math.max(1, net.level - 1), net.hard));
+levelUp.addEventListener('click', () => setLevel(Math.min(COOP_MAX_LEVEL, net.level + 1), net.hard));
+hardBtn.addEventListener('click', () => setLevel(net.level, !net.hard));
 startBtn.addEventListener('click', startRun);
 
 export function openLobbyPanel(): void {

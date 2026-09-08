@@ -326,7 +326,7 @@ function spawnChests(scale: number): void {
   // Hard mode: one chest, the key, never trapped. No map to find and nothing
   // else to open — the dungeon is the maze and the creatures, and the key is
   // the only reason to go anywhere in it.
-  if (progress.hard && !coop.active) {
+  if (coop.active ? coop.hard : progress.hard) {
     const [gx, gz] = randomFloorCell(4);
     const c = createChest(20 + ((random() * 60) | 0), false);
     c.mesh.position.set(gx * CELL + (random() - 0.5) * 1.2, 0, gz * CELL + (random() - 0.5) * 1.2);
@@ -502,7 +502,7 @@ export function buildWorld(): void {
   // handed out by level instead, because there is no shop between runs.
   const kit = state.tutorial
     ? { ...TUTORIAL_KIT, hp: MAX_HP, swordDur: SWORD_DUR_MAX, lanternT: 0 }
-    : coop.active ? coopKit(level) : progress;
+    : coop.active ? coopKit(level, coop.hard) : progress;
   state.hp = kit.hp;
   state.runGold = 0;
   state.gameOver = false;

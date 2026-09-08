@@ -122,6 +122,7 @@ interface Player {
 const players = new Map<number, Player>();
 let nextId = 1;
 let level = 1;
+let hard = false;
 let nextRunId = 1;
 
 /**
@@ -249,7 +250,7 @@ function broadcast(msg: ServerMsg): void {
 }
 
 function broadcastLobby(): void {
-  broadcast({ t: 'lobby', players: roster(), level, running: anyInRun() });
+  broadcast({ t: 'lobby', players: roster(), level, hard, running: anyInRun() });
 }
 
 /**
@@ -536,6 +537,7 @@ wss.on('connection', (sock: WebSocket) => {
         // build.
         if (!Number.isFinite(msg.level)) return;
         level = Math.min(COOP_MAX_LEVEL, Math.max(1, Math.round(msg.level)));
+        hard = msg.hard === true;
         broadcastLobby();
         break;
       case 'start': {
@@ -560,7 +562,7 @@ wss.on('connection', (sock: WebSocket) => {
           members: new Set(group.map((p) => p.id)),
         });
         const start: ServerMsg = {
-          t: 'start', seed: roll, level, runId,
+          t: 'start', seed: roll, level, hard, runId,
           players: group.map((p) => ({ id: p.id, name: p.name, host: p.host, inRun: true, runId })),
         };
         // Sent only to the group. Broadcasting it would drag players out of the
@@ -568,7 +570,7 @@ wss.on('connection', (sock: WebSocket) => {
         for (const p of group) send(p.sock, start);
         recomputeHost();
         broadcastLobby();
-        console.log(`[coop] run ${runId}: seed ${roll}, level ${level}, ${group.length} players`);
+        console.log(`[coop] run ${runId}: seed ${roll}, level ${level}${hard ? ' hard' : ''}, ${group.length} players`);
         break;
       }
       default:

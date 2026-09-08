@@ -37,6 +37,9 @@ does not simulate.
 
 ## The mode
 
+- **The host picks the mode as well as the level.** Hard mode travels with
+  the start message: one chest with the key, no pack items in the kit, the
+  same as solo hard. It is the run's mode, not anyone's save.
 - **No stages, no bank, no carried save.** A player brings nothing in and takes
   nothing out. `progress.ts` is untouched by co-op — solo progression and co-op
   never read each other.

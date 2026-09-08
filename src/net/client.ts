@@ -20,6 +20,7 @@ export interface NetState {
   host: boolean;
   players: LobbyPlayer[];
   level: number;
+  hard: boolean;
   /** True while at least one player is inside a dungeon, us or not. */
   running: boolean;
   /** Which dungeon we are in, 0 when we are not in one. */
@@ -29,7 +30,7 @@ export interface NetState {
 }
 
 export const net: NetState = {
-  phase: 'offline', id: 0, host: false, players: [], level: 1, running: false, runId: 0, error: '',
+  phase: 'offline', id: 0, host: false, players: [], level: 1, hard: false, running: false, runId: 0, error: '',
 };
 
 let sock: WebSocket | null = null;
@@ -43,13 +44,13 @@ let sock: WebSocket | null = null;
  */
 const changeListeners: (() => void)[] = [];
 /** Called on the host's go, with the seed and level to build from. */
-let onStart: ((seed: number, level: number, players: LobbyPlayer[]) => void) | null = null;
+let onStart: ((seed: number, level: number, hard: boolean, players: LobbyPlayer[]) => void) | null = null;
 
 export function onNetChange(fn: () => void): void {
   changeListeners.push(fn);
 }
 
-export function onNetStart(fn: (seed: number, level: number, players: LobbyPlayer[]) => void): void {
+export function onNetStart(fn: (seed: number, level: number, hard: boolean, players: LobbyPlayer[]) => void): void {
   onStart = fn;
 }
 
@@ -216,6 +217,7 @@ export function connect(server: string, name: string): void {
       case 'lobby': {
         net.players = msg.players;
         net.level = msg.level;
+        net.hard = msg.hard === true;
         net.running = msg.running;
         // The roster is the authority on whether we are still underground. The
         // host clears it when we report a death, and reading it back here is
@@ -263,10 +265,11 @@ export function connect(server: string, name: string): void {
       case 'start':
         net.phase = 'run';
         net.level = msg.level;
+        net.hard = msg.hard === true;
         net.players = msg.players;
         net.runId = msg.runId;
         changed();
-        onStart?.(msg.seed, msg.level, msg.players);
+        onStart?.(msg.seed, msg.level, net.hard, msg.players);
         break;
     }
   });
@@ -337,8 +340,8 @@ export function isAuthority(): boolean {
 
 
 /** Host only; ignored by the server otherwise. */
-export function setLevel(level: number): void {
-  send({ t: 'level', level });
+export function setLevel(level: number, hard: boolean): void {
+  send({ t: 'level', level, hard });
 }
 
 /** Host only; ignored by the server otherwise. */

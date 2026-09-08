@@ -51,7 +51,7 @@
  * cannot read, which here would have meant every party total discarded by a
  * filter reading a field the sender never sent.
  */
-export const PROTOCOL_VERSION = 10;
+export const PROTOCOL_VERSION = 11;
 
 /** The port the host listens on for both the game page and the socket. */
 export const COOP_PORT = 5848;
@@ -100,10 +100,12 @@ export interface CJoin {
   name: string;
 }
 
-/** Host only. Sets the level the next run is generated at. */
+/** Host only. Sets the level and the mode the next run is generated at. */
 export interface CLevel {
   t: 'level';
   level: number;
+  /** Hard mode: one chest with the key, no pack items. See progress.hard. */
+  hard: boolean;
 }
 
 /** Host only. Takes everyone waiting in the lobby into a new dungeon. */
@@ -306,6 +308,7 @@ export interface SLobby {
   t: 'lobby';
   players: LobbyPlayer[];
   level: number;
+  hard: boolean;
   /** True while at least one player is inside a dungeon. */
   running: boolean;
 }
@@ -320,6 +323,7 @@ export interface SStart {
   t: 'start';
   seed: number;
   level: number;
+  hard: boolean;
   /** Who went in. Only players who were waiting in the lobby are sent this. */
   players: LobbyPlayer[];
   /**

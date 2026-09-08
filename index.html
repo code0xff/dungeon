@@ -238,6 +238,9 @@
   .coopField input:focus { outline:none; border-color:rgba(212,178,90,.5); }
   .coopLevelRow { display:none; align-items:center; justify-content:center; gap:16px; margin-top:14px;
                   font-family:var(--display); font-size:13px; letter-spacing:2px; }
+  /* The mode sits on the level row: the two things the host sets, together. */
+  .coopMode { width:auto; padding:0 12px; font-family:var(--display); font-size:11px; letter-spacing:.12em; text-transform:uppercase; }
+  .coopMode.on { border-color:rgba(196,86,64,.75); color:#e0a08e; }
   .coopStep { width:32px; height:32px; border-radius:2px; font-size:16px; line-height:1;
               border:1px solid rgba(201,192,174,.28); background:rgba(30,28,25,.9); color:var(--ink);
               cursor:pointer; }
@@ -583,11 +586,12 @@
       <button class="coopStep" id="coopLevelDown">-</button>
       <span id="coopLevel">Level 1</span>
       <button class="coopStep" id="coopLevelUp">+</button>
+      <button class="coopStep coopMode" id="coopHard">Normal</button>
     </div>
     <button class="menuItem" id="coopStart">Start the run</button>
     <p class="guideNote" id="coopStatus"></p>
     <p class="guideNote">Nothing carries in or out of a multiplayer run — no bank, no gear.
-      The host picks the level and everyone is outfitted for it.</p>
+      The host picks the level and the mode, and everyone is outfitted for it.</p>
   </div>
   <button id="coopClose">Back</button>
 </div>
