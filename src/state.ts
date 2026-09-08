@@ -45,6 +45,12 @@ export const state = {
    * lesson cannot kill you.
    */
   tutorial: false,
+  /**
+   * Which lesson is up, as an index into tutorial.ts's list. Read by the
+   * things a lesson unlocks — the musket, the potion, the lantern — so they
+   * cannot be used before they are taught. Meaningless outside the tutorial.
+   */
+  tutorialStep: 0,
   /** The guide is open. The frame loop still renders, it just stops advancing. */
   paused: false,
   /**

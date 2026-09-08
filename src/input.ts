@@ -10,6 +10,7 @@ import { state } from './state';
 import { tryAttack } from './combat';
 import { startLoot, useLantern, usePotion, useWhetstone } from './loot';
 import { toggleView } from './view';
+import { STEP, taught } from './tutorial';
 import {
   atkBtn, dashBtn, guardBtn, lampBtn, lockHintEl, lootBtn, potBtn, showMsg,
   soundBtn, viewBtn, whetBtn, wpnBtn,
@@ -101,7 +102,7 @@ addEventListener('keydown', (e) => {
   // Keep Q working on a Korean keyboard layout, where it types ㅂ.
   if (e.code === 'KeyQ' || e.key === 'q' || e.key === 'Q' || e.key === 'ㅂ') toggleWeapon();
   if (e.code === 'Digit1') setWeapon('sword');
-  if (e.code === 'Digit2' && state.hasMusket) setWeapon('musket');
+  if (e.code === 'Digit2' && state.hasMusket && taught(STEP.musket)) setWeapon('musket');
   // Matched on e.key as well as e.code so the digits still work on a numpad.
   if (e.code === `Digit${POTION_KEY}` || e.key === POTION_KEY) usePotion();
   if (e.code === `Digit${LANTERN_KEY}` || e.key === LANTERN_KEY) useLantern();

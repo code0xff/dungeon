@@ -10,6 +10,7 @@ import { state } from './state';
 import type { Chest } from './types';
 import { drinkBarEl, drinkFillEl, lootBarEl, minimapEl, objectiveEl, showMsg, updateHUD, wpnBtn } from './ui';
 import { setWeapon, startReload } from './weapons';
+import { STEP, taught } from './tutorial';
 
 export function startLoot(): void {
   if (state.gameOver || !state.nearChest || state.looting) return;
@@ -118,6 +119,7 @@ export function openChest(c: Chest): void {
  */
 export function usePotion(): void {
   if (state.gameOver) return;
+  if (!taught(STEP.potion)) return;
   if (state.drinkT >= 0) return;
   if (state.potions <= 0) return showMsg('No potions');
   if (state.hp >= MAX_HP) return showMsg('Already at full health');
@@ -164,6 +166,7 @@ export function useWhetstone(): void {
 
 export function useLantern(): void {
   if (state.gameOver) return;
+  if (!taught(STEP.lantern)) return;
   if (state.lanterns <= 0) return showMsg('No lanterns');
   if (state.lanternT >= LANTERN_FUEL) return showMsg('The lantern is already full');
   state.lanterns--;

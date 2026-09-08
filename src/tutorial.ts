@@ -115,6 +115,23 @@ let staggerSeen = false;
 
 const far = TUTORIAL_ROOM - 2;
 
+/**
+ * The lessons by index, for the things they unlock. Kept in step with the
+ * list below by hand; the order is the lesson.
+ */
+export const STEP = { move: 0, sword: 1, musket: 2, dodge: 3, lunge: 4, parry: 5, potion: 6, lantern: 7, chest: 8, done: 9 } as const;
+
+/**
+ * Whether a thing a lesson teaches may be used yet. Everything is allowed
+ * outside the room; inside it, only what has been taught — a potion drunk
+ * before the potion lesson is a potion the lesson cannot then ask for.
+ */
+export function taught(step: number): boolean {
+  if (!state.tutorial || state.tutorialStep >= step) return true;
+  showMsg('Not yet — that comes later in the lesson');
+  return false;
+}
+
 const LESSONS: Lesson[] = [
   {
     text: touch
@@ -216,6 +233,7 @@ const LESSONS: Lesson[] = [
 
 function show(i: number): void {
   step = i;
+  state.tutorialStep = i;
   const l = LESSONS[i];
   textEl.textContent = l.text;
   l.enter?.();

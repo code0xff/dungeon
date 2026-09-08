@@ -2,6 +2,7 @@ import { handShield, musket, sword } from './scene';
 import { state } from './state';
 import type { WeaponKind } from './types';
 import { crosshairEl, reloadBarEl, showMsg, updateHUD } from './ui';
+import { STEP, taught } from './tutorial';
 
 export function setWeapon(w: WeaponKind): void {
   state.weapon = w;
@@ -28,6 +29,7 @@ export function setWeapon(w: WeaponKind): void {
 
 export function toggleWeapon(): void {
   if (state.gameOver) return;
+  if (!taught(STEP.musket)) return;
   if (!state.hasMusket) {
     showMsg('No musket — search the chests');
     return;
