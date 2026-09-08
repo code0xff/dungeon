@@ -51,7 +51,7 @@
  * cannot read, which here would have meant every party total discarded by a
  * filter reading a field the sender never sent.
  */
-export const PROTOCOL_VERSION = 9;
+export const PROTOCOL_VERSION = 10;
 
 /** The port the host listens on for both the game page and the socket. */
 export const COOP_PORT = 5848;

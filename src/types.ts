@@ -6,7 +6,7 @@ export type Maze = number[][];
 export type GridCell = readonly [x: number, z: number];
 
 // ================= Creatures =================
-export type CreatureKey = 'zombie' | 'brute' | 'lunatic' | 'blackknight';
+export type CreatureKey = 'zombie' | 'brute' | 'lunatic' | 'orc' | 'blackknight';
 /**
  * guard and stagger are optional in a way the first four are not: a creature
  * without them plays idle for the one and the procedural lean for the other.

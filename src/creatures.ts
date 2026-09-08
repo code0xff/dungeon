@@ -120,7 +120,13 @@ export const MAKERS: Record<CreatureKey, () => ProceduralCreature> = {
     skin: 0xd8d2c4, rag: 0x6b2230, eye: 0xff2a2a,
     size: 0.96, bulk: 0.78, hunch: 0.55, armBase: [-0.9, -0.9], limp: 1, shackle: false,
   }),
-  // Upright, broad and near-black, with the reddest eyes of the four: without
+  // Broad, green and a little hunched, a head over the zombie: the box has to
+  // read as "bigger and coming faster" with no texture to say orc.
+  orc: () => makeHumanoid({
+    skin: 0x4f6b3a, rag: 0x2a2118, eye: 0xffd040,
+    size: 1.15, bulk: 1.3, hunch: 0.22, armBase: [-0.5, -0.5], limp: 1, shackle: false,
+  }),
+  // Upright, broad and near-black, with the reddest eyes of the five: without
   // a texture the silhouette has to say "the one that stands like a man".
   blackknight: () => makeHumanoid({
     skin: 0x1a1a1f, rag: 0x0c0c10, eye: 0xff2020,

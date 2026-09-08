@@ -55,6 +55,7 @@ dungeon/
    ├─ creatures/zombie/     idle.glb  walk.glb  attack.glb  death.glb  stagger.glb
    ├─ creatures/brute/      idle.glb  walk.glb  attack.glb  death.glb  stagger.glb
    ├─ creatures/lunatic/    idle.glb  walk.glb  attack.glb  death.glb  stagger.glb
+   ├─ creatures/orc/        idle.glb  walk.glb  attack.glb  death.glb  stagger.glb
    ├─ creatures/knight/     the player's body, other players, and the Black Knight — all seven clips
    ├─ weapons/              sword.glb  musket.glb
    ├─ props/                chest.glb  lantern.glb
@@ -67,7 +68,7 @@ dungeon/
       └─ floor/             diffuse.webp  normal.webp  rough.webp
 ```
 
-Four creatures, each built around one idea. Without a creature's files the game
+Five creatures, each built around one idea. Without a creature's files the game
 falls back to a box model for it.
 
 | | HP | Damage | Speed | Notices you | Reward | Stage 1 → 12 |
@@ -75,13 +76,19 @@ falls back to a box model for it.
 | **Zombie** | 4 | 17 | 2.9 | 13m | 8-16 G | 12 → 49 |
 | **Brute** | 9 | 32 | 2.0 | 13m | 36-74 G | 1 → 29 |
 | **Lunatic** | 3 | 14 | 4.5 | 18m | 20-40 G | 1 → 29 |
-| **Black Knight** | 10 | 26 | 3.4 | 16m | 78-162 G | 0 → 5, from stage 3 |
+| **Orc** | 10 | 28 | 3.9 | 16m | 72-148 G | 0 → 5, from stage 3 |
+| **Black Knight** | 16 | 34 | 3.6 | 17m | 130-270 G | 0 → 4, from stage 5 |
+
+The orc is the brute's hits at nearly the lunatic's pace: the first thing that
+can neither be walked away from nor traded with, and no trick to it — parry it,
+lunge it, or leave early.
 
 The Black Knight wears the player's own body and carries a shield: it blocks
-70% of anything that comes at its front, holds the guard when it is not
+75% of anything that comes at its front, holds the guard when it is not
 swinging, and drops it while staggered — so it is the one creature that has to
-be parried or flanked rather than out-traded. It arrives at stage 3, once the
-shield has been learned on things that do not have one.
+be parried or flanked rather than out-traded. Three clean parries kill it, and
+each one missed costs a third of your health. It arrives at stage 5, after the
+orc has taught the parry on something that does not block.
 
 **The dungeon grows as well as filling up.** Stage 1 is a 76m maze with 14
 creatures in it; by stage 12 it is 124m and 109, where both stop. Dungeons are

@@ -16,6 +16,9 @@ export const CREATURE_ASSETS: Record<CreatureKey, CreatureAsset> = {
   brute: { dir: 'creatures/brute', height: 2.35 },
   // WhiteClown. Its walk slot holds a sprint, not a walk — see TYPES.lunatic.
   lunatic: { dir: 'creatures/lunatic', height: 1.78 },
+  // A head over the zombie and broad with it: the silhouette has to say
+  // "not a zombie" before the lantern reaches its face.
+  orc: { dir: 'creatures/orc', height: 2.1 },
   // The player's own body, loaded a second time under its own key and darkened
   // at spawn (BLACK_KNIGHT_SHADE). Loaded twice rather than shared because the
   // loader keys everything — clips, walk speed, materials — by creature, and
@@ -1055,31 +1058,60 @@ export const TYPES: Record<CreatureKey, CreatureType> = {
    * ball. Meeting one should be a scramble that is over quickly either way,
    * not a fight.
    *
-   * aggro 14 is the highest of the three and is the real weapon — it notices the
+   * aggro 18 is the highest in here and is the real weapon — it notices the
    * player from beyond the reach of the lantern, so the first warning is the
    * sound of one already coming.
    */
+  /**
+   * The orc. Stage 3 and up: the brute's hits at nearly the lunatic's pace, and
+   * the first thing in the dungeon that cannot be walked away from *or* traded
+   * with.
+   *
+   * These are the Black Knight's old numbers, less the shield. It held this
+   * slot — strong, quick, no trick to it — until it was made the thing the
+   * shield is for, and the slot was worth keeping: a run needs one creature
+   * that is simply dangerous before it meets one that is dangerous *and* has
+   * to be read. hp 10 is eleven swings from a fresh blade or three musket
+   * balls, dmg 28 is four hits to die from full, speed 3.9 is under the
+   * player's 5.2 but not by enough to open distance in a corridor. The answer
+   * is the parry, the lunge (5.52 leaves it on 4.5 — one more lunge or five
+   * swings), or the corridor behind you *early*.
+   *
+   * clearance 1.35 is a guess between the zombie's measured 1.15 and the
+   * brute's 1.6; the orc's attack clip has not been stepped through the way
+   * theirs were.
+   */
+  orc: {
+    name: 'Orc',
+    hp: 10, dmg: 28, speed: 3.9, atkCd: 0.9, attackSpeed: 2.0,
+    reach: 2.0, r: 0.55, clearance: 1.35, reward: 110, aggro: 16,
+    groan: [5, 9], voice: 0.7,
+    animSpeed: 5, swing: 0.45,
+  },
   /**
    * The Black Knight. Stage 5 and up, and the reason a run stops being about
    * numbers.
    *
    * Everything else in here is beaten by hitting it more. This one blocks:
-   * `block` 0.7 means a swing from its front does 30% — a fresh blade does 0.3
-   * of its 10 hp, and a lunge 1.66, so there is no front-on fight to be had.
-   * The shield drops while it is staggered or mid-swing, and a parry does both:
-   * it staggers the knight *and* opens the lunge window, so the fight is bait
-   * the swing, parry it, lunge into the open body for 5.52 — twice. Or get
-   * behind it. Or shoot it in the back three times. What it is not is a sponge.
+   * `block` 0.75 means a swing from its front does a quarter — a fresh blade
+   * does 0.25 of its 16 hp, and a lunge 1.38, so there is no front-on fight
+   * to be had at all. The shield drops while it is staggered or mid-swing, and
+   * a parry does both: it staggers the knight *and* opens the lunge window, so
+   * the fight is bait the swing, parry it, lunge into the open body for 5.52 —
+   * three times. Or get behind it for sixteen swings. Or four musket balls in
+   * the back. What it is not is a sponge: every one of those is a route, and
+   * the parry route is the one it teaches.
    *
-   * hp 10 rather than more, because the block already makes it take four to
-   * five times longer to kill head-on than a brute, and adding hp on top would
-   * turn "learn the parry" into "learn the parry and then do it eight times".
-   *
-   * dmg 26 is under the brute's 32 and the swing is faster (the knight's clip
-   * is 1.56s at attackSpeed 2 — 0.78s), so it is the swing you have to actually
-   * read rather than the one you have to survive. speed 3.4 is well over the
-   * zombie's 2.9 and under the player's 5.2: it can be walked away from, not
-   * walked past. reward 120 because two clean parries deserve it.
+   * It was hp 10 at 0.7 block and dmg 26, and at that it was a brute with a
+   * trick — two parries and it was over, and once the parry was learned it
+   * was not the creature the run was about. hp 16 and 0.75 make it three
+   * clean parries, and dmg 34 — over the brute's 32 — means each one missed is
+   * a third of your health, so the timing has to be learned rather than mashed.
+   * The swing is faster than the brute's (the knight's clip is 1.56s at
+   * attackSpeed 2 — 0.78s), so it is the swing you have to actually read.
+   * speed 3.6 is over the zombie's 2.9 and under the player's 5.2: it can be
+   * walked away from, not walked past. reward 200 because three clean parries
+   * deserve it.
    *
    * clearance 1.3 is a guess between the zombie's measured 1.15 and the brute's
    * 1.6, not a measurement — the knight's attack clip has not been stepped
@@ -1087,11 +1119,11 @@ export const TYPES: Record<CreatureKey, CreatureType> = {
    */
   blackknight: {
     name: 'Black Knight',
-    hp: 10, dmg: 26, speed: 3.4, atkCd: 1.1, attackSpeed: 2.0,
-    reach: 1.9, r: 0.5, clearance: 1.3, reward: 120, aggro: 16,
+    hp: 16, dmg: 34, speed: 3.6, atkCd: 1.0, attackSpeed: 2.0,
+    reach: 1.9, r: 0.5, clearance: 1.3, reward: 200, aggro: 17,
     groan: [7, 13], voice: 0.62,
     animSpeed: 3.6, swing: 0.4,
-    block: 0.7,
+    block: 0.75,
   },
   lunatic: {
     name: 'Lunatic',
@@ -1139,13 +1171,20 @@ export const SPAWN: Readonly<Record<CreatureKey, SpawnRate>> = {
   lunatic: { base: 4, perStage: 2.4 },
   brute: { base: 2, perStage: 2.6 },
   /**
-   * One at stage 3, one more every two stages, five and a half at the peak —
-   * and none at all before 3. It counts from fromStage, so the number does not
-   * have to be smuggled in as a negative base. It started at 5; by then the
-   * player has met everything else twice over and the one creature that
-   * demands the shield was arriving after the shield had been learned.
+   * The orc takes the stage-3 slot the Black Knight briefly held: one at 3,
+   * one more every two stages, five and a half at the peak. It is the first
+   * creature that is simply dangerous, and it arrives once the shield has been
+   * learned on things that do not punish a missed parry this hard.
    */
-  blackknight: { base: 1, perStage: 0.5, fromStage: 3 },
+  orc: { base: 1, perStage: 0.5, fromStage: 3 },
+  /**
+   * One at stage 5, one more every two stages, four and a half at the peak —
+   * and none at all before 5. It counts from fromStage, so the number does not
+   * have to be smuggled in as a negative base. It was moved to 3 for a while;
+   * with the orc holding that stage it goes back to being the thing the orc
+   * prepares you for.
+   */
+  blackknight: { base: 1, perStage: 0.5, fromStage: 5 },
 };
 /**
  * Stage at which the counts stop growing.
