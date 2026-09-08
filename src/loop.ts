@@ -6,7 +6,7 @@ import {
   DASH_ROLL, DASH_SPEED, DASH_TIME, EYE_H, GROUND_SPEED_SMOOTH,
   FALLBACK_ATTACK_TIME, GEAR_BOB, GEAR_BOB_ROLL, LAMP_SWAY, LAMP_SWAY_LAG,
   CREATURE_PUSH, GUARD_RAISE, GUARD_SLOW, LANTERN_WARN, SWING_SLOW, LOOT_TIME, MUSKET_RELOAD, PLAYER_R,
-  PORTAL_RADIUS, POTION_DRINK, STAGGER_LEAN, STAGGER_TIME, staggerSpeed,
+  PORTAL_RADIUS, POTION_DRINK, STAGGER_LEAN, STAGGER_LEAN_ACTED, STAGGER_TIME, staggerSpeed,
   SPEED,
   TRAP_RADIUS,
   STRIDE_RATE,
@@ -380,10 +380,10 @@ function updateMonsters(dt: number, now: number): number {
       m.alert = Math.max(0, m.alert - dt);
       m.groanT -= dt;
       const k = m.staggerT / STAGGER_TIME;
-      // The lean is the fallback for a body with no stagger clip. Tilting a body
-      // that is already acting out its own stumble would fold it in half.
+      // A body with a stagger clip acts the stumble out and keeps a reduced
+      // lean under it; one without gets the full lean. See STAGGER_LEAN_ACTED.
       const acted = !!m.playback?.clips.stagger;
-      m.mesh.rotation.x = acted ? 0 : -STAGGER_LEAN * k * k;
+      m.mesh.rotation.x = -STAGGER_LEAN * (acted ? STAGGER_LEAN_ACTED : 1) * k * k;
       const push = staggerPush(m, dt);
       const nx = m.mesh.position.x + m.staggerX * push;
       const nz = m.mesh.position.z + m.staggerZ * push;
@@ -540,7 +540,7 @@ function animFollowed(m: Monster, pb: MonsterPlayback, dt: number, anim: number 
       if (anim === ANIM_STAGGER_START) {
         setAnim(pb, 'stagger', { loop: false, force: true, fade: 0.06, speed: staggerSpeed(pb.clips.stagger.duration) });
       }
-      m.mesh.rotation.x = 0;
+      m.mesh.rotation.x = -STAGGER_LEAN * STAGGER_LEAN_ACTED * 0.6;
     } else {
       m.mesh.rotation.x = -STAGGER_LEAN * 0.6;
     }

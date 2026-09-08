@@ -652,6 +652,18 @@ export const STAGGER_TIME = 1.2;
 export const staggerSpeed = (clipDuration: number): number => Math.max(1, clipDuration / STAGGER_TIME);
 /** How far back a staggered creature rocks, in radians. Eases back over STAGGER_TIME. */
 export const STAGGER_LEAN = 0.52;
+/**
+ * The lean kept under a body that has a stagger clip, as a fraction of
+ * STAGGER_LEAN.
+ *
+ * The clip is a hit reaction — 25° at the hips, 27° at the head, the rest in
+ * the arms — and in a dark corridor at three metres that is not a stumble, it
+ * is a shrug. Switching the lean off entirely when the clips arrived made the
+ * parry look like it had stopped working. Half of it, under the clip, gives
+ * the whole-body rock back that reads at a distance, without folding the body
+ * in half the way the full lean on top of the clip did.
+ */
+export const STAGGER_LEAN_ACTED = 0.5;
 /** How far it is knocked back, in metres. */
 export const STAGGER_PUSH = 0.9;
 

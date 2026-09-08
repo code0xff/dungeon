@@ -299,8 +299,11 @@
      reach apart instead of one being a stack away. Everything shrank to make
      room for that without pushing the item column into the move stick, which is
      at left:24px and 114px wide. */
-  #atkBtn { right:calc(24px + env(safe-area-inset-right)); width:74px; height:74px;
-            bottom:calc(30px + env(safe-area-inset-bottom));
+  /* 88px: the one button hit in a hurry, so it gets the most thumb. It grows
+     into the corner — guard above and dodge inboard keep their positions, so
+     the reach between the three does not change. */
+  #atkBtn { right:calc(18px + env(safe-area-inset-right)); width:88px; height:88px;
+            bottom:calc(22px + env(safe-area-inset-bottom));
             border:1px solid rgba(184,74,66,.55); color:#e8cfc6;
             background:radial-gradient(circle at 50% 32%, rgba(150,48,44,.62), rgba(74,22,20,.5) 72%);
             box-shadow:0 6px 22px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,190,175,.16); }
@@ -352,7 +355,7 @@
               box-shadow:0 5px 18px rgba(0,0,0,.45); }
   #guardBtn.on { border-color:rgba(190,215,245,.95); background:radial-gradient(circle at 50% 32%, rgba(76,116,170,.8), rgba(28,44,68,.6) 72%); }
   #guardBtn .ico { width:19px; height:19px; }
-  #dashBtn { right:calc(108px + env(safe-area-inset-right)); bottom:calc(34px + env(safe-area-inset-bottom));
+  #dashBtn { right:calc(114px + env(safe-area-inset-right)); bottom:calc(34px + env(safe-area-inset-bottom));
              width:58px; height:58px; border:1px solid rgba(140,170,210,.5); color:#c3d6ee;
              background:radial-gradient(circle at 50% 32%, rgba(46,74,116,.6), rgba(18,28,44,.5) 72%);
              box-shadow:0 5px 18px rgba(0,0,0,.45); }
