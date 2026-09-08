@@ -349,6 +349,15 @@ function spawnChests(scale: number): void {
   }
 }
 
+/** One chest, placed by hand. The tutorial's; the dungeon rolls its own above. */
+export function placeChest(wx: number, wz: number, item: ItemKind | null, trapped: boolean): void {
+  const c = createChest(20, trapped);
+  c.mesh.position.set(wx, 0, wz);
+  c.mesh.rotation.y = Math.atan2(state.pos.x - wx, state.pos.z - wz);
+  scene.add(c.mesh);
+  state.chests.push({ ...c, item });
+}
+
 /**
  * Traps, on their own claimed cells so nothing else sits on top of one.
  *

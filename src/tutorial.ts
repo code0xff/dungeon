@@ -3,11 +3,10 @@ import {
   TUTORIAL_POTION_HP, TUTORIAL_ROOM,
 } from './config';
 import { el } from './dom';
-import { setPortalOpen } from './scene';
 import { state } from './state';
 import type { Monster } from './types';
 import { objectiveEl, showMsg, updateHUD } from './ui';
-import { buildWorld, spawnAt } from './world';
+import { buildWorld, placeChest, spawnAt } from './world';
 
 /**
  * The lesson: one open room, one thing at a time.
@@ -184,11 +183,17 @@ const LESSONS: Lesson[] = [
     done: () => state.lanternT > 0,
   },
   {
-    text: 'That is all of it. The portal is open — walk in for stage 1.',
+    text: touch
+      ? 'A chest, and the key is in it. Stand beside it and hold Open — walk away and the lid stays shut. Every lid creaks, and things hear it.'
+      : 'A chest, and the key is in it. Stand beside it and hold E — walk away and the lid stays shut. Every lid creaks, and things hear it.',
     enter: () => {
-      state.hasKey = true;
-      setPortalOpen(true);
+      const mid = ((TUTORIAL_ROOM - 1) / 2) * CELL;
+      placeChest(mid, mid, 'key', false);
     },
+    done: () => state.hasKey,
+  },
+  {
+    text: 'That is all of it. The portal is open — walk in for stage 1.',
     done: () => false,
   },
 ];

@@ -149,7 +149,8 @@ rules, with the detail in [docs/](docs/). `CLAUDE.md` is a symlink to it.
 
 **The first visit opens on a tutorial**: one room, one lesson at a time —
 move, the sword, the musket, the dodge, the lunge, the parry, the potion, the
-lantern — each on a real zombie, and the portal at the end leads to stage 1.
+lantern, a chest with the key in it — each on a real zombie or a real chest,
+and the portal at the end leads to stage 1.
 Skip is always on screen; the menu can start it again, and a checkbox there
 stops new games opening on it. Nothing done in the room counts, and nothing in
 it can kill you.
