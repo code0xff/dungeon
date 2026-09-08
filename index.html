@@ -348,14 +348,16 @@
   #potBtn { right:calc(262px + env(safe-area-inset-right)); }
   /* Directly above attack. Guarding is a reflex like dodging, so it sits one
      short reach from where the thumb already rests rather than up a stack. */
-  #guardBtn { right:calc(31px + env(safe-area-inset-right)); bottom:calc(112px + env(safe-area-inset-bottom));
+  #guardBtn { right:calc(32px + env(safe-area-inset-right)); bottom:calc(116px + env(safe-area-inset-bottom));
               width:60px; height:60px; font-size:9px;
               border:1px solid rgba(140,170,210,.5); color:#c3d6ee;
               background:radial-gradient(circle at 50% 32%, rgba(46,74,116,.6), rgba(18,28,44,.5) 72%);
               box-shadow:0 5px 18px rgba(0,0,0,.45); }
   #guardBtn.on { border-color:rgba(190,215,245,.95); background:radial-gradient(circle at 50% 32%, rgba(76,116,170,.8), rgba(28,44,68,.6) 72%); }
   #guardBtn .ico { width:19px; height:19px; }
-  #dashBtn { right:calc(114px + env(safe-area-inset-right)); bottom:calc(34px + env(safe-area-inset-bottom));
+  /* Guard and dodge sit at the same 80px centre-to-centre from attack — straight
+     up and straight inboard — so the two reflexes are the same thumb move. */
+  #dashBtn { right:calc(113px + env(safe-area-inset-right)); bottom:calc(37px + env(safe-area-inset-bottom));
              width:58px; height:58px; border:1px solid rgba(140,170,210,.5); color:#c3d6ee;
              background:radial-gradient(circle at 50% 32%, rgba(46,74,116,.6), rgba(18,28,44,.5) 72%);
              box-shadow:0 5px 18px rgba(0,0,0,.45); }
