@@ -407,10 +407,12 @@ async function loadCreature(key: string, cfg: CreatureAsset): Promise<string> {
   // Every clip is a separate download, idle included — it is the one that also
   // carries the body.
   const clips: Clips = {};
-  if (base.animations[0]) clips.idle = base.animations[0];
+  const idle = fullestClip(base.animations);
+  if (idle) clips.idle = idle;
   for (const name of CLIP_NAMES.slice(1) as ClipName[]) {
     const r = await tryLoadModel(`${cfg.dir}/${name}`);
-    if (r?.animations[0]) clips[name] = r.animations[0];
+    const clip = r && fullestClip(r.animations);
+    if (clip) clips[name] = clip;
   }
   for (const clip of Object.values(clips)) normalizeTrackNames(clip);
 
@@ -627,6 +629,21 @@ export function gait(pb: MonsterPlayback, speed: number, maxScale: number): { cl
   const run = speed > RUN_AT && !!pb.clips.run;
   const authored = run ? (pb.runClipSpeed ?? WALK_CLIP_SPEED * 2.5) : (pb.walkClipSpeed ?? WALK_CLIP_SPEED);
   return { clip: run ? 'run' : 'walk', scale: Math.max(0.5, Math.min(maxScale, speed / authored)) };
+}
+
+/**
+ * The clip that drives the most bones, when a file carries more than one.
+ *
+ * A Mixamo FBX sometimes ships a second animation beside the one downloaded —
+ * the orc's idle came with a 26-track upper-body clip in front of the real
+ * 52-track idle. `animations[0]` was that, and for the seconds it played the
+ * legs and hips sat in the bind pose: a T-pose that came and went. The one
+ * with the most tracks is the one that was asked for.
+ */
+function fullestClip(animations: THREE.AnimationClip[]): THREE.AnimationClip | null {
+  let best: THREE.AnimationClip | null = null;
+  for (const a of animations) if (!best || a.tracks.length > best.tracks.length) best = a;
+  return best;
 }
 
 export function clipDuration(pb: MonsterPlayback, name: ClipName): number | null {

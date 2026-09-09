@@ -66,6 +66,9 @@ const repairCost = (): number =>
 
 const healCost = (): number => atStage((MAX_HP - progress.hp) * SHOP.healPerPoint);
 
+/** "2.5", not "3": LANTERN_FUEL is 150s and rounding it up promised half a minute the lantern does not have. */
+const lanternMinutes = (): string => String(Math.round((LANTERN_FUEL / 60) * 10) / 10);
+
 /**
  * Two groups: the things done to you here, once — wounds bound, blade
  * repaired — and then the things carried into the dungeon.
@@ -121,7 +124,7 @@ const STOCK: Stock[] = [
     id: 'Lantern',
     soft: true,
     name: 'Lantern oil',
-    held: () => `${progress.lanterns} held  ·  ${Math.round(LANTERN_FUEL / 60)} min`,
+    held: () => `${progress.lanterns} held  ·  ${lanternMinutes()} min`,
     price: () => atStage(SHOP.lantern),
     buy: () => {
       progress.lanterns++;
@@ -169,7 +172,7 @@ const rows = STOCK.map((item) => {
  * button that was not a single clean figure and left the column looking ragged
  * next to "60 G" and "90 G". The batch size is a property of what you are
  * buying, not of the price, so it sits with the rest of that — beside "+35 HP"
- * and "3 min" in the held column.
+ * and "2.5 min" in the held column.
  *
  * The word "Buy" is gone for a related reason: the row already names the item
  * and the button already looks like a button, so it only made the widest label
