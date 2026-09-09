@@ -93,10 +93,18 @@ interface Lesson {
   refill?: () => void;
 }
 
-/** Where a lesson's zombie stands up: across the room from the door. */
-function zombieAt(cx: number, cz: number): Monster {
+/**
+ * Where a lesson's zombie stands up, in cells. Within torchlight of the door
+ * — the torch reaches 11m and the room is 20 across, so a zombie in the far
+ * corner is a zombie the player cannot see and does not know to walk toward.
+ *
+ * `pinned` roots it: it still turns, still swings when the player is in
+ * reach, but does not close. The first zombie is a target, not a fight.
+ */
+function zombieAt(cx: number, cz: number, pinned = false): Monster {
   const m = spawnAt('zombie', cx * CELL, cz * CELL);
   m.mesh.rotation.y = Math.atan2(state.pos.x - m.mesh.position.x, state.pos.z - m.mesh.position.z);
+  if (pinned) m.speedMul = 0;
   return m;
 }
 
@@ -112,8 +120,6 @@ let wasLungeHit = false;
 let lunged = false;
 let parried = false;
 let staggerSeen = false;
-
-const far = TUTORIAL_ROOM - 2;
 
 /**
  * The lessons by index, for the things they unlock. Kept in step with the
@@ -141,26 +147,32 @@ const LESSONS: Lesson[] = [
       walked = 0;
       lastX = state.pos.x;
       lastZ = state.pos.z;
+      // Standing there from the first frame, in front of the door, rooted: a
+      // room with something in it, and the next lesson's target already seen.
+      current = zombieAt(2.5, 2.5, true);
     },
     done: () => walked >= TUTORIAL_MOVE_DIST,
   },
   {
     text: touch
-      ? 'A zombie. Tap the red button to swing the sword until it drops.'
-      : 'A zombie. Swing the sword — click, or Space — until it drops.',
-    enter: () => {
-      current = zombieAt(far, far);
-    },
+      ? 'That zombie cannot move. Walk up and tap the red button to swing the sword until it drops.'
+      : 'That zombie cannot move. Walk up and swing the sword — click, or Space — until it drops.',
     done: () => dead(current),
+    refill: () => {
+      current = zombieAt(2.5, 2.5, true);
+    },
   },
   {
     text: touch
-      ? 'Another, further off. Tap Swap for the musket and the red button to fire. It reloads on its own.'
-      : 'Another, further off. Q draws the musket; click to fire. It reloads on its own — Q again for the sword.',
+      ? 'Another, rooted like the first. Tap Swap for the musket and the red button to fire. It reloads on its own.'
+      : 'Another, rooted like the first. Q draws the musket; click to fire. It reloads on its own — Q again for the sword.',
     enter: () => {
-      current = zombieAt(far, 1);
+      current = zombieAt(3.2, 1, true);
     },
     done: () => dead(current),
+    refill: () => {
+      current = zombieAt(3.2, 1, true);
+    },
   },
   {
     text: touch
@@ -175,13 +187,13 @@ const LESSONS: Lesson[] = [
   {
     text: `Dodge forward and the blade lights up. Swing while it is lit for ${LUNGE_DMG}x — kill this one with a lunge.`,
     enter: () => {
-      current = zombieAt(1, far);
+      current = zombieAt(3, 3);
       wasLungeHit = false;
       lunged = false;
     },
     done: () => lunged && dead(current),
     refill: () => {
-      current = zombieAt(1, far);
+      current = zombieAt(3, 3);
     },
   },
   {
@@ -189,13 +201,13 @@ const LESSONS: Lesson[] = [
       ? 'Hold Guard as its blow lands and it staggers — that is a parry. Parry it once, then finish it.'
       : `Hold the guard — right mouse, or ${GUARD_KEY} — as its blow lands and it staggers. That is a parry. Parry it once, then finish it.`,
     enter: () => {
-      current = zombieAt(far, far);
+      current = zombieAt(3, 3);
       parried = false;
       staggerSeen = false;
     },
     done: () => parried && dead(current),
     refill: () => {
-      current = zombieAt(far, far);
+      current = zombieAt(3, 3);
       staggerSeen = false;
     },
   },
