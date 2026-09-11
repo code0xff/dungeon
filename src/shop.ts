@@ -4,18 +4,16 @@ import {
 } from './config';
 import { el } from './dom';
 import { progress, saveProgress } from './progress';
+import type { Outfit } from './types';
 
 /**
  * The outfitting screen between stages.
  *
- * It works on `progress`, never on `state`: by the time it is on screen the run
- * is over and buildWorld() has not run yet, so `progress` is the only thing that
- * survives to the next dungeon. Buying into `state` would be spending gold on a
- * run that is about to be overwritten.
- *
- * It opens after death too. That is deliberate — the bank is the one thing death
- * does not take, and being able to kit out a fresh stage 1 with it is what makes
- * banking gold a decision rather than a score.
+ * It works on an Outfit — the solo `progress`, or a co-op player's
+ * `coop.carry` — and never on `state`: by the time it is on screen the run is
+ * over and buildWorld() has not run yet, so the outfit is the only thing that
+ * survives to the next dungeon. Buying into `state` would be spending gold on
+ * a run that is about to be overwritten.
  */
 const shopEl = el('shop');
 const headEl = el('shopHead');
@@ -46,14 +44,14 @@ interface Stock {
 /**
  * What a base price costs at the stage about to be entered.
  *
- * `progress.stage` has already been advanced by bankRun() by the time the shop
+ * `target.stage` has already been advanced by bankRun() by the time the shop
  * is on screen, so this is the price of the dungeon ahead rather than the one
  * just left — which is what "deeper is dearer" has to mean to be fair. After a
  * death the stage is back to 1, so re-equipping is at starting prices.
  */
 function atStage(base: number): number {
-  const stage = Math.min(Math.max(progress.stage, 1), SPAWN_PEAK_STAGE);
-  return Math.ceil(base * (1 + SHOP_INFLATION * (stage - 1)) * (progress.hard ? HARD_PRICE : 1));
+  const stage = Math.min(Math.max(target.stage, 1), SPAWN_PEAK_STAGE);
+  return Math.ceil(base * (1 + SHOP_INFLATION * (stage - 1)) * (target.hard ? HARD_PRICE : 1));
 }
 
 /**
@@ -62,9 +60,9 @@ function atStage(base: number): number {
  * nothing: a partial repair would be another slider for no decision.
  */
 const repairCost = (): number =>
-  atStage((SWORD_DUR_MAX - progress.swordDur) * SHOP.repairPerPoint);
+  atStage((SWORD_DUR_MAX - target.swordDur) * SHOP.repairPerPoint);
 
-const healCost = (): number => atStage((MAX_HP - progress.hp) * SHOP.healPerPoint);
+const healCost = (): number => atStage((MAX_HP - target.hp) * SHOP.healPerPoint);
 
 /** "2.5", not "3": LANTERN_FUEL is 150s and rounding it up promised half a minute the lantern does not have. */
 const lanternMinutes = (): string => String(Math.round((LANTERN_FUEL / 60) * 10) / 10);
@@ -84,19 +82,19 @@ const STOCK: Stock[] = [
   {
     id: 'Heal',
     name: 'Bind wounds',
-    held: () => `${Math.round(progress.hp)}/${MAX_HP} HP`,
-    price: () => (progress.hp >= MAX_HP ? null : healCost()),
+    held: () => `${Math.round(target.hp)}/${MAX_HP} HP`,
+    price: () => (target.hp >= MAX_HP ? null : healCost()),
     buy: () => {
-      progress.hp = MAX_HP;
+      target.hp = MAX_HP;
     },
   },
   {
     id: 'Repair',
     name: 'Repair sword',
-    held: () => `${Math.round((progress.swordDur / SWORD_DUR_MAX) * 100)}%`,
-    price: () => (progress.swordDur >= SWORD_DUR_MAX ? null : repairCost()),
+    held: () => `${Math.round((target.swordDur / SWORD_DUR_MAX) * 100)}%`,
+    price: () => (target.swordDur >= SWORD_DUR_MAX ? null : repairCost()),
     buy: () => {
-      progress.swordDur = SWORD_DUR_MAX;
+      target.swordDur = SWORD_DUR_MAX;
     },
   },
   {
@@ -104,39 +102,39 @@ const STOCK: Stock[] = [
     soft: true,
     name: 'Potion',
     divide: true,
-    held: () => `${progress.potions} held  ·  +${POTION_HEAL} HP`,
+    held: () => `${target.potions} held  ·  +${POTION_HEAL} HP`,
     price: () => atStage(SHOP.potion),
     buy: () => {
-      progress.potions++;
+      target.potions++;
     },
   },
   {
     id: 'Whetstone',
     soft: true,
     name: 'Whetstone',
-    held: () => `${progress.whetstones} held  ·  +${WHETSTONE_REPAIR}%`,
+    held: () => `${target.whetstones} held  ·  +${WHETSTONE_REPAIR}%`,
     price: () => atStage(SHOP.whetstone),
     buy: () => {
-      progress.whetstones++;
+      target.whetstones++;
     },
   },
   {
     id: 'Lantern',
     soft: true,
     name: 'Lantern oil',
-    held: () => `${progress.lanterns} held  ·  ${lanternMinutes()} min`,
+    held: () => `${target.lanterns} held  ·  ${lanternMinutes()} min`,
     price: () => atStage(SHOP.lantern),
     buy: () => {
-      progress.lanterns++;
+      target.lanterns++;
     },
   },
   {
     id: 'Ammo',
     name: 'Musket balls',
-    held: () => `${progress.ammo} held  ·  +${AMMO_PICKUP}`,
+    held: () => `${target.ammo} held  ·  +${AMMO_PICKUP}`,
     price: () => atStage(SHOP.ammo),
     buy: () => {
-      progress.ammo += AMMO_PICKUP;
+      target.ammo += AMMO_PICKUP;
     },
   },
 ];
@@ -154,10 +152,10 @@ const rows = STOCK.map((item) => {
   btn.className = 'shopBuy';
   btn.addEventListener('click', () => {
     const price = item.price();
-    if (price === null || price > progress.bankGold) return;
-    progress.bankGold -= price;
+    if (price === null || price > target.bankGold) return;
+    target.bankGold -= price;
     item.buy();
-    saveProgress();
+    persist();
     render();
   });
   row.append(name, held, btn);
@@ -186,24 +184,37 @@ function label(price: number | null): string {
 export function render(): void {
   // The stage is on the header because the prices move with it, and a number
   // that changes with no visible cause reads as a bug.
-  headEl.textContent = `Outfitting · Stage ${progress.stage}`;
-  bankEl.textContent = `${progress.bankGold} G`;
-  summaryBankEl.textContent = `Bank balance: ${progress.bankGold} G`;
+  const solo = target === progress;
+  headEl.textContent = `Outfitting · ${solo ? 'Stage' : 'Level'} ${target.stage}`;
+  bankEl.textContent = `${target.bankGold} G`;
+  // Co-op's summary line is the party total, which the host keeps; this
+  // player's purse is the shop's own figure above.
+  if (solo) summaryBankEl.textContent = `Bank balance: ${target.bankGold} G`;
   for (const { item, held, btn, row } of rows) {
     // Hard mode's shop is wounds, blade and musket balls. The rest are not
     // greyed out but gone: a row that can never be bought is not information.
-    row.style.display = progress.hard && item.soft ? 'none' : 'flex';
+    row.style.display = target.hard && item.soft ? 'none' : 'flex';
     // The rule between services and stock moves to the first row still stocked.
-    row.classList.toggle('divide', !!item.divide || (progress.hard && item.id === 'Ammo'));
+    row.classList.toggle('divide', !!item.divide || (target.hard && item.id === 'Ammo'));
     const price = item.price();
     held.textContent = item.held();
     btn.textContent = label(price);
     // Disabled rather than hidden: a price you cannot afford yet is information.
-    btn.disabled = price === null || price > progress.bankGold;
+    btn.disabled = price === null || price > target.bankGold;
   }
 }
 
-export function openShop(): void {
+/** What the shop is selling into, and how a purchase is kept. */
+let target: Outfit = progress;
+let persist: () => void = saveProgress;
+
+/**
+ * Opens on the solo save by default. Co-op hands in the player's carry and a
+ * no-op save: the carry lives in memory for as long as the party does.
+ */
+export function openShop(outfit: Outfit = progress, save: () => void = saveProgress): void {
+  target = outfit;
+  persist = save;
   render();
   shopEl.style.display = 'block';
 }

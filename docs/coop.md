@@ -40,16 +40,20 @@ does not simulate.
 - **The host picks the mode as well as the level.** Hard mode travels with
   the start message: one chest with the key, no pack items in the kit, the
   same as solo hard. It is the run's mode, not anyone's save.
-- **No stages, no bank, no carried save.** A player brings nothing in and takes
-  nothing out. `progress.ts` is untouched by co-op — solo progression and co-op
-  never read each other.
-- **The host picks a level** in the lobby. It feeds `dungeonSize()` and the
-  spawn curve exactly where `progress.stage` does in solo, so level 8 co-op is a
-  stage 8 dungeon.
-- **Starting gear scales with the level.** Solo reaches stage 8 through eight
-  visits to the shop; co-op has no shop, so a level 8 dungeon on a level 1 kit
-  is not a difficulty setting, it is a wall. Potions, lanterns, whetstones and
-  ammo are granted in proportion to the level.
+- **Nothing crosses between solo and co-op.** `progress.ts` is untouched by
+  co-op — solo progression and a party never read each other.
+- **Inside a party, you carry.** What a player walks out with — health, gear
+  and the gold, which is theirs to spend — is kept in `coop.carry` and is what
+  they walk into the next dungeon with. The end screen opens the same shop solo
+  uses, selling into the carry instead of the save. It lives as long as the
+  connection: leaving the lobby or connecting elsewhere drops it.
+- **The levels run in order.** The host picks where the party starts; the first
+  player out of a dungeon raises the lobby's level by one (never lowers it, so a
+  host who dialled past it keeps their choice). The host still starts each run.
+- **A death starts you over on the level's kit.** Death takes the carry, as it
+  takes the bank in solo, and `coopKit()` hands out potions, lanterns,
+  whetstones and ammo in proportion to the level — the same kit a player joining
+  the party for the first time gets.
 - **Up to 4 players.** No joining a dungeon after it starts. The *lobby* does
   not close, though — see death, below.
 - **Gold is one team total, and only what extracted players carry counts.** A

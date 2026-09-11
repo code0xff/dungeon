@@ -498,11 +498,12 @@ export function buildWorld(): void {
   state.pitch = 0;
   lockHintEl.style.display = pointerLock.locked || pointerLock.tried ? 'none' : 'flex';
 
-  // Co-op brings nothing in from the solo save — see docs/coop.md. The kit is
-  // handed out by level instead, because there is no shop between runs.
+  // Co-op brings nothing in from the solo save — see docs/coop.md. A player who
+  // got out of the party's last dungeon carries what they walked out with;
+  // anyone else is handed the level's kit.
   const kit = state.tutorial
     ? { ...TUTORIAL_KIT, hp: MAX_HP, swordDur: SWORD_DUR_MAX, lanternT: 0 }
-    : coop.active ? coopKit(level, coop.hard) : progress;
+    : coop.active ? (coop.carry ?? coopKit(level, coop.hard)) : progress;
   state.hp = kit.hp;
   state.runGold = 0;
   state.gameOver = false;

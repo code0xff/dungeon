@@ -58,6 +58,9 @@ el('restart').addEventListener('click', () => {
     // accepted in the middle of a solo run and writes over its death screen.
     coop.runId = 0;
     stopWatching();
+    // The co-op shop sells into coop.carry, which outlives this screen; the
+    // panel itself does not.
+    closeShop();
     el('overlay').style.display = 'none';
     // The solo game is rebuilt rather than merely un-paused. Clearing
     // `gameOver` on its own left the co-op dungeon standing with its key in the

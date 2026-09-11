@@ -176,6 +176,8 @@ connectBtn.addEventListener('click', () => {
   const server = serverEl.value.trim();
   save(NAME_KEY, name);
   save(SERVER_KEY, server);
+  // A new connection is a new party, whatever was carried out of the last one.
+  coop.carry = null;
   connect(server, name);
 });
 
@@ -228,6 +230,8 @@ export function leaveLobby(): void {
   const wasInCoop = coop.active || coop.watching;
   stopWatching();
   disconnect();
+  // A party's gear is the party's. Walking away from it walks away from that.
+  coop.carry = null;
   net.error = '';
   closeLobbyPanel();
   if (wasInCoop) {

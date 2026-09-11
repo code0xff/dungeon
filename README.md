@@ -305,11 +305,14 @@ loaded and which fell back.
 Up to four people in one dungeon. Open the menu (`H`) and pick **Multiplayer**.
 One person hosts; everyone else just opens a link in a browser.
 
-**Nothing carries in or out.** No bank, no gear, no stages — the host picks a
-level in the lobby, everyone is outfitted for it, and the gold you walk out with
-is one team total for that run. Death is final for the run; you can watch the
-others or go back to the lobby for the next one. The design and every decision
-behind it is in [docs/coop.md](docs/coop.md).
+**Nothing crosses between your solo save and a party.** Inside one, the
+levels run in order: the host picks where to start, and the first player out
+of each dungeon takes the party up one. What you walk out with — health, gear,
+gold — carries into the next, with the shop in between; a death starts you
+over on a kit for the level. The gold everyone walks out with is also one team
+total for the run, and a death is final for that run: you can watch the others
+or go back to the lobby for the next one. The design and every decision behind
+it is in [docs/coop.md](docs/coop.md).
 
 ### Hosting on the same network
 

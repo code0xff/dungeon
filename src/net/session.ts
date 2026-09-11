@@ -1,4 +1,5 @@
 import { MAX_HP, SWORD_DUR_MAX, COOP_KIT } from '../config';
+import type { Outfit } from '../types';
 
 /**
  * What the game knows about being in a co-op run, separate from both
@@ -42,6 +43,14 @@ export const coop = {
    * dungeon carries on, and they can look at it.
    */
   watching: false,
+  /**
+   * What this player walked out of the party's last dungeon with — health,
+   * gear, and the gold that is theirs to spend in the shop — or null for a
+   * player arriving with nothing: the first dungeon, after a death, or after
+   * leaving the lobby. It lives as long as the connection and never touches
+   * progress.ts; a party's gear is the party's.
+   */
+  carry: null as Outfit | null,
 };
 
 /**
@@ -56,10 +65,10 @@ export function runLevel(soloStage: number): number {
 /**
  * What a player walks into a co-op dungeon carrying.
  *
- * Solo reaches stage 8 through eight visits to the shop, spending the gold of
- * seven previous runs. Co-op has no shop and no bank, so the same dungeon on a
- * stage 1 kit is not a difficulty setting, it is a wall — and the party cannot
- * grind their way past it, because nothing carries between runs.
+ * For a player arriving with nothing — the first dungeon of a party, or the
+ * one after a death. Solo reaches stage 8 through eight visits to the shop,
+ * and a level 8 dungeon on a stage 1 kit is not a difficulty setting, it is a
+ * wall. A player who got out of the last one carries their own (coop.carry).
  *
  * The rates are in COOP_KIT rather than here so the whole ramp is one place in
  * config.ts, next to the spawn curve it is meant to keep pace with.

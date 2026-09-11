@@ -135,6 +135,10 @@ let nextRunId = 1;
  */
 interface Run {
   maze: Maze;
+  /** The level it was built at, so the first extraction knows what comes next. */
+  level: number;
+  /** Somebody has got out, and the lobby's level has been raised for it. */
+  advanced: boolean;
   gold: number;
   /** chest index -> { player, when } — a lease, see SClaim. */
   claims: Map<number, { to: number; at: number }>;
@@ -350,6 +354,12 @@ wss.on('connection', (sock: WebSocket) => {
       // "nobody is bringing that back" is what the rest of the party wants to
       // know at the moment it happens.
       if (run && msg.out === true) run.gold += gold;
+      // The first one out takes the party down a level. Raised rather than set,
+      // so a host who has already dialled past it is not dragged back.
+      if (run && msg.out === true && !run.advanced) {
+        run.advanced = true;
+        level = Math.max(level, Math.min(COOP_MAX_LEVEL, run.level + 1));
+      }
       if (run) {
         const total = run.gold;
         const from = me.runId;
@@ -558,7 +568,7 @@ wss.on('connection', (sock: WebSocket) => {
       p.watchRun = 0;
     }
         runs.set(runId, {
-          maze: buildMaze(roll, level), gold: 0, claims: new Map(),
+          maze: buildMaze(roll, level), level, advanced: false, gold: 0, claims: new Map(),
           members: new Set(group.map((p) => p.id)),
         });
         const start: ServerMsg = {

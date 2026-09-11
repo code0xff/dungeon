@@ -285,3 +285,22 @@ export interface PBRMaps {
   normalMap?: THREE.Texture;
   roughnessMap?: THREE.Texture;
 }
+
+/**
+ * What the shop sells into: the solo save, or a co-op player's carried gear.
+ * `progress` satisfies it as it stands, and coop.carry is built to the same
+ * shape, so one shop serves both without knowing which it has.
+ */
+export interface Outfit {
+  /** The stage or level the prices are for. */
+  stage: number;
+  bankGold: number;
+  hp: number;
+  lanternT: number;
+  ammo: number;
+  potions: number;
+  lanterns: number;
+  whetstones: number;
+  swordDur: number;
+  hard: boolean;
+}

@@ -1,5 +1,5 @@
 import {
-  CELL, FINAL_STAGE, LANTERN_KEY, POTION_KEY, SPAWN_PEAK_STAGE, SWORD_DUR_MAX, WHETSTONE_KEY,
+  CELL, COOP_MAX_LEVEL, FINAL_STAGE, LANTERN_KEY, POTION_KEY, SPAWN_PEAK_STAGE, SWORD_DUR_MAX, WHETSTONE_KEY,
 } from './config';
 import { context2d, el, firstChild, queryChild } from './dom';
 import { bankRun, loseRun, progress } from './progress';
@@ -63,7 +63,7 @@ export function updateHUD(): void {
     bankEl.textContent = 'Nothing here counts';
   } else if (coop.active) {
     stageEl.textContent = coop.hard ? `Level ${coop.level} · Hard` : `Level ${coop.level}`;
-    bankEl.textContent = 'Multiplayer';
+    bankEl.textContent = coop.carry ? `Purse: ${coop.carry.bankGold} G` : 'Multiplayer';
   } else {
     stageEl.textContent = progress.hard ? `Stage ${progress.stage} · Hard` : `Stage ${progress.stage}`;
     bankEl.textContent = `Bank: ${progress.bankGold} G`;
@@ -262,10 +262,10 @@ export function endRun(extracted: boolean): void {
   const title = el('ovTitle');
   const desc = el('ovDesc');
 
-  // Co-op banks nothing and loses nothing, so it must not go anywhere near
-  // bankRun() or loseRun() — those advance the stage and wipe the carried gear
-  // of a solo save this run was never part of. The party's gold is reported to
-  // the host instead; see docs/coop.md.
+  // Co-op must not go anywhere near bankRun() or loseRun() — those advance the
+  // stage and wipe the carried gear of a solo save this run was never part of.
+  // What a co-op player carries lives in coop.carry, and the party's gold is
+  // reported to the host; see docs/coop.md.
   if (coop.active) {
     // Told to the host straight away, not when the player gets round to
     // clicking through the overlay: until this lands the lobby believes they
@@ -277,9 +277,27 @@ export function endRun(extracted: boolean): void {
     leftRun(state.runGold, extracted);
     title.textContent = extracted ? 'Extracted' : 'Killed';
     title.className = extracted ? 'win' : 'dead';
+    const next = Math.min(COOP_MAX_LEVEL, coop.level + 1);
+    if (extracted) {
+      // What walks out carries into the party's next dungeon — gear, health,
+      // and the gold, which is this player's to spend. The party total is the
+      // score; this is the purse. Priced at the next level, because the host
+      // raises it by one the moment anybody gets out (server/host.ts).
+      coop.carry = {
+        stage: next,
+        bankGold: (coop.carry?.bankGold ?? 0) + state.runGold,
+        hp: Math.max(1, Math.round(state.hp)), lanternT: state.lanternT, ammo: state.ammo,
+        potions: state.potions, lanterns: state.lanterns, whetstones: state.whetstones,
+        swordDur: state.swordDur, hard: coop.hard,
+      };
+    } else {
+      // Death takes the lot, as it does in solo. The next dungeon starts on the
+      // level's kit, like a player who has just joined.
+      coop.carry = null;
+    }
     desc.textContent = extracted
-      ? `Out with ${state.runGold} G for the party.`
-      : `You died with ${state.runGold} G. It stays down there.`;
+      ? `Out with ${state.runGold} G. The party goes on to level ${next} — outfit for it here.`
+      : `You died with ${state.runGold} G. It stays down there, with everything you carried.`;
     // Filled in by the party total when it comes back from the host, which is
     // a round trip away — so it starts by saying what this player is sure of.
     el('ovBank').textContent = extracted
@@ -294,11 +312,11 @@ export function endRun(extracted: boolean): void {
     // their own accord and can start the next run.
     const others = net.players.some((p) => p.id !== net.id && p.inRun && p.runId === coop.runId);
     el('ovWatch').style.display = !extracted && others ? 'block' : 'none';
-    // No shop here — but one may already be open underneath from a solo run
-    // that ended before this player joined the lobby. Its buttons write
-    // straight into progress, so leaving it visible behind a co-op result is a
-    // live path from co-op into the solo bank.
-    closeShop();
+    // The shop sells into the carry, never into progress — a solo shop left
+    // open underneath would be a live path from co-op into the solo bank, so
+    // it is always reopened on the carry or closed.
+    if (coop.carry) openShop(coop.carry, () => {});
+    else closeShop();
     el('ovCredit').style.display = 'none';
     overlayEl.style.display = 'flex';
     updateHUD();
