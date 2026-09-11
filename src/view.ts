@@ -49,9 +49,13 @@ try {
 } catch {
   // Storage unavailable; first person is the default and the game still runs.
 }
-// The remembered view has to reach the button too, or it shows an eye over a
-// body until the first toggle.
-viewBtn.classList.toggle('third', state.thirdPerson);
+/**
+ * Whether the button has been put in step with the remembered view. Done on the
+ * first frame rather than at module load: this module is reached from inside
+ * ui.ts's own imports, and touching `viewBtn` at the top level read it before
+ * ui.ts had defined it.
+ */
+let buttonSynced = false;
 
 /** True when the body is drawn and the camera is behind it. */
 export function thirdPersonActive(): boolean {
@@ -149,6 +153,10 @@ export function thirdPersonCamera(
  * switching views never shows a body a second behind.
  */
 export function updateView(camera: THREE.PerspectiveCamera, dt: number, moving: boolean, bladeGlow: number): void {
+  if (!buttonSynced) {
+    buttonSynced = true;
+    viewBtn.classList.toggle('third', state.thirdPerson);
+  }
   const active = thirdPersonActive();
   const b = ensureBody();
 

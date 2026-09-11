@@ -1,7 +1,5 @@
 import { loadAssets } from './assets';
 import { loadProgress, setRunSeed } from './progress';
-import { startTutorial, tutorialPref, wantsTutorial } from './tutorial';
-import { pickMode } from './mode';
 import { el } from './dom';
 import { animate } from './loop';
 import { buildWorld } from './world';
@@ -10,8 +8,9 @@ import { coop } from './net/session';
 import { openLobbyPanel, stopWatching } from './net/lobby';
 // Imported for side effects: keyboard/mouse/touch listeners and the audio unlock.
 import './input';
-// Same: the pause menu registers its own key, click and touch handlers.
-import './menu';
+// The pause menu and the title screen register their own key, click and touch
+// handlers on import; openTitle is the one thing called from here.
+import { openTitle } from './menu';
 
 // Restore the bank and any carried gear before the first world is built.
 loadProgress();
@@ -85,15 +84,10 @@ loadAssets((msg) => {
 })
   .then(() => {
     loadingEl.style.display = 'none';
-    // The first visit opens on the lesson. After that it is New game and the
-    // menu that start it — a save that died and came back does not need to
-    // learn the sword again.
-    // The first visit: the lesson if it is wanted, then the mode, then stage
-    // 1. A returning save has already answered both.
-    const fresh = !tutorialPref.seen;
-    if (fresh && wantsTutorial()) startTutorial(() => pickMode(buildWorld));
-    else if (fresh) pickMode(buildWorld);
-    else buildWorld();
+    // The save's own dungeon is built first so the title has it to stand in
+    // front of — and so Continue is a matter of stepping out from behind it.
+    buildWorld();
+    openTitle();
     animate();
   })
   .catch((err: unknown) => {

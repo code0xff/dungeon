@@ -13,7 +13,7 @@ import {
   SWAY_DAMP, TYPES,
   LUNGE_HIT_GLOW, LUNGE_HIT_KICK, LUNGE_HIT_LIGHT, LUNGE_HIT_TIME, LUNGE_WINDOW, SWING_IMPACT,
   SWING_SPEED, SWING_WINDUP, TURN_RATE, WALK_TIMESCALE_RANGE, WALL_H,
-  TP_LIGHT_AHEAD, TP_LIGHT_UP, TRAP_SPRING_TIME, WARD_TIME,
+  TP_LIGHT_AHEAD, TP_LIGHT_UP, TRAP_SPRING_TIME, WARD_TIME, TITLE_DRIFT,
 } from './config';
 import { playerHurt, releaseQueuedAttack, resolveSwing, springTrap, staggerPush } from './combat';
 import { findPath } from './dungeon';
@@ -1029,6 +1029,9 @@ export function animate(): void {
   // Camera position is view.ts's: behind the body in third person, at the eyes
   // otherwise. The rotation below is the same in both — third person here is
   // an over-the-shoulder camera that looks where the player looks, not an orbit.
+  // Behind the title the world is paused, but the view is not: a slow turn so
+  // the dungeon reads as a place rather than a screenshot.
+  if (state.title) state.yaw += TITLE_DRIFT * dt;
   updateView(camera, dt, movedThisFrame, Math.max(armed, discharge));
   // A sideways dodge rolls the view into it and back out. Straight dodges do not
   // roll, because rolling a forward lunge reads as a stumble.

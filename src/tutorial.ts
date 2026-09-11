@@ -23,52 +23,6 @@ import { buildWorld, placeChest, spawnAt } from './world';
  * from whatever the save already held.
  */
 
-/** Saved apart from progress, so a new game does not forget it was seen. */
-const PREF_KEY = 'dungeon.tutorial.v1';
-
-interface Pref {
-  /** Never show it on its own again; the menu can still start it. */
-  skip: boolean;
-  /** It has been started at least once, so the first visit is over. */
-  seen: boolean;
-}
-
-function loadPref(): Pref {
-  try {
-    const raw = localStorage.getItem(PREF_KEY);
-    if (raw) {
-      const o: unknown = JSON.parse(raw);
-      if (o && typeof o === 'object') {
-        const p = o as Partial<Pref>;
-        return { skip: !!p.skip, seen: !!p.seen };
-      }
-    }
-  } catch {
-    // No storage: shown every time, which is the only safe default.
-  }
-  return { skip: false, seen: false };
-}
-
-function savePref(p: Pref): void {
-  try {
-    localStorage.setItem(PREF_KEY, JSON.stringify(p));
-  } catch {
-    // Not remembered; still honoured for this visit.
-  }
-}
-
-export const tutorialPref = loadPref();
-
-export function setSkipTutorial(skip: boolean): void {
-  tutorialPref.skip = skip;
-  savePref(tutorialPref);
-}
-
-/** Whether a fresh start should open on the lesson rather than stage 1. */
-export function wantsTutorial(): boolean {
-  return !tutorialPref.skip;
-}
-
 const bannerEl = el('tutor');
 const textEl = el('tutorText');
 const skipBtn = el('tutorSkip');
@@ -121,23 +75,6 @@ let wasLungeHit = false;
 let lunged = false;
 let parried = false;
 let staggerSeen = false;
-
-/**
- * The lessons by index, for the things they unlock. Kept in step with the
- * list below by hand; the order is the lesson.
- */
-export const STEP = { move: 0, sword: 1, musket: 2, dodge: 3, lunge: 4, parry: 5, potion: 6, lantern: 7, chest: 8, done: 9 } as const;
-
-/**
- * Whether a thing a lesson teaches may be used yet. Everything is allowed
- * outside the room; inside it, only what has been taught — a potion drunk
- * before the potion lesson is a potion the lesson cannot then ask for.
- */
-export function taught(step: number): boolean {
-  if (!state.tutorial || state.tutorialStep >= step) return true;
-  showMsg('Not yet — that comes later in the lesson');
-  return false;
-}
 
 const LESSONS: Lesson[] = [
   {
@@ -258,10 +195,6 @@ let onEnd: () => void = buildWorld;
 /** Builds the room and starts at the first lesson; `next` runs when it ends. */
 export function startTutorial(next: () => void = buildWorld): void {
   onEnd = next;
-  if (!tutorialPref.seen) {
-    tutorialPref.seen = true;
-    savePref(tutorialPref);
-  }
   state.tutorial = true;
   current = null;
   buildWorld();

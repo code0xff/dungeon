@@ -10,7 +10,7 @@ import { state } from './state';
 import { tryAttack } from './combat';
 import { startLoot, useLantern, usePotion, useWard, useWhetstone } from './loot';
 import { toggleView } from './view';
-import { STEP, taught } from './tutorial';
+import { STEP, taught } from './lesson';
 import {
   atkBtn, dashBtn, guardBtn, lampBtn, lockHintEl, lootBtn, potBtn, showMsg,
   soundBtn, viewBtn, wardBtn, whetBtn, wpnBtn,
@@ -145,6 +145,18 @@ function requestLock(): void {
   } catch {
     pointerLock.failed = true;
   }
+}
+
+/**
+ * Asks for the lock from a click that was not on the canvas — the title
+ * screen's buttons, the mode picker's. A click anywhere is a user gesture, so
+ * the start of a game can take the cursor without a second click on the world.
+ */
+export function lockFromClick(): void {
+  if (!lockSupported || pointerLock.failed || pointerLock.locked) return;
+  pointerLock.tried = true;
+  lockHintEl.style.display = 'none';
+  requestLock();
 }
 
 document.addEventListener('pointerlockchange', () => {

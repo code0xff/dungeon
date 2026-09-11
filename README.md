@@ -148,17 +148,17 @@ rules, with the detail in [docs/](docs/). `CLAUDE.md` is a symlink to it.
 | Sound on / off | `M` — remembered between runs |
 | First / third person | `V`, or the eye button at the top — sword only; the musket always aims first-person. Remembered between runs |
 
-**The first visit opens on a tutorial**: one room, one lesson at a time —
-move, the sword, the musket, the dodge, the lunge, the parry, the potion, the
+**The game opens on a title screen** over the dungeon itself: Continue (or
+Play, the first time), New game, Tutorial, Multiplayer and Controls, and the
+rules in four lines. The tutorial is one room, one lesson at a time — move,
+the sword, the musket, the dodge, the lunge, the parry, the potion, the
 lantern, a chest with the key in it — each on a real zombie or a real chest,
 and the portal at the end leads to stage 1. The zombies in there are rooted:
-they swing if you stand close, but never come to you.
-Skip is always on screen; the menu can start it again, and a checkbox there
-stops new games opening on it. Nothing done in the room counts, and nothing in
-it can kill you.
+they swing if you stand close, but never come to you. Skip is always on
+screen. Nothing done in the room counts, and nothing in it can kill you.
 
-**Then a choice: normal or hard.** Asked once, before stage 1, and again only
-on New game — a save is one mode for its life. Hard is the same dungeon with
+**Then a choice: normal or hard.** Asked on New game — or after a first
+tutorial — and kept for the life of the save, deaths included. Hard is the same dungeon with
 one chest in it, and the key inside: no map, no potions, lanterns,
 whetstones or wards anywhere, and a shop of wounds, blade and musket balls at half
 again the price. The HUD says which you are in.

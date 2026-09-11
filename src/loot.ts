@@ -13,7 +13,7 @@ import {
   cancelWard, drinkBarEl, drinkFillEl, lootBarEl, lootFillEl, minimapEl, objectiveEl, showMsg, updateHUD, wpnBtn,
 } from './ui';
 import { setWeapon, startReload } from './weapons';
-import { STEP, taught } from './tutorial';
+import { STEP, taught } from './lesson';
 
 export function startLoot(): void {
   // Not while a ward is going down: the two share one bar and one pair of hands.

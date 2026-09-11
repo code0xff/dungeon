@@ -44,6 +44,12 @@ export interface Progress {
    * HARD_PRICE. Chosen once, before stage 1; a save is one mode for its life.
    */
   hard: boolean;
+  /**
+   * A mode has been chosen and a run begun. What the title screen reads to
+   * offer Continue rather than only a new game. Kept through a death, like the
+   * mode: dying ends a run, not the save.
+   */
+  started: boolean;
 }
 
 const KEY = 'dungeon.progress.v1';
@@ -56,6 +62,7 @@ function fresh(): Progress {
     // game — the two callers of fresh() — are exactly what changes the dungeon.
     seed: randomSeed(),
     hard: false,
+    started: false,
   };
 }
 
@@ -89,6 +96,11 @@ function merge(raw: unknown): void {
   // A save written before seeds existed has none, and keeping the one fresh()
   // already drew is the right answer: that run gets a seed from here on.
   if (typeof o.seed === 'number' && Number.isFinite(o.seed)) progress.seed = o.seed >>> 0;
+  // Saves from before the title screen have no flag. Anything that shows a run
+  // was played — a stage past the first, gold, a chosen mode — counts.
+  progress.started = typeof o.started === 'boolean'
+    ? o.started
+    : progress.stage > 1 || progress.bankGold > 0 || typeof o.hard === 'boolean';
 }
 
 /**
@@ -127,6 +139,8 @@ export function setRunSeed(seed: number): void {
 /** The mode for this save. Picked before stage 1 and never again until New game. */
 export function setHard(hard: boolean): void {
   progress.hard = hard;
+  // Choosing the mode is what starts a save; the title offers Continue from here.
+  progress.started = true;
   saveProgress();
 }
 
@@ -183,6 +197,10 @@ export function resetProgress(): void {
  * with, and what puts the ending's score in reach of one life only.
  */
 export function loseRun(): void {
-  Object.assign(progress, fresh());
+  // The mode and the fact of having started survive: a save is one mode for its
+  // life. Assigning fresh() whole used to turn hard mode back into normal on
+  // the first death, without a word.
+  const { hard, started } = progress;
+  Object.assign(progress, fresh(), { hard, started });
   saveProgress();
 }

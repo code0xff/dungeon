@@ -510,9 +510,10 @@ co-op travel as a `ward` world event whose `i` is the position packed by
 
 ## Hard mode
 
-`progress.hard`, set by `src/mode.ts` — a panel asked once before stage 1
-(after the tutorial, or straight away when it is skipped) and on New game,
-because the answer is for the life of the save. Three places read it:
+`progress.hard`, set by `src/mode.ts` — a panel asked on New game (from the
+title or the menu) and after a first tutorial, because the answer is for the
+life of the save. `loseRun()` keeps it: it used to assign `fresh()` whole and
+turn hard mode back into normal on the first death. Three places read it:
 `spawnChests()` builds one untrapped chest with the key and nothing else, the
 shop hides its `soft` rows and multiplies every price by `HARD_PRICE`, and the
 HUD and menu say so. In co-op the host chooses it in the lobby and it travels
@@ -537,11 +538,22 @@ going up on its own is exactly what a parry is not. `playerHurt()` floors hp at
 1 while the room is up. The portal at the end goes to `endTutorial()`, not
 `endRun()`, because nothing in the room is a run; `progress` is never touched.
 
-It opens on the first visit and on New game, unless the menu's checkbox says
-not to; the menu can start it any time. The preference lives in its own
-localStorage key so a new game does not forget it. The host's start calls
-`leaveTutorial()` first, or `buildWorld()` would build the party's dungeon as a
-practice room.
+It is started from the title screen or the pause menu, never on its own. From
+the title on a first visit it walks out into the mode picker; from a save it
+walks back into that save's dungeon. The host's start calls `leaveTutorial()`
+first, or `buildWorld()` would build the party's dungeon as a practice room.
+
+## Title screen
+
+In `menu.ts`, beside the pause menu, because it is part of the same panel stack
+and the guide and the lobby it opens have to come back to it. `main.ts` builds
+the save's dungeon, then `openTitle()`: the world is paused behind it and the
+camera turns at `TITLE_DRIFT`. `progress.started` decides between Continue and
+Play — set by choosing a mode, kept through a death, and inferred for saves
+older than the flag. Every button that starts a game is a click, which is the
+user gesture the browser wants before it plays sound or grants pointer lock, so
+`initAudio()` and `lockFromClick()` run there and the player never meets the
+click-to-lock card.
 
 ## Third person
 

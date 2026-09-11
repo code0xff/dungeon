@@ -152,6 +152,9 @@ onNetStart((seed, level, hard) => {
   // A player can be in the practice room when the host starts. The room is
   // not the party's dungeon, and buildWorld() would build another room.
   leaveTutorial();
+  // The lobby can be reached from the title screen; the party's dungeon is not
+  // something to show behind one.
+  state.title = false;
   coop.active = true;
   coop.seed = seed;
   coop.level = level;

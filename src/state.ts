@@ -46,6 +46,12 @@ export const state = {
    */
   tutorial: false,
   /**
+   * The title screen is up. The world behind it is built and paused, and the
+   * camera drifts (TITLE_DRIFT) so the first thing seen is the dungeon, not a
+   * still.
+   */
+  title: false,
+  /**
    * Which lesson is up, as an index into tutorial.ts's list. Read by the
    * things a lesson unlocks — the musket, the potion, the lantern — so they
    * cannot be used before they are taught. Meaningless outside the tutorial.

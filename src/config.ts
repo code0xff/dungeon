@@ -1286,6 +1286,9 @@ export const TUTORIAL_DODGES = 2;
 export const TUTORIAL_POTION_HP = 50;
 /** The room is seeded once so its sconces land in the same places every time. */
 export const TUTORIAL_SEED = 7;
+
+/** Radians a second the camera turns behind the title screen. Slow enough to read over. */
+export const TITLE_DRIFT = 0.06;
 /**
  * How the creatures grow per stage below FINAL_STAGE, as fractions of their
  * base hp, damage and reward.

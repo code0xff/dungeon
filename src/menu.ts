@@ -1,4 +1,5 @@
-import { GUIDE_KEY } from './config';
+import { FINAL_STAGE, GUIDE_KEY } from './config';
+import { initAudio } from './audio';
 import { el } from './dom';
 import { closeGuidePanel, openGuidePanel } from './guide';
 import { progress, resetProgress } from './progress';
@@ -6,8 +7,9 @@ import { closeLobbyPanel, leaveLobby, openLobbyPanel } from './net/lobby';
 import { coop } from './net/session';
 import { closeShop } from './shop';
 import { state } from './state';
-import { setSkipTutorial, startTutorial, tutorialPref, wantsTutorial } from './tutorial';
-import { guideBtn, guideCloseBtn, overlayEl } from './ui';
+import { startTutorial } from './tutorial';
+import { lockFromClick } from './input';
+import { guideBtn, guideCloseBtn, lockHintEl, overlayEl } from './ui';
 import { buildWorld } from './world';
 import { pickMode } from './mode';
 
@@ -34,14 +36,24 @@ const guideItem = el('menuGuide');
 const newBtn = el('menuNew');
 const coopItem = el('menuCoop');
 const tutorialItem = el('menuTutorial');
-const skipRow = el('menuSkipRow');
-const skipBox = el('menuSkip') as HTMLInputElement;
+const titleEl = el('title');
+const titleContinue = el('titleContinue');
+const titleNew = el('titleNew');
+const titleTutorial = el('titleTutorial');
 const coopCloseBtn = el('coopClose');
 const coopPanelEl = el('coop');
 
 /** Whether New game has been clicked once and is waiting for confirmation. */
 let armed = false;
 let guideOpen = false;
+/** New game on the title has been clicked once and is waiting for confirmation. */
+let titleArmed = false;
+/**
+ * The guide or the lobby was opened from the title screen, so Back returns
+ * there rather than to the pause menu — which a player who has not started a
+ * game yet has never seen.
+ */
+let fromTitle = false;
 
 /**
  * Read from the panel rather than tracked alongside it.
@@ -73,12 +85,15 @@ function syncUi(): void {
 }
 
 export function isMenuOpen(): boolean {
-  return menuEl.style.display === 'flex' || guideOpen || coopOpen();
+  return state.title || menuEl.style.display === 'flex' || guideOpen || coopOpen();
 }
 
 export function openMenu(): void {
+  // The title is its own screen; the menu is for a game in progress.
+  if (state.title) return;
   disarm();
   guideOpen = false;
+  fromTitle = false;
   closeGuidePanel();
   closeLobbyPanel();
   // Not while the end-of-run overlay is up: the loop is already stopped there,
@@ -98,8 +113,6 @@ export function openMenu(): void {
   // The lesson is a solo thing: starting it from a co-op run would build a
   // room the party never announced.
   tutorialItem.style.display = coop.active ? 'none' : 'block';
-  skipRow.style.display = coop.active ? 'none' : 'flex';
-  skipBox.checked = tutorialPref.skip;
   statusEl.textContent = state.tutorial
     ? 'Tutorial'
     : coop.active
@@ -123,6 +136,7 @@ export function closeMenu(): void {
 }
 
 export function toggleMenu(): void {
+  if (state.title) return;
   if (isMenuOpen()) closeMenu();
   else openMenu();
 }
@@ -132,7 +146,8 @@ function back(): void {
   if (guideOpen) {
     guideOpen = false;
     closeGuidePanel();
-    menuEl.style.display = 'flex';
+    if (fromTitle) showTitle();
+    else menuEl.style.display = 'flex';
     syncUi();
     return;
   }
@@ -141,12 +156,111 @@ function back(): void {
     // socket left open behind a closed panel is a player the host still counts
     // against the four, and nobody can see they are there.
     leaveLobby();
-    menuEl.style.display = 'flex';
+    if (fromTitle) showTitle();
+    else menuEl.style.display = 'flex';
     syncUi();
     return;
   }
+  if (state.title) return;
   closeMenu();
 }
+
+// ================= Title screen =================
+/**
+ * The first screen: the name, a line, the choices, and the rules in four
+ * sentences over the dungeon itself.
+ *
+ * It replaced three things that used to happen to a player instead of being
+ * chosen — the tutorial opening on its own on a first visit, a checkbox to
+ * stop it doing so, and the mode question arriving out of nowhere after the
+ * lesson. And its first click is the one the browser wants before it will
+ * play a sound or take the cursor, so every way off this screen starts the
+ * game properly instead of waiting for a click on the world.
+ */
+function showTitle(): void {
+  titleEl.style.display = 'flex';
+}
+
+function titleDisarm(): void {
+  titleArmed = false;
+  titleNew.classList.remove('arm');
+  titleNew.textContent = progress.started ? 'New game' : 'Play';
+}
+
+export function openTitle(): void {
+  state.title = true;
+  state.paused = true;
+  fromTitle = false;
+  titleDisarm();
+  if (document.pointerLockElement) document.exitPointerLock();
+  // The click-to-lock card is for a world being played. Behind the title it
+  // showed through the backdrop between the buttons, and the title's own first
+  // click takes the lock anyway.
+  lockHintEl.style.display = 'none';
+  // A save offers Continue first and biggest; a first visit offers the lesson.
+  titleContinue.style.display = progress.started ? 'block' : 'none';
+  titleContinue.textContent = `Continue  ·  Stage ${progress.stage}${progress.hard ? '  ·  Hard' : ''}`;
+  titleContinue.classList.toggle('titlePrimary', progress.started);
+  titleTutorial.classList.toggle('titlePrimary', !progress.started);
+  el('titleBottom').textContent = `Stage ${FINAL_STAGE} is the bottom. Below it, everything grows.`;
+  showTitle();
+  syncUi();
+}
+
+/** Off the title and into play. Every exit that starts a game goes through here. */
+function leaveTitle(): void {
+  state.title = false;
+  fromTitle = false;
+  titleEl.style.display = 'none';
+  state.paused = false;
+  syncUi();
+}
+
+titleContinue.addEventListener('click', () => {
+  initAudio();
+  lockFromClick();
+  leaveTitle();
+  // The world behind the title is the save's own dungeon, already built; the
+  // lock card it put up is moot now the click has asked for the lock.
+  lockHintEl.style.display = 'none';
+});
+
+titleNew.addEventListener('click', () => {
+  // Only asked when there is something to lose.
+  if (progress.started && (progress.bankGold > 0 || progress.stage > 1) && !titleArmed) {
+    titleArmed = true;
+    titleNew.classList.add('arm');
+    titleNew.textContent = `Erase ${progress.bankGold} G and stage ${progress.stage}?`;
+    return;
+  }
+  resetProgress();
+  leaveTitle();
+  pickMode(buildWorld);
+});
+
+titleTutorial.addEventListener('click', () => {
+  initAudio();
+  lockFromClick();
+  leaveTitle();
+  // A first visit walks out of the lesson into choosing a mode; a save walks
+  // back into the dungeon it was in.
+  startTutorial(progress.started ? buildWorld : () => pickMode(buildWorld));
+});
+
+el('titleCoop').addEventListener('click', () => {
+  fromTitle = true;
+  titleEl.style.display = 'none';
+  openLobbyPanel();
+  syncUi();
+});
+
+el('titleGuide').addEventListener('click', () => {
+  fromTitle = true;
+  guideOpen = true;
+  titleEl.style.display = 'none';
+  openGuidePanel();
+  syncUi();
+});
 
 resumeBtn.addEventListener('click', closeMenu);
 
@@ -181,14 +295,10 @@ newBtn.addEventListener('click', () => {
   overlayEl.style.display = 'none';
   state.gameOver = false;
   closeMenu();
-  // A new game opens on the lesson unless the player has asked it not to,
-  // then asks the mode, then builds stage 1. A tutorial already up is simply
-  // rebuilt from its first lesson.
-  if (wantsTutorial()) startTutorial(() => pickMode(buildWorld));
-  else {
-    state.tutorial = false;
-    pickMode(buildWorld);
-  }
+  // Straight to the mode, then stage 1. The lesson is its own item now, here
+  // and on the title, rather than something a new game opens on.
+  state.tutorial = false;
+  pickMode(buildWorld);
 });
 
 tutorialItem.addEventListener('click', () => {
@@ -199,7 +309,6 @@ tutorialItem.addEventListener('click', () => {
   startTutorial();
 });
 
-skipBox.addEventListener('change', () => setSkipTutorial(skipBox.checked));
 
 guideCloseBtn.addEventListener('click', back);
 guideBtn.addEventListener('click', toggleMenu);

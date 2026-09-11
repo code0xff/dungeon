@@ -2,7 +2,7 @@ import { handShield, musket, sword } from './scene';
 import { state } from './state';
 import type { WeaponKind } from './types';
 import { crosshairEl, reloadBarEl, showMsg, updateHUD } from './ui';
-import { STEP, taught } from './tutorial';
+import { STEP, taught } from './lesson';
 
 export function setWeapon(w: WeaponKind): void {
   state.weapon = w;
