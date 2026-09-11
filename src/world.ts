@@ -26,6 +26,7 @@ import { cancelLoot, drinkBarEl, minimapEl, objectiveEl, overlayEl, updateHUD, w
 import { pointerLock } from './input';
 import { lockHintEl } from './ui';
 import { setWeapon } from './weapons';
+import { clearWards } from './ward';
 
 /**
  * Whether a circle of radius r overlaps a wall cell. Only the surrounding 3x3 is checked.
@@ -114,6 +115,7 @@ function clearWorld(): void {
   state.props.forEach((p) => scene.remove(p.object));
   state.sconces.forEach((s) => scene.remove(s.group));
   state.traps.forEach((t) => scene.remove(t.mesh));
+  clearWards();
   state.monsters = [];
   state.chests = [];
   state.props = [];
@@ -545,6 +547,7 @@ export function buildWorld(): void {
   state.potions = kit.potions;
   state.lanterns = kit.lanterns;
   state.whetstones = kit.whetstones;
+  state.wards = kit.wards;
 
   // The sword is the default. Q swaps to the musket: one chambered round plus START_AMMO spare.
   state.hasMusket = true;

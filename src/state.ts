@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { LIGHT_DIM, MAX_HP } from './config';
-import type { Chest, Looting, Maze, Monster, Prop, Sconce, Trap, WeaponKind } from './types';
+import type { Chest, Looting, Maze, Monster, Prop, Sconce, Trap, Ward, WeaponKind } from './types';
 
 /**
  * Mutable state for one run. buildWorld() resets all of it.
@@ -167,6 +167,9 @@ export const state = {
   potions: 0,
   lanterns: 0,
   whetstones: 0,
+  wards: 0,
+  /** Wards set down in this dungeon — by this player or, in co-op, the party. */
+  wardMarks: [] as Ward[],
   /** Base intensity of the player's light. A lit lantern raises it. */
   // Widened: LIGHT_DIM is `as const`, so without this the field types as 1.75.
   lightBase: LIGHT_DIM.intensity as number,

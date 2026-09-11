@@ -2,9 +2,10 @@ import { sfxCreak, sfxPickup } from './audio';
 import { alertCreatures, springTrap } from './combat';
 import {
   AMMO_PICKUP, CHEST_ALERT_RADIUS, CHEST_ALERT_TIME, LANTERN_FUEL, LANTERN_KEY, MAX_HP,
-  MUSKET_AMMO, POTION_HEAL, POTION_KEY, SWORD_DUR_MAX, TRAP_SWORD_WEAR, WHETSTONE_KEY, WHETSTONE_REPAIR,
+  MUSKET_AMMO, POTION_HEAL, POTION_KEY, SWORD_DUR_MAX, TRAP_SWORD_WEAR, WARD_KEY, WHETSTONE_KEY, WHETSTONE_REPAIR,
 } from './config';
-import { tellChestOpened, tellCreak, tellLantern } from './net/worldsync';
+import { tellChestOpened, tellCreak, tellLantern, tellWard } from './net/worldsync';
+import { dropWard, wardNear } from './ward';
 import { setLampLit, setPortalOpen } from './scene';
 import { state } from './state';
 import type { Chest } from './types';
@@ -92,6 +93,10 @@ export function openChest(c: Chest): void {
       state.whetstones++;
       msg += `\nWhetstone — press ${WHETSTONE_KEY} to grind the blade back`;
       break;
+    case 'ward':
+      state.wards++;
+      msg += `\nWard — press ${WARD_KEY} to set it down where you stand`;
+      break;
     case 'musket':
       state.hasMusket = true;
       state.ammo += MUSKET_AMMO;
@@ -165,6 +170,22 @@ export function useWhetstone(): void {
   sfxPickup();
   updateHUD();
   showMsg(`Blade sharpened — ${Math.round((state.swordDur / SWORD_DUR_MAX) * 100)}%`);
+}
+
+/**
+ * Sets a ward down at the player's feet. See ward.ts for what it is for.
+ * Refused on top of another, where it would say nothing new.
+ */
+export function useWard(): void {
+  if (state.gameOver) return;
+  if (state.wards <= 0) return showMsg('No wards');
+  if (wardNear(state.pos.x, state.pos.z)) return showMsg('A ward already marks this spot');
+  state.wards--;
+  dropWard(state.pos.x, state.pos.z);
+  tellWard(state.pos.x, state.pos.z);
+  sfxPickup();
+  updateHUD();
+  showMsg('Ward set — this way has been walked');
 }
 
 export function useLantern(): void {

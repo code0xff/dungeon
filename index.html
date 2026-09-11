@@ -332,7 +332,7 @@
              background:radial-gradient(circle at 50% 32%, rgba(150,118,44,.55), rgba(64,50,18,.5) 72%);
              box-shadow:0 6px 22px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,230,160,.16); }
   /* A row rather than a column, reading left to right in the order the keys
-     are numbered — potion 3, lantern 4, whetstone 5 — with the unnumbered swap
+     are numbered — potion 3, lantern 4, whetstone 5, ward 6 — with the unnumbered swap
      last, nearest the thumb. It used to run the other way, fastest reach on the
      right, and the row then read backwards against the numbers in the HUD.
      Nothing here is needed in a hurry, which is what lets it sit inboard of the
@@ -342,18 +342,21 @@
      114px tall, so it occupies 24-138px up from the bottom edge. Sitting above
      that is what lets the row reach left across the screen without landing on
      the stick, which is why the old layout had to stack instead. */
-  #potBtn, #lampBtn, #whetBtn, #wpnBtn { bottom:calc(158px + env(safe-area-inset-bottom));
+  #potBtn, #lampBtn, #whetBtn, #wardBtn, #wpnBtn { bottom:calc(158px + env(safe-area-inset-bottom));
                       width:46px; height:46px;
                       border:1px solid rgba(201,192,174,.4); color:#c9c0ae;
                       background:radial-gradient(circle at 50% 32%, rgba(70,66,58,.62), rgba(28,26,22,.5) 72%);
                       box-shadow:0 5px 18px rgba(0,0,0,.45); }
+  /* 50px apart — 4px between buttons — since the ward made it five. At the old
+     54 the potion would have landed 362px from the right, off a 360px phone. */
   #wpnBtn { right:calc(100px + env(safe-area-inset-right)); }
-  #whetBtn { right:calc(154px + env(safe-area-inset-right)); }
-  #lampBtn { right:calc(208px + env(safe-area-inset-right)); }
-  /* Furthest out, at 262px + 46px = 308px from the right edge. On the narrowest
-     phone this targets that is still 52px in from the left, and it clears the
+  #wardBtn { right:calc(150px + env(safe-area-inset-right)); }
+  #whetBtn { right:calc(200px + env(safe-area-inset-right)); }
+  #lampBtn { right:calc(250px + env(safe-area-inset-right)); }
+  /* Furthest out, at 300px + 46px = 346px from the right edge. On the narrowest
+     phone this targets that is still 14px in from the left, and it clears the
      move stick by height rather than by width. */
-  #potBtn { right:calc(262px + env(safe-area-inset-right)); }
+  #potBtn { right:calc(300px + env(safe-area-inset-right)); }
   /* Directly above attack. Guarding is a reflex like dodging, so it sits one
      short reach from where the thumb already rests rather than up a stack. */
   #guardBtn { right:calc(32px + env(safe-area-inset-right)); bottom:calc(116px + env(safe-area-inset-bottom));
@@ -371,8 +374,8 @@
              box-shadow:0 5px 18px rgba(0,0,0,.45); }
   #dashBtn .ico { width:19px; height:19px; }
   #lootBtn .ico { width:18px; height:18px; }
-  #potBtn .ico, #lampBtn .ico, #whetBtn .ico, #wpnBtn .ico { width:18px; height:18px; }
-  #potBtn .count, #lampBtn .count, #whetBtn .count { opacity:.9; font-size:11px; }
+  #potBtn .ico, #lampBtn .ico, #whetBtn .ico, #wardBtn .ico, #wpnBtn .ico { width:18px; height:18px; }
+  #potBtn .count, #lampBtn .count, #whetBtn .count, #wardBtn .count { opacity:.9; font-size:11px; }
   #wpnBtn { font-size:9.5px; }
   #crosshair { position:fixed; left:50%; top:50%; width:6px; height:6px; margin:-3px 0 0 -3px; border-radius:50%; background:rgba(201,192,174,.7); z-index:10; display:none; pointer-events:none; }
   #reloadBar { position:fixed; top:calc(50% + 18px); left:50%; transform:translateX(-50%); width:90px; height:4px; z-index:10; display:none; background:rgba(201,192,174,.15); border-radius:2px; overflow:hidden; }
@@ -417,7 +420,7 @@
   @media (pointer:coarse) {
     .stick { display:block }
     #atkBtn { display:flex } #lootBtn.show { display:flex } #wpnBtn.show { display:flex }
-    #potBtn.show { display:flex } #lampBtn.show { display:flex } #whetBtn.show { display:flex }
+    #potBtn.show { display:flex } #lampBtn.show { display:flex } #whetBtn.show { display:flex } #wardBtn.show { display:flex }
     #dashBtn.show { display:flex } #guardBtn.show { display:flex }
     #prompt, #lockHint { display:none!important }
     .guideKeyboard { display:none }
@@ -504,6 +507,13 @@
     <path d="M2.8 17h16.4a1.5 1.5 0 0 1 0 3H2.8a1.5 1.5 0 0 1 0-3z"/>
     <path d="M5.6 13.8 17.4 2h3.8v3.8L9.4 17.6"/>
   </symbol>
+  <!-- A cut stone standing on its point over the line of the floor: the ward
+       as it sits in the dungeon. -->
+  <symbol id="i-ward" viewBox="0 0 24 24">
+    <path d="M12 2.5 17 9l-5 10L7 9z"/>
+    <path d="M7 9h10"/>
+    <path d="M4 21.5h16"/>
+  </symbol>
   <symbol id="i-lamp" viewBox="0 0 24 24">
     <path d="M9 2.6h6M12 2.6v2M7.4 6.4h9.2l-1 2.2v8.2H8.4V8.6z"/>
     <path d="M6.6 19h10.8"/>
@@ -555,7 +565,7 @@
     <button class="menuItem" id="modeNormal">Normal</button>
     <p class="modeNote">Chests with potions, lanterns, whetstones and the map. A shop for all of it between stages.</p>
     <button class="menuItem" id="modeHard">Hard</button>
-    <p class="modeNote">One chest, and the key is in it. No map, no potions, no lanterns, no whetstones — ever. The shop binds wounds, repairs the blade and sells musket balls, at half again the price.</p>
+    <p class="modeNote">One chest, and the key is in it. No map, no potions, no lanterns, no whetstones, no wards — ever. The shop binds wounds, repairs the blade and sells musket balls, at half again the price.</p>
   </div>
 </div>
 
@@ -626,6 +636,7 @@
 <div id="potBtn" class="tbtn"><svg class="ico"><use href="#i-potion"/></svg><span class="count">0</span></div>
 <div id="lampBtn" class="tbtn"><svg class="ico"><use href="#i-lamp"/></svg><span class="count">0</span></div>
 <div id="whetBtn" class="tbtn"><svg class="ico"><use href="#i-whet"/></svg><span class="count">0</span></div>
+<div id="wardBtn" class="tbtn"><svg class="ico"><use href="#i-ward"/></svg><span class="count">0</span></div>
 <div id="dashBtn" class="tbtn"><svg class="ico"><use href="#i-dash"/></svg><span>Dodge</span></div>
 <div id="guardBtn" class="tbtn"><svg class="ico"><use href="#i-guard"/></svg><span>Guard</span></div>
 

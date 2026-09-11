@@ -129,6 +129,16 @@ const STOCK: Stock[] = [
     },
   },
   {
+    id: 'Ward',
+    name: 'Ward',
+    soft: true,
+    held: () => `${target.wards} held`,
+    price: () => atStage(SHOP.ward),
+    buy: () => {
+      target.wards++;
+    },
+  },
+  {
     id: 'Ammo',
     name: 'Musket balls',
     held: () => `${target.ammo} held  ·  +${AMMO_PICKUP}`,

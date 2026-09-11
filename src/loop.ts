@@ -26,6 +26,7 @@ import { ANIM_ATTACK, ANIM_ATTACK_START, ANIM_STAGGER, ANIM_STAGGER_START, ANIM_
 import { isAuthority } from './net/client';
 import { thirdPersonActive, updateView } from './view';
 import { endTutorial, updateTutorial } from './tutorial';
+import { animateWards } from './ward';
 import { coop } from './net/session';
 import { mayOpen, tellTrapSprung } from './net/worldsync';
 import {
@@ -1020,6 +1021,7 @@ export function animate(): void {
   const kickK = state.lungeHitT / LUNGE_HIT_TIME;
   const kick = LUNGE_HIT_KICK * kickK * kickK;
   camera.rotation.set(state.pitch + kick, state.yaw + Math.PI, state.dashSide * DASH_ROLL * dashK, 'YXZ');
+  animateWards(dt, now);
   updateAmbience(dt, now);
   renderFrame();
 }

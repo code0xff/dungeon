@@ -10,7 +10,9 @@ import { state } from '../state';
 import { cancelLoot, minimapEl, objectiveEl, overlayEl, showMsg, updateHUD } from '../ui';
 import { isAuthority, net, onNetClaim, onNetEvent, onNetParty, sendClaim, sendEvent } from './client';
 import { remotePosition } from './remote';
+import { packWard, unpackWard } from './protocol';
 import type { WorldEvent } from './protocol';
+import { dropWard } from '../ward';
 import { coop } from './session';
 
 /**
@@ -149,6 +151,11 @@ export function tellShot(): void {
   tell('shot', 0);
 }
 
+/** A ward went down. What one player knows they have searched, the party has. */
+export function tellWard(x: number, z: number): void {
+  tell('ward', packWard(x, z));
+}
+
 onNetEvent((k, i, by) => {
   if (k === 'creak') {
     const c = state.chests[i];
@@ -180,6 +187,12 @@ onNetEvent((k, i, by) => {
     if (!isAuthority()) return;
     const who = remotePosition(by);
     if (who) alertCreatures(SHOT_ALERT_RADIUS, SHOT_ALERT_TIME, who.x, who.z);
+    return;
+  }
+
+  if (k === 'ward') {
+    const { x, z } = unpackWard(i);
+    dropWard(x, z);
     return;
   }
 

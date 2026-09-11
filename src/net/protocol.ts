@@ -51,7 +51,7 @@
  * cannot read, which here would have meant every party total discarded by a
  * filter reading a field the sender never sent.
  */
-export const PROTOCOL_VERSION = 11;
+export const PROTOCOL_VERSION = 12;
 
 /** The port the host listens on for both the game page and the socket. */
 export const COOP_PORT = 5848;
@@ -201,7 +201,22 @@ export type WorldEvent =
    * the shooter is from their last pose. Sending coordinates that the receiver
    * holds a fresher copy of would only be a way for the two to disagree.
    */
-  | 'shot';
+  | 'shot'
+  /** A ward was set down. `i` is its position, packed by packWard(). */
+  | 'ward';
+
+/**
+ * A ward's position in a world event's one integer: quarter-metre precision,
+ * x in the high part. The largest dungeon is well under WARD_SPAN / WARD_PACK
+ * metres across, and a quarter metre is finer than anyone can tell a gem on
+ * the floor was moved by. One number, so the event needs no new shape.
+ */
+const WARD_PACK = 4;
+const WARD_SPAN = 4096;
+export const packWard = (x: number, z: number): number =>
+  Math.round(Math.max(0, x) * WARD_PACK) * WARD_SPAN + Math.round(Math.max(0, z) * WARD_PACK);
+export const unpackWard = (i: number): { x: number; z: number } =>
+  ({ x: Math.floor(i / WARD_SPAN) / WARD_PACK, z: (i % WARD_SPAN) / WARD_PACK });
 
 export interface CEvent {
   t: 'e';

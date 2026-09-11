@@ -74,7 +74,7 @@ export function runLevel(soloStage: number): number {
  * config.ts, next to the spawn curve it is meant to keep pace with.
  */
 export function coopKit(level: number, hard: boolean): {
-  hp: number; potions: number; lanterns: number; whetstones: number;
+  hp: number; potions: number; lanterns: number; whetstones: number; wards: number;
   ammo: number; swordDur: number; lanternT: number;
 } {
   const n = Math.max(1, Math.round(level));
@@ -89,6 +89,7 @@ export function coopKit(level: number, hard: boolean): {
     potions: upTo(COOP_KIT.potionPerLevels, COOP_KIT.potionCap),
     lanterns: upTo(COOP_KIT.lanternPerLevels, COOP_KIT.lanternCap),
     whetstones: upTo(COOP_KIT.whetstonePerLevels, COOP_KIT.whetstoneCap),
+    wards: upTo(COOP_KIT.wardPerLevels, COOP_KIT.wardCap),
     ammo: COOP_KIT.ammoBase + Math.round((n - 1) * COOP_KIT.ammoPerLevel),
     // Carried unlit. Choosing when to burn one is the point of the item, and
     // handing out a lit lantern would spend that choice for the player.

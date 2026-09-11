@@ -1,5 +1,6 @@
 import {
-  GUARD_KEY, GUIDE_KEY, LANTERN_KEY, LUNGE_DMG, POTION_KEY, SOUND_KEY, THIRD_PERSON_KEY, WHETSTONE_KEY,
+  GUARD_KEY, GUIDE_KEY, LANTERN_KEY, LUNGE_DMG, POTION_KEY, SOUND_KEY, THIRD_PERSON_KEY, WARD_KEY,
+  WHETSTONE_KEY,
 } from './config';
 import { el } from './dom';
 
@@ -33,6 +34,7 @@ const KEYS: readonly (readonly [string, string])[] = [
   ['Drink a potion', `${POTION_KEY} — takes a moment to go down`],
   ['Light a lantern', LANTERN_KEY],
   ['Sharpen the sword', WHETSTONE_KEY],
+  ['Set a ward', `${WARD_KEY} — a green gem on the floor where you stand, so you know you have been this way`],
   ['Third person', `${THIRD_PERSON_KEY} — with the sword; the musket aims first-person`],
   ['This guide', GUIDE_KEY],
   ['Sound on / off', SOUND_KEY],

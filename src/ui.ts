@@ -1,5 +1,6 @@
 import {
-  CELL, COOP_MAX_LEVEL, FINAL_STAGE, LANTERN_KEY, POTION_KEY, SPAWN_PEAK_STAGE, SWORD_DUR_MAX, WHETSTONE_KEY,
+  CELL, COOP_MAX_LEVEL, FINAL_STAGE, LANTERN_KEY, POTION_KEY, SPAWN_PEAK_STAGE, SWORD_DUR_MAX, WARD_KEY,
+  WHETSTONE_KEY,
 } from './config';
 import { context2d, el, firstChild, queryChild } from './dom';
 import { bankRun, loseRun, progress } from './progress';
@@ -35,6 +36,7 @@ export const wpnBtn = el('wpnBtn');
 export const potBtn = el('potBtn');
 export const lampBtn = el('lampBtn');
 export const whetBtn = el('whetBtn');
+export const wardBtn = el('wardBtn');
 export const dashBtn = el('dashBtn');
 export const guardBtn = el('guardBtn');
 export const atkBtn = el('atkBtn');
@@ -48,6 +50,7 @@ export const minimapEl = el<HTMLCanvasElement>('minimap');
 const potCount = queryChild(potBtn, '.count');
 const lampCount = queryChild(lampBtn, '.count');
 const whetCount = queryChild(whetBtn, '.count');
+const wardCount = queryChild(wardBtn, '.count');
 
 const mctx = context2d(minimapEl);
 
@@ -91,6 +94,7 @@ export function updateHUD(): void {
     slot(POTION_KEY, 'Potion', state.potions),
     slot(LANTERN_KEY, 'Lantern', state.lanterns),
     slot(WHETSTONE_KEY, 'Whetstone', state.whetstones),
+    slot(WARD_KEY, 'Ward', state.wards),
   );
   atkLabel.textContent = attackLabel();
   dashBtn.classList.add('show');
@@ -110,6 +114,8 @@ export function updateHUD(): void {
   potCount.textContent = String(state.potions);
   lampCount.textContent = String(state.lanterns);
   whetCount.textContent = String(state.whetstones);
+  wardBtn.classList.toggle('show', state.wards > 0);
+  wardCount.textContent = String(state.wards);
 }
 
 /**
@@ -200,6 +206,13 @@ export function drawMinimap(): void {
       : (open ? 'rgba(212,178,90,.3)' : '#d4b25a');
     mctx.fillRect(ox + (c.mesh.position.x / CELL) * s - 2, oz + (c.mesh.position.z / CELL) * s - 2, 4, 4);
   }
+  // Wards are the map a player draws for themselves, so they belong on this one.
+  mctx.fillStyle = '#5dff8a';
+  for (const w of state.wardMarks) {
+    mctx.beginPath();
+    mctx.arc(ox + (w.x / CELL) * s, oz + (w.z / CELL) * s, 2.5, 0, Math.PI * 2);
+    mctx.fill();
+  }
   mctx.fillStyle = '#6a9fd8';
   mctx.fillRect(ox + state.exitCell.x * s - 1, oz + state.exitCell.z * s - 1, s + 2, s + 2);
 
@@ -288,7 +301,7 @@ export function endRun(extracted: boolean): void {
         bankGold: (coop.carry?.bankGold ?? 0) + state.runGold,
         hp: Math.max(1, Math.round(state.hp)), lanternT: state.lanternT, ammo: state.ammo,
         potions: state.potions, lanterns: state.lanterns, whetstones: state.whetstones,
-        swordDur: state.swordDur, hard: coop.hard,
+        wards: state.wards, swordDur: state.swordDur, hard: coop.hard,
       };
     } else {
       // Death takes the lot, as it does in solo. The next dungeon starts on the
@@ -334,7 +347,7 @@ export function endRun(extracted: boolean): void {
     bankRun(state.runGold, {
       hp: state.hp, lanternT: state.lanternT, ammo: state.ammo,
       potions: state.potions, lanterns: state.lanterns, whetstones: state.whetstones,
-      swordDur: state.swordDur,
+      wards: state.wards, swordDur: state.swordDur,
     });
     // bankRun() has already moved the stage on, so the one just left is one back.
     const left = progress.stage - 1;

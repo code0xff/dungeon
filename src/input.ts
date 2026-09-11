@@ -2,18 +2,18 @@ import { initAudio, isMuted, setMuted, sfxDash } from './audio';
 import {
   DASH_CD, GUARD_KEY, LANTERN_KEY, LUNGE_AIM, LUNGE_WINDOW, PARRY_CD, PARRY_WINDOW, POTION_KEY,
   SOUND_KEY,
-  THIRD_PERSON_KEY, WHETSTONE_KEY,
+  THIRD_PERSON_KEY, WARD_KEY, WHETSTONE_KEY,
 } from './config';
 import { el, queryChild } from './dom';
 import { canvasEl } from './scene';
 import { state } from './state';
 import { tryAttack } from './combat';
-import { startLoot, useLantern, usePotion, useWhetstone } from './loot';
+import { startLoot, useLantern, usePotion, useWard, useWhetstone } from './loot';
 import { toggleView } from './view';
 import { STEP, taught } from './tutorial';
 import {
   atkBtn, dashBtn, guardBtn, lampBtn, lockHintEl, lootBtn, potBtn, showMsg,
-  soundBtn, viewBtn, whetBtn, wpnBtn,
+  soundBtn, viewBtn, wardBtn, whetBtn, wpnBtn,
 } from './ui';
 import { setWeapon, toggleWeapon } from './weapons';
 
@@ -107,6 +107,7 @@ addEventListener('keydown', (e) => {
   if (e.code === `Digit${POTION_KEY}` || e.key === POTION_KEY) usePotion();
   if (e.code === `Digit${LANTERN_KEY}` || e.key === LANTERN_KEY) useLantern();
   if (e.code === `Digit${WHETSTONE_KEY}` || e.key === WHETSTONE_KEY) useWhetstone();
+  if (e.code === `Digit${WARD_KEY}` || e.key === WARD_KEY) useWard();
   if (e.code === `Key${THIRD_PERSON_KEY}`) toggleView();
 });
 addEventListener('keyup', (e) => {
@@ -328,7 +329,7 @@ for (const ev of ['touchend', 'touchcancel'] as const) {
 
 const touchButtons = [
   [atkBtn, tryAttack], [lootBtn, startLoot], [wpnBtn, toggleWeapon],
-  [potBtn, usePotion], [lampBtn, useLantern], [whetBtn, useWhetstone], [dashBtn, tryDash],
+  [potBtn, usePotion], [lampBtn, useLantern], [whetBtn, useWhetstone], [wardBtn, useWard], [dashBtn, tryDash],
 ] as const;
 
 for (const [btn, action] of touchButtons) {

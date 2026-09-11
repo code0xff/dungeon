@@ -143,6 +143,7 @@ rules, with the detail in [docs/](docs/). `CLAUDE.md` is a symlink to it.
 | Open chest | `E` |
 | Swap weapon | `Q` |
 | Drink potion / light lantern / sharpen sword | `3` / `4` / `5` — a potion takes a moment to go down, and slows you while it does |
+| Set a ward | `6` — a green gem on the floor where you stand; wards show on the map |
 | Menu | `H` — resume, controls, or start a new game. Pauses while it is open |
 | Sound on / off | `M` — remembered between runs |
 | First / third person | `V`, or the eye button at the top — sword only; the musket always aims first-person. Remembered between runs |
@@ -158,8 +159,8 @@ it can kill you.
 
 **Then a choice: normal or hard.** Asked once, before stage 1, and again only
 on New game — a save is one mode for its life. Hard is the same dungeon with
-one chest in it, and the key inside: no map, no potions, lanterns or
-whetstones anywhere, and a shop of wounds, blade and musket balls at half
+one chest in it, and the key inside: no map, no potions, lanterns,
+whetstones or wards anywhere, and a shop of wounds, blade and musket balls at half
 again the price. The HUD says which you are in.
 
 **A trapped chest springs on the blade that pried it**, in every mode: 6
@@ -188,6 +189,12 @@ ruined one in nine. It never stops working entirely, because a weapon that does
 would strand you with no way back to the exit. A **whetstone** from a chest or
 the shop grinds 45 points back, spent with `5` — the only repair available while
 you are still down there.
+
+**Wards** mark where you have been. Press `6` and a green gem is set on the
+floor where you stand, glowing far enough down a corridor to say *turn back*
+before you walk the same loop twice. They come out of chests and the shop, go
+on the map beside the chests, and in multiplayer the whole party sees every
+ward anyone sets.
 
 **You are planted when you act.** A swing drops you to 35% speed for the third
 of a second it takes; so does a potion for the 0.9s it takes to go down. Neither

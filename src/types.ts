@@ -210,7 +210,7 @@ export interface Monster {
 }
 
 // ================= Chests and props =================
-export type ItemKind = 'key' | 'lantern' | 'map' | 'ammo' | 'potion' | 'musket' | 'whetstone';
+export type ItemKind = 'key' | 'lantern' | 'map' | 'ammo' | 'potion' | 'musket' | 'whetstone' | 'ward';
 
 export interface Chest {
   mesh: THREE.Group;
@@ -301,6 +301,18 @@ export interface Outfit {
   potions: number;
   lanterns: number;
   whetstones: number;
+  wards: number;
   swordDur: number;
   hard: boolean;
+}
+
+/** A ward set down on the floor. See ward.ts. */
+export interface Ward {
+  group: THREE.Group;
+  gem: THREE.Object3D;
+  halo: THREE.Sprite;
+  /** Phase offset, so a corridor of wards does not pulse in step. */
+  seed: number;
+  x: number;
+  z: number;
 }

@@ -29,6 +29,7 @@ export interface Progress {
   potions: number;
   lanterns: number;
   whetstones: number;
+  wards: number;
   /** Sword durability carried out. A new run after death gets a fresh blade. */
   swordDur: number;
   /**
@@ -50,7 +51,7 @@ const KEY = 'dungeon.progress.v1';
 function fresh(): Progress {
   return {
     stage: 1, bankGold: 0, hp: MAX_HP, lanternT: 0, ammo: START_AMMO,
-    potions: 0, lanterns: 0, whetstones: 0, swordDur: SWORD_DUR_MAX,
+    potions: 0, lanterns: 0, whetstones: 0, wards: 0, swordDur: SWORD_DUR_MAX,
     // Drawn here rather than at the first buildWorld() so that death and New
     // game — the two callers of fresh() — are exactly what changes the dungeon.
     seed: randomSeed(),
@@ -80,6 +81,7 @@ function merge(raw: unknown): void {
   if (typeof o.whetstones === 'number' && Number.isFinite(o.whetstones)) {
     progress.whetstones = Math.max(0, o.whetstones | 0);
   }
+  if (typeof o.wards === 'number' && Number.isFinite(o.wards)) progress.wards = Math.max(0, o.wards | 0);
   if (typeof o.swordDur === 'number' && Number.isFinite(o.swordDur)) {
     progress.swordDur = Math.min(SWORD_DUR_MAX, Math.max(0, o.swordDur));
   }
@@ -141,7 +143,7 @@ export function bankRun(
   runGold: number,
   gear: {
     hp: number; lanternT: number; ammo: number;
-    potions: number; lanterns: number; whetstones: number; swordDur: number;
+    potions: number; lanterns: number; whetstones: number; wards: number; swordDur: number;
   },
 ): void {
   progress.bankGold += runGold;
@@ -154,6 +156,7 @@ export function bankRun(
   progress.potions = gear.potions;
   progress.lanterns = gear.lanterns;
   progress.whetstones = gear.whetstones;
+  progress.wards = gear.wards;
   progress.swordDur = gear.swordDur;
   saveProgress();
 }

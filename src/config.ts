@@ -506,7 +506,7 @@ export const CHEST_COUNT = 14;
  * unopened chests are.
  */
 export const CHEST_ITEMS: readonly ItemKind[] = [
-  'key', 'lantern', 'map', 'ammo', 'ammo', 'potion', 'potion', 'whetstone',
+  'key', 'lantern', 'map', 'ammo', 'ammo', 'potion', 'potion', 'whetstone', 'ward',
 ];
 /**
  * Items that are never put in a trapped chest.
@@ -528,6 +528,25 @@ export const CHEST_SAFE_ITEMS: readonly ItemKind[] = ['key', 'map'];
 export const POTION_KEY = '3';
 export const LANTERN_KEY = '4';
 export const WHETSTONE_KEY = '5';
+export const WARD_KEY = '6';
+
+// ---- Wards ----
+/**
+ * The ward's glow. Green, the colour the dungeon already uses for a light
+ * someone lit on purpose — but on the floor and faceted, where the sconces are
+ * flames on the wall at head height, so the two do not read as the same thing.
+ */
+export const WARD_COLOR = 0x5dff8a;
+/** Height of the gem's centre above the floor, in metres. Low: it marks ground. */
+export const WARD_HEIGHT = 0.32;
+/** Radians a second the gem turns. Slow; it is a marker, not a pickup. */
+export const WARD_SPIN = 0.8;
+/**
+ * Closest two wards may be set, in metres. A second ward on the same spot says
+ * nothing the first did not, and pressing the key twice by accident would
+ * spend one for nothing.
+ */
+export const WARD_GAP = 1.5;
 /** Holds the shield up. The right mouse button does the same. */
 export const GUARD_KEY = 'F';
 /** Opens the controls panel, and closes it again. */
@@ -1011,6 +1030,11 @@ export const SHOP = {
    * between stages — the premium is for being able to sharpen at the bottom.
    */
   whetstone: 110,
+  /**
+   * A ward. The cheapest thing on the counter: it does nothing in a fight and
+   * everything for a player who keeps walking the same loop of corridor.
+   */
+  ward: 35,
 } as const;
 
 /**
@@ -1234,7 +1258,7 @@ export const FINAL_STAGE = 12;
  */
 export const TUTORIAL_ROOM = 7;
 /** What the lesson hands out. One of each thing it teaches, and a full blade. */
-export const TUTORIAL_KIT = { potions: 1, lanterns: 1, whetstones: 0, ammo: 6 };
+export const TUTORIAL_KIT = { potions: 1, lanterns: 1, whetstones: 0, wards: 0, ammo: 6 };
 /** Metres walked before the movement lesson is satisfied. */
 export const TUTORIAL_MOVE_DIST = 4;
 /** Dodges before the dodge lesson is satisfied — one to see it, one to feel it. */
@@ -1278,6 +1302,8 @@ export const COOP_KIT = {
   lanternCap: 3,
   whetstonePerLevels: 3,
   whetstoneCap: 3,
+  wardPerLevels: 2,
+  wardCap: 4,
   /** Spare rounds at level 1, matching the solo opening. */
   ammoBase: START_AMMO,
   /** Added per level above 1. Ammo is the one line that does not cap: the

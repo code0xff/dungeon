@@ -492,6 +492,20 @@ in the console. One durable `dungeon-v1` cache, pruned on activate of entries
 whose `?v=` no longer matches, has no such window: the shell and the
 content-hashed bundles are never touched, only superseded assets are.
 
+## Wards
+
+`src/ward.ts`. A gem on the floor, set with `WARD_KEY`, to mark a corridor as
+searched. It glows by an emissive, flat-shaded gem and two additive textures —
+a halo sprite and a pool on the floor — and deliberately **not** a PointLight:
+three bakes the light count into every lit shader, so a light added mid-run
+recompiles every material in the dungeon on the frame the key is pressed. The
+sconces can have lights only because their number is settled at build time.
+All three materials are `fog: false` so a ward reads further than the stone
+around it, while depth testing keeps walls in front of it. Wards live on
+`state.wardMarks`, are cleared with the dungeon, drawn on the minimap, and in
+co-op travel as a `ward` world event whose `i` is the position packed by
+`packWard()` — one integer, so no new message shape was needed.
+
 ## Hard mode
 
 `progress.hard`, set by `src/mode.ts` — a panel asked once before stage 1
