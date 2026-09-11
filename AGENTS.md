@@ -60,6 +60,12 @@ where the weight actually sits.
 **10. Do not add dependencies casually.** `three` is pinned to `0.152.2` with a
 matching `@types/three`; upgrading is a deliberate task, not a side effect.
 
+**11. Commit subjects are `type: message`.** One of `feat` (anything a player
+can see or feel, tuning included), `fix`, `docs`, `refactor`, or `chore`
+(tooling, config, licences); lowercase after the colon, no scope. The body stays
+prose saying why. The whole history was rewritten to this on 2026-09-11, so a
+commit hash from before then in an old note no longer exists.
+
 ## Commands
 
 ```bash

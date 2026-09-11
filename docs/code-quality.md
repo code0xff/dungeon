@@ -70,6 +70,8 @@ Rules:
 
 - **Everything is English** — comments, identifiers, log lines, UI strings, docs,
   commit messages.
+- **Commit subjects are `type: message`** — `feat`, `fix`, `docs`, `refactor` or
+  `chore`; see premise 11 in AGENTS.md.
 - **A workaround must name what it works around.** If you discovered it by
   debugging, write down the measurement: "12 of 156 tracks matched" is worth more
   than "assimp does not work".
