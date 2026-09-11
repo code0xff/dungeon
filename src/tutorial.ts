@@ -1,5 +1,5 @@
 import {
-  CELL, GUARD_KEY, LANTERN_KEY, LUNGE_DMG, POTION_KEY, TUTORIAL_DODGES, TUTORIAL_MOVE_DIST,
+  CELL, GUARD_KEY, LANTERN_KEY, lanternMinutes, LUNGE_DMG, POTION_KEY, TUTORIAL_DODGES, TUTORIAL_MOVE_DIST,
   TUTORIAL_POTION_HP, TUTORIAL_ROOM,
 } from './config';
 import { el } from './dom';
@@ -224,8 +224,8 @@ const LESSONS: Lesson[] = [
   },
   {
     text: touch
-      ? 'Tap the lantern. It reaches further than the torch and burns for two and a half minutes.'
-      : `Press ${LANTERN_KEY} to light the lantern. It reaches further than the torch and burns for two and a half minutes.`,
+      ? `Tap the lantern. It reaches further than the torch and burns for ${lanternMinutes()} minutes.`
+      : `Press ${LANTERN_KEY} to light the lantern. It reaches further than the torch and burns for ${lanternMinutes()} minutes.`,
     done: () => state.lanternT > 0,
   },
   {

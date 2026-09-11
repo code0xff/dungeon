@@ -816,6 +816,12 @@ export const FOG_TORCH = 0.08;
  * and the remainder carries into the next stage.
  */
 export const LANTERN_FUEL = 150;
+/**
+ * LANTERN_FUEL as the player reads it: "2.5", not "3". Rounded to a whole
+ * minute it promised half a minute the lantern does not have — in the shop and
+ * again when it was lit — so every place that names it goes through here.
+ */
+export const lanternMinutes = (): string => String(Math.round((LANTERN_FUEL / 60) * 10) / 10);
 /** Fuel left when the player is warned, in seconds. */
 export const LANTERN_WARN = 30;
 
@@ -1121,15 +1127,18 @@ export const TYPES: Record<CreatureKey, CreatureType> = {
    * the first thing in the dungeon that cannot be walked away from *or* traded
    * with.
    *
-   * These are the Black Knight's old numbers, less the shield. It held this
+   * It started on the Black Knight's old numbers, less the shield. It held this
    * slot — strong, quick, no trick to it — until it was made the thing the
    * shield is for, and the slot was worth keeping: a run needs one creature
    * that is simply dangerous before it meets one that is dangerous *and* has
    * to be read. hp 10 is eleven swings from a fresh blade or three musket
-   * balls, dmg 28 is four hits to die from full, speed 3.9 is under the
-   * player's 5.2 but not by enough to open distance in a corridor. The answer
-   * is the parry, the lunge (5.52 leaves it on 4.5 — one more lunge or five
-   * swings), or the corridor behind you *early*.
+   * balls, dmg 24 is five hits to die from full, speed 3.6 is under the
+   * player's 5.2 by enough to open distance slowly in a corridor, not to lose
+   * it. The answer is the parry, the lunge (5.52 leaves it on 4.5 — one more
+   * lunge or five swings), or the corridor behind you *early*.
+   *
+   * It was dmg 28 and speed 3.9 at first: four hits and almost no gap, and it
+   * was killing players at stage 3 who had not met the parry yet.
    *
    * clearance 1.35 is a guess between the zombie's measured 1.15 and the
    * brute's 1.6; the orc's attack clip has not been stepped through the way
@@ -1137,7 +1146,7 @@ export const TYPES: Record<CreatureKey, CreatureType> = {
    */
   orc: {
     name: 'Orc',
-    hp: 10, dmg: 28, speed: 3.9, atkCd: 0.9, attackSpeed: 2.0,
+    hp: 10, dmg: 24, speed: 3.6, atkCd: 0.9, attackSpeed: 2.0,
     reach: 2.0, r: 0.55, clearance: 1.35, reward: 110, aggro: 16,
     groan: [5, 9], voice: 0.7,
     animSpeed: 5, swing: 0.45,

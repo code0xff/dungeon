@@ -1,5 +1,5 @@
 import {
-  AMMO_PICKUP, HARD_PRICE, LANTERN_FUEL, MAX_HP, POTION_HEAL, SHOP, SHOP_INFLATION, SPAWN_PEAK_STAGE,
+  AMMO_PICKUP, HARD_PRICE, lanternMinutes, MAX_HP, POTION_HEAL, SHOP, SHOP_INFLATION, SPAWN_PEAK_STAGE,
   SWORD_DUR_MAX, WHETSTONE_REPAIR,
 } from './config';
 import { el } from './dom';
@@ -64,8 +64,6 @@ const repairCost = (): number =>
 
 const healCost = (): number => atStage((MAX_HP - target.hp) * SHOP.healPerPoint);
 
-/** "2.5", not "3": LANTERN_FUEL is 150s and rounding it up promised half a minute the lantern does not have. */
-const lanternMinutes = (): string => String(Math.round((LANTERN_FUEL / 60) * 10) / 10);
 
 /**
  * Two groups: the things done to you here, once — wounds bound, blade

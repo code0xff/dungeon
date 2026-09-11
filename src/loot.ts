@@ -1,7 +1,7 @@
 import { sfxCreak, sfxPickup } from './audio';
 import { alertCreatures, springTrap } from './combat';
 import {
-  AMMO_PICKUP, CHEST_ALERT_RADIUS, CHEST_ALERT_TIME, LANTERN_FUEL, LANTERN_KEY, MAX_HP,
+  AMMO_PICKUP, CHEST_ALERT_RADIUS, CHEST_ALERT_TIME, LANTERN_FUEL, LANTERN_KEY, lanternMinutes, MAX_HP,
   MUSKET_AMMO, POTION_HEAL, POTION_KEY, SWORD_DUR_MAX, TRAP_SWORD_WEAR, WARD_KEY, WHETSTONE_KEY, WHETSTONE_REPAIR,
 } from './config';
 import { tellChestOpened, tellCreak, tellLantern, tellWard } from './net/worldsync';
@@ -222,5 +222,5 @@ export function useLantern(): void {
   state.lightBase = setLampLit(true);
   sfxPickup();
   updateHUD();
-  showMsg(`Lantern lit — ${Math.round(LANTERN_FUEL / 60)} minutes of fuel`);
+  showMsg(`Lantern lit — ${lanternMinutes()} minutes of fuel`);
 }

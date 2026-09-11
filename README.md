@@ -76,10 +76,10 @@ falls back to a box model for it.
 | **Zombie** | 4 | 17 | 2.9 | 13m | 8-16 G | 12 → 49 |
 | **Brute** | 9 | 32 | 2.0 | 13m | 36-74 G | 1 → 29 |
 | **Lunatic** | 3 | 14 | 4.5 | 18m | 20-40 G | 1 → 29 |
-| **Orc** | 10 | 28 | 3.9 | 16m | 72-148 G | 0 → 5, from stage 3 |
+| **Orc** | 10 | 24 | 3.6 | 16m | 72-148 G | 0 → 5, from stage 3 |
 | **Black Knight** | 16 | 34 | 3.6 | 17m | 130-270 G | 0 → 4, from stage 5 |
 
-The orc is the brute's hits at nearly the lunatic's pace: the first thing that
+The orc hits nearly as hard as a brute at nearly the lunatic's pace: the first thing that
 can neither be walked away from nor traded with, and no trick to it — parry it,
 lunge it, or leave early.
 
