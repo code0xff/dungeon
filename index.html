@@ -228,9 +228,11 @@
            background:linear-gradient(rgba(2,3,4,.35), rgba(2,3,4,.82) 45%, rgba(2,3,4,.94));
            color:var(--ink); text-align:center; }
   #title > :first-child { margin-top:auto; margin-bottom:auto; }
-  .titleBox { width:min(560px, 92vw); display:flex; flex-direction:column; align-items:center; }
+  /* Wide enough for the name on one line and each rule on one line on a desktop;
+     the buttons keep their own narrower column inside it. A phone wraps both. */
+  .titleBox { width:min(960px, 94vw); display:flex; flex-direction:column; align-items:center; }
   .titleName { font-family:var(--display); font-weight:600; text-transform:uppercase;
-               font-size:clamp(24px, 6.2vw, 52px); letter-spacing:6px; line-height:1.2; color:var(--blood);
+               font-size:clamp(24px, 5vw, 56px); letter-spacing:6px; line-height:1.2; color:var(--blood);
                text-shadow:0 0 42px rgba(142,43,43,.55); margin:0 0 10px; }
   .titleTag { font-size:17px; font-style:italic; opacity:.72; margin:0 0 18px; }
   .titleButtons { width:min(320px, 86vw); }
@@ -238,7 +240,7 @@
   /* Continue on a save, the lesson on a first visit: the one to press. */
   .titleButtons .titlePrimary { border-color:rgba(212,178,90,.7); color:var(--gold);
                                 background:rgba(40,32,14,.75); font-size:14.5px; padding:14px 0; }
-  .titleRules { list-style:none; padding:0; margin:22px 0 0; max-width:min(520px, 92vw);
+  .titleRules { list-style:none; padding:0; margin:22px 0 0; max-width:min(820px, 92vw);
                 font-size:14px; line-height:1.55; opacity:.62; text-align:left; }
   .titleRules li { margin:7px 0; padding-left:16px; position:relative; }
   .titleRules li::before { content:'—'; position:absolute; left:0; opacity:.6; }

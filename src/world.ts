@@ -432,6 +432,20 @@ function placeSconces(): void {
   }
 }
 
+/**
+ * Puts the objective card up for its seven seconds. Called when a dungeon is
+ * built, and again when the title screen steps aside for Continue — the card
+ * used to run its whole seven seconds behind the title and be gone by the time
+ * anyone could read it.
+ */
+export function showObjective(): void {
+  objectiveEl.style.opacity = '1';
+  if (guideTimer !== null) clearTimeout(guideTimer);
+  guideTimer = setTimeout(() => {
+    objectiveEl.style.opacity = '0';
+  }, 7000);
+}
+
 /** Build a fresh dungeon and reset the run. Restart calls this too. */
 export function buildWorld(): void {
   clearWorld();
@@ -585,11 +599,7 @@ export function buildWorld(): void {
   state.lightBase = setLampLit(state.lanternT > 0);
 
   minimapEl.style.display = 'none';
-  objectiveEl.style.opacity = '1';
-  if (guideTimer !== null) clearTimeout(guideTimer);
-  guideTimer = setTimeout(() => {
-    objectiveEl.style.opacity = '0';
-  }, 7000);
+  showObjective();
 
   cancelLoot();
   updateHUD();

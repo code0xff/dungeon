@@ -9,8 +9,8 @@ import { closeShop } from './shop';
 import { state } from './state';
 import { leaveTutorial, startTutorial } from './tutorial';
 import { lockFromClick } from './input';
-import { guideBtn, guideCloseBtn, lockHintEl } from './ui';
-import { buildWorld } from './world';
+import { guideBtn, guideCloseBtn, lockHintEl, objectiveEl } from './ui';
+import { buildWorld, showObjective } from './world';
 import { pickMode } from './mode';
 
 /**
@@ -189,6 +189,8 @@ export function openTitle(): void {
   // showed through the backdrop between the buttons, and the title's own first
   // click takes the lock anyway.
   lockHintEl.style.display = 'none';
+  // Held back until the player steps out: see showObjective().
+  objectiveEl.style.opacity = '0';
   // A save offers Continue first and biggest; a first visit offers the lesson.
   titleContinue.style.display = progress.started ? 'block' : 'none';
   titleContinue.textContent = `Continue  ·  Stage ${progress.stage}${progress.hard ? '  ·  Hard' : ''}`;
@@ -215,6 +217,8 @@ titleContinue.addEventListener('click', () => {
   // The world behind the title is the save's own dungeon, already built; the
   // lock card it put up is moot now the click has asked for the lock.
   lockHintEl.style.display = 'none';
+  // The objective card spent its seconds behind the title; this is when it is read.
+  if (!state.hasMap) showObjective();
 });
 
 titleNew.addEventListener('click', () => {
