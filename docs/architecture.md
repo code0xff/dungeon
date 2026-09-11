@@ -205,11 +205,11 @@ than being driven from `input.ts` — `world.ts` imports `input.ts`, and the men
 needs `buildWorld()`, which through `input.ts` would have been a cycle.
 
 The pause menu is Resume, Controls and Quit; everything that starts something
-lives on the title. Quit is not destructive solo — the run waits behind the
-title and Continue resumes it — so it does not ask. From a settled run (the
-death or extraction screen) it builds the next dungeon first, so Continue is
-never into one that has ended; from the tutorial it leaves the room; in a party
-it walks out, so that one arms on the first click.
+lives on the title. Quit arms on the first click and goes on the second,
+naming what is being left. Solo it is not destructive — the run waits behind
+the title and Continue resumes it. From a settled run (the death or extraction
+screen) it builds the next dungeon first, so Continue is never into one that
+has ended; from the tutorial it leaves the room; in a party it walks out.
 
 New game, on the title, is the same wipe as a death, chosen rather than
 suffered. It arms on the first click and names the sum it is about to erase.

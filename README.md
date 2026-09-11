@@ -167,9 +167,9 @@ again the price. The HUD says which you are in.
 points of durability along with the 10 HP and the noise.
 
 `H` opens a pause menu — Resume, Controls, Quit. Quit goes to the title
-screen, where a new game, the tutorial and multiplayer are chosen; a solo run
-waits behind it and Continue picks it up, so it does not ask. Quitting a
-multiplayer run walks out on the party, so that one asks first. New game on
+screen, where a new game, the tutorial and multiplayer are chosen, and it asks
+once before it goes. A solo run waits behind the title and Continue picks it
+up; quitting a multiplayer run walks out on the party. New game on
 the title wipes the bank, so it asks too and names what it is about to
 destroy.
 

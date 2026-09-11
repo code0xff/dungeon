@@ -41,7 +41,7 @@ const titleTutorial = el('titleTutorial');
 const coopCloseBtn = el('coopClose');
 const coopPanelEl = el('coop');
 
-/** Whether Quit has been clicked once in a party and is waiting for confirmation. */
+/** Whether Quit has been clicked once and is waiting for confirmation. */
 let armed = false;
 let guideOpen = false;
 /** New game on the title has been clicked once and is waiting for confirmation. */
@@ -267,13 +267,15 @@ guideItem.addEventListener('click', () => {
 });
 
 quitBtn.addEventListener('click', () => {
-  // In a party, quitting walks out on it — the one thing here that cannot be
-  // undone — so it asks. Solo it is not a loss: the run waits behind the title.
+  // Always asked, on the same button: Quit sits one row under Resume, and a
+  // stray click that drops the player out of a live dungeon is worth a second
+  // one. The question names what is being left — in a party that is the party,
+  // and that one cannot be undone.
   const inParty = coop.active || coop.watching;
-  if (inParty && !armed) {
+  if (!armed) {
     armed = true;
     quitBtn.classList.add('arm');
-    quitBtn.textContent = 'Leave the party?';
+    quitBtn.textContent = inParty ? 'Leave the party?' : state.tutorial ? 'Leave the lesson?' : 'Quit to the title?';
     return;
   }
   closeMenu();
