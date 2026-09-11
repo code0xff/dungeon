@@ -207,9 +207,10 @@ you are still down there.
 **Wards** mark where you have been. Press `6`, hold still for 0.8s — move,
 swing or get hit and it is not set, and not spent — and a green gem is set on the
 floor where you stand, glowing far enough down a corridor to say *turn back*
-before you walk the same loop twice. They come out of chests and the shop, go
-on the map beside the chests, and in multiplayer the whole party sees every
-ward anyone sets.
+before you walk the same loop twice. Every dungeon has 0 in a chest, the
+shop sells them at 35 G, and they carry between stages like the rest of the
+pack. They go on the map beside the chests, and in multiplayer the whole party
+sees every ward anyone sets. Hard mode has none.
 
 **You are planted when you act.** A swing drops you to 35% speed for the third
 of a second it takes; so does a potion for the 0.9s it takes to go down. Neither
@@ -278,7 +279,8 @@ average chest on stage 1 and two by stage 12, and roughly half of stage-1 chests
 open in silence against one in eight at the peak.
 
 **Between stages you outfit.** Extraction opens a shop that spends banked gold
-on binding wounds, repairs, whetstones, potions, lantern oil and musket balls.
+on binding wounds, repairs, whetstones, potions, lantern oil, wards and musket
+balls.
 Prices climb 15% a stage and flatten where the spawns do, so deeper is dearer
 but never outruns what a run can earn. That is what the bank is *for*; before it
 existed, gold was a score with no sink and no reason to walk out rather than
