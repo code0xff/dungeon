@@ -207,7 +207,7 @@ you are still down there.
 **Wards** mark where you have been. Press `6`, hold still for 0.8s — move,
 swing or get hit and it is not set, and not spent — and a green gem is set on the
 floor where you stand, glowing far enough down a corridor to say *turn back*
-before you walk the same loop twice. Every dungeon has 0 in a chest, the
+before you walk the same loop twice. Every dungeon has one in a chest, the
 shop sells them at 35 G, and they carry between stages like the rest of the
 pack. They go on the map beside the chests, and in multiplayer the whole party
 sees every ward anyone sets. Hard mode has none.
