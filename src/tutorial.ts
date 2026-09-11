@@ -48,11 +48,11 @@ interface Lesson {
 }
 
 /**
- * Where a lesson's zombie stands up, in cells. Within torchlight of the door
- * — the torch reaches 11m and the room is 20 across, so a zombie in the far
- * corner is a zombie the player cannot see and does not know to walk toward.
+ * Where lessons' zombies may stand, in cells, tried after a lesson's own spot.
+ * All within torchlight of the door — the torch reaches 11m and the room is 20
+ * across, so a zombie in the far corner is one the player cannot see and does
+ * not know to walk toward.
  */
-/** Other spots within torchlight of the door, in cells, tried after a lesson's own. */
 const SPOTS: readonly (readonly [number, number])[] = [
   [2.5, 2.5], [3.2, 1], [1, 3.2], [3, 3], [3.6, 2], [2, 3.6],
 ];

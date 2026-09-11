@@ -102,7 +102,8 @@ Rules:
 
 ## Commits
 
-- English, imperative subject, no trailing period.
+- Subject is `type: message` — `feat`, `fix`, `docs`, `refactor` or `chore` —
+  English, lowercase after the colon, no trailing period.
 - The body says **why**, and carries the evidence when there is any: "a
   simulation of the old selection put at least one overlap in 58% of runs".
 - Regenerated assets go in the same commit as the config change that produced

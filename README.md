@@ -27,25 +27,38 @@ dungeon/
 ├─ index.html
 ├─ package.json  tsconfig.json  vite.config.ts
 ├─ src/
-│  ├─ main.ts        bootstrap: load assets → buildWorld → animate
-│  ├─ config.ts      constants, creature stats (TYPES), asset paths
-│  ├─ types.ts       domain types — Monster, Chest, CreatureRig …
+│  ├─ main.ts        bootstrap: load assets → build the save's dungeon → title → animate
+│  ├─ config.ts      every tunable, creature stats (TYPES), asset paths
+│  ├─ types.ts       domain types — Monster, Chest, Outfit, Ward …
 │  ├─ state.ts       mutable state for one run
-│  ├─ progress.ts    what survives a run — bank, stage, carried gear
+│  ├─ progress.ts    what survives a run — bank, stage, carried gear, mode
+│  ├─ rng.ts         seeded PRNG: a dungeon is a function of (seed, stage)
+│  ├─ dom.ts         typed element lookups
 │  ├─ scene.ts       renderer, camera, lights, first-person weapons
 │  ├─ textures.ts    procedural fallback textures (stone, cobble, wood)
 │  ├─ dungeon.ts     maze generation and BFS pathfinding
 │  ├─ creatures.ts   procedural fallback creature model
-│  ├─ props.ts       chests, bone piles, barrels, chains, sconces
+│  ├─ props.ts       chests, traps, bone piles, barrels, chains, sconces
 │  ├─ assets.ts      FBX/GLB and PBR texture loading, with fallbacks
 │  ├─ audio.ts       WebAudio ambience and sound effects
 │  ├─ input.ts       keyboard, mouse (pointer lock), touch
 │  ├─ ui.ts          HUD, messages, minimap, end-of-run overlay
+│  ├─ shop.ts        outfitting between stages — the solo save or a co-op carry
+│  ├─ menu.ts        the title screen and the pause menu
+│  ├─ mode.ts        normal or hard, asked on a new game
+│  ├─ guide.ts       the controls screen
+│  ├─ tutorial.ts    the practice room and its lessons
+│  ├─ lesson.ts      what the tutorial has unlocked so far
 │  ├─ weapons.ts     weapon swap and reload
-│  ├─ combat.ts      sword, musket, taking damage
-│  ├─ loot.ts        opening chests, picking things up
+│  ├─ combat.ts      sword, musket, guard and parry, taking damage
+│  ├─ loot.ts        chests, pickups, potions, lanterns, whetstones, wards
+│  ├─ ward.ts        the green gems a player sets on the floor
+│  ├─ view.ts        third-person camera and the player's body
 │  ├─ world.ts       collision and buildWorld
-│  └─ loop.ts        creature AI/animation, frame loop
+│  ├─ loop.ts        creature AI/animation, frame loop
+│  └─ net/           multiplayer client: lobby, session, remote players, creature and world sync
+├─ server/
+│  └─ host.ts        the multiplayer host: serves the build and the lobby (Node 22.6+)
 ├─ scripts/
 │  ├─ optimize-assets.mjs   raw/ FBX → assets/ GLB, textures shrunk
 │  └─ fetch-assets.mjs      pull textures and weapons from Poly Haven
@@ -144,7 +157,7 @@ rules, with the detail in [docs/](docs/). `CLAUDE.md` is a symlink to it.
 | Swap weapon | `Q` |
 | Drink potion / light lantern / sharpen sword | `3` / `4` / `5` — a potion takes a moment to go down, and slows you while it does |
 | Set a ward | `6` — a green gem on the floor where you stand; wards show on the map |
-| Menu | `H` — resume, controls, or start a new game. Pauses while it is open |
+| Menu | `H` — Resume, Controls, Quit to the title. Pauses while it is open, except in multiplayer |
 | Sound on / off | `M` — remembered between runs |
 | First / third person | `V`, or the eye button at the top — sword only; the musket always aims first-person. Remembered between runs |
 

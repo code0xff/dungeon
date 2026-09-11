@@ -11,33 +11,52 @@ module per concern, wired together by `main.ts`.
 
 ## Boot sequence
 
-`src/main.ts` is the only entry point and does four things in order:
+`src/main.ts` is the only entry point and does five things in order:
 
 1. `loadAssets()` — fetch every external model and texture, reporting progress to
    the loading overlay. It never throws for a missing asset; it logs and falls back.
 2. Hide the overlay.
-3. `buildWorld()` — generate the maze, build geometry, spawn creatures, chests,
-   props and sconces, and reset the run.
-4. `animate()` — start the `requestAnimationFrame` loop.
+3. `buildWorld()` — the save's own dungeon: generate the maze, build geometry,
+   spawn creatures, chests, props and sconces, and reset the run.
+4. `openTitle()` — the title screen over it, the world paused. Continue steps
+   out into the dungeon just built; see [Title screen](#title-screen).
+5. `animate()` — start the `requestAnimationFrame` loop.
 
 `import './input'` is there purely for side effects: it registers the keyboard,
-mouse and touch listeners and the audio unlock.
+mouse and touch listeners and the audio unlock. Importing `openTitle` from
+`menu.ts` does the same for the menu's own key, click and touch handlers.
 
 ## Module layers
 
-Imports flow strictly downward. Nothing in a lower layer may import from a
-higher one, and there are no cycles.
+Imports mostly flow downward:
 
 ```
-main                        entry
-loop                        frame loop, creature AI
-world  input  combat  loot  weapons  view  net/*   systems
-props                       world content built from assets
-assets                      external model and texture loading
-scene  ui  shop  guide  textures  dungeon   presentation and generation
-config  state  progress  creatures  audio     data and primitives
-types  dom                  leaves, no internal imports
+main                                     entry
+menu  mode  tutorial                     title, pause menu, mode picker, the lesson
+loop                                     frame loop, creature AI
+world  input  combat  loot  weapons  view  ward  net/*   systems
+props                                    world content built from assets
+assets                                   external model and texture loading
+scene  ui  shop  guide  lesson  textures  dungeon   presentation and generation
+config  state  progress  creatures  audio  rng    data and primitives
+types  dom                               leaves, no internal imports
 ```
+
+They are **not** cycle-free — `ui` and `loot` import each other, and most
+systems import `ui` for its elements — and ES modules tolerate that on one
+condition: **no top-level statement may read a binding imported from a module in
+the same cycle.** Whichever module a cycle is entered through runs its imports
+first, and one of them will find the other half-defined. TypeScript cannot see
+evaluation order, so this fails at load behind a clean build.
+
+It has happened. When `main.ts` stopped importing the tutorial first, the path
+`ui → loot → tutorial → world → input → view` ran `view`'s and `input`'s button
+wiring against a `ui` that had not defined its exports yet —
+`ReferenceError: Cannot access 'viewBtn' before initialization`, and a dead page.
+`lesson.ts` exists to cut that edge (loot, weapons and input ask it what the
+tutorial has unlocked, instead of importing the tutorial), and `view.ts` syncs
+its button on the first frame rather than at module load. Wire DOM and listeners
+inside functions, or in modules nothing in a cycle imports.
 
 Two edges are worth knowing because they are easy to reverse by accident:
 

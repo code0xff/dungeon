@@ -112,20 +112,22 @@ different rigs and bind anyway.
 
 The ceiling was 6MB, then 7, then 8, then 9 — raised once per creature, which
 made it a running total wearing a limit's clothing. It is set at 16MB now to be
-what a limit is for: a line that says something when you cross it. Roughly seven
-more creatures of the current size fit under it, so adding one is a design
-decision rather than a budget conversation.
+what a limit is for: a line that says something when you cross it. The assets
+are 12MB with five creature bodies, so two to four more fit under it depending on
+how heavy they arrive — still a design decision rather than a budget
+conversation, but the orc showed a heavy one takes 2.3MB.
 
 It is still a real number. This is one uncached first load on a phone; the
 service worker only makes the second visit free.
 
 | | |
 |---|---|
-| creatures | 4.5MB (idle carries the skin and textures; the other clips are curves only) |
-| weapons | 1.2MB |
-| props | 1.3MB |
+| creatures | 8.2MB (idle carries the skin and textures; the other clips are curves only) |
+| weapons | 1.5MB |
+| props | 0.9MB |
 | textures | 1.4MB |
-| fonts | 60KB (two woff2, latin subsets) |
+| fonts | 76KB (two woff2, latin subsets) |
+| icons | 36KB |
 
 Creature bulk is **geometry, not texture**, and it is not spread evenly:
 
@@ -134,10 +136,15 @@ Creature bulk is **geometry, not texture**, and it is not spread evenly:
 | zombie | 28,320 | 2.4MB | 0.5MB |
 | brute | 5,630 | 1.0MB | 0.4MB |
 | lunatic | 6,083 | 0.6MB | 0.1MB |
+| orc | 24,429 | 2.1MB | 0.4MB |
+| knight | 9,835 | 0.9MB | 0.2MB |
 
-The zombie is the outlier — five times the geometry of either of the others for
-no visible gain at the size it renders. `weld()` then `simplify()` at ratio 0.5
-takes it to 14,581 vertices and 1.48MB, which is most of a megabyte for a model
+The knight is one body used three times — the player, the other players and
+the Black Knight — so it is paid for once.
+
+The zombie and the orc are the outliers — four to five times the geometry of the
+rest for no visible gain at the size they render. `weld()` then `simplify()` at ratio 0.5
+takes the zombie to 14,581 vertices and 1.48MB, which is most of a megabyte for a model
 seen at 300px in the dark. Not urgent under the current ceiling, and it needs the
 zombie's `raw/` FBX back because the pipeline bakes from FBX — but it is the first
 thing to reach for when the budget does start to bite, and it is the pattern for
@@ -154,7 +161,11 @@ Rules of thumb that got it there:
 - **1K textures.** 2K is invisible in a dark dungeon and heavy on mobile.
 - **webp everywhere**, quality 80, except normal maps at 90.
 - **Only one clip carries the mesh.** Walk, attack and death are stripped to
-  animation curves, because the game reads nothing but `animations[0]` from them.
+  animation curves. The game reads one animation from each file — the one that
+  drives the most bones (`fullestClip()` in `assets.ts`), not `animations[0]`: a
+  Mixamo FBX can carry a second, partial clip, and the orc's idle did — a
+  26-track upper-body clip ahead of the real one, which stood its legs in the
+  bind pose whenever it stopped walking.
 - **Decimate what there are many of.** Ten chests are on screen at once, so the
   chest is simplified to a fifth of its triangles.
 

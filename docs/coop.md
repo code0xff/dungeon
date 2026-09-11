@@ -51,7 +51,7 @@ does not simulate.
   player out of a dungeon raises the lobby's level by one (never lowers it, so a
   host who dialled past it keeps their choice). The host still starts each run.
 - **A death starts you over on the level's kit.** Death takes the carry, as it
-  takes the bank in solo, and `coopKit()` hands out potions, lanterns,
+  takes the bank in solo, and `coopKit()` hands out potions, lanterns, wards,
   whetstones and ammo in proportion to the level — the same kit a player joining
   the party for the first time gets.
 - **Up to 4 players.** No joining a dungeon after it starts. The *lobby* does
@@ -78,11 +78,14 @@ does not simulate.
   and musket balls pass through. Corridors here are one cell wide — with
   friendly fire everyone backs off and fights alone, which is the opposite of
   the point.
-- **Shared: the key, the map, the lantern.** One key opens the one portal for
+- **Shared: the key, the map, the lantern, the wards.** One key opens the one portal for
   everyone. A found map reveals the minimap for everyone. A lit lantern lights
   the dungeon for everyone — light is what the dungeon is *about*, and making it
   per-player would mean two people standing in the same corridor disagreeing
   about whether they can see.
+  A ward anyone sets is set for the party: a `ward` world event whose `i` is the
+  position packed into one integer by `packWard()`, so it needed no new message
+  shape (`PROTOCOL_VERSION` 12).
 - **Extraction is individual.** Walking into the portal takes you out and leaves
   the others in. Nobody is forced to leave, and nobody is forced to stay.
 

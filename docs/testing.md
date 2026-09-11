@@ -25,6 +25,20 @@ real model loaded or the fallback took over, and — for models — the scale it
 normalised to and where its tip landed. Most "why does it look wrong" questions
 are answered there before you open a screenshot.
 
+The page opens on the **title screen** over a paused dungeon; Continue (Play on
+a first visit) steps into it. Testing the first visit means clearing
+`dungeon.progress.v1` from localStorage — copy it aside first and put it back
+after, or the person whose browser it is loses their run.
+
+## A clean build can still fail to load
+
+TypeScript does not see the order modules are evaluated in. A new import can
+make a cycle run in a different order and read an uninitialised binding at the
+top level — `ReferenceError: Cannot access '…' before initialization`, and
+nothing after it runs. After any change to imports, reload and read the console
+for **errors**, not just the `[assets]` line. The rule that prevents it is in
+[architecture](architecture.md#module-layers).
+
 ## Reproducing a dungeon
 
 Every dungeon is a pure function of `(progress.seed, progress.stage)`. Pin the
@@ -81,9 +95,17 @@ zombie, for the rest of the page's life. A measurement taken after that reads th
 value you poked in, not the one that ships — a density survey came back as a
 clean column of zeros this way. Reload before measuring anything you have poked.
 
-A dynamic `import('/src/scene.ts')` from the console does *not* work for this:
+A plain `import('/src/scene.ts')` from the console does *not* work for this:
 Vite's HMR query string can hand you a second module instance whose objects are
-not the ones being rendered.
+not the ones being rendered. Importing the **exact URL the page loaded** does,
+and needs no hook — take it from the resource timing list:
+
+```js
+const u = (n) => performance.getEntriesByType('resource').map((e) => e.name).find((x) => x.includes(n));
+const { state } = await import(u('/src/state.ts'));
+```
+
+After an edit, HMR reloads the page and the tab has to be found again.
 
 ## Background tabs freeze the game
 
@@ -98,6 +120,13 @@ Two ways through it:
 - **Watch the value, not the clock.** `dt` is clamped to 0.05s, so progress per
   frame is bounded and deterministic; sample the state field rather than
   measuring wall-clock milliseconds.
+- **Timers are throttled too.** A probe built on twenty 50ms `setTimeout` waits
+  timed out at 45 seconds in a hidden tab. Wait once, not in a loop.
+- **Step the loop yourself.** `animate()` is exported from `loop.ts` and runs one
+  frame on the clock's `dt`. Patch `performance.now` to add 50ms per call and a
+  second of game passes synchronously — the ward's 0.8s cast was checked that
+  way. Restore it afterwards and reload when done: every call schedules another
+  `requestAnimationFrame` chain, and all of them run once the tab is shown.
 
 ## Probabilistic bugs
 
