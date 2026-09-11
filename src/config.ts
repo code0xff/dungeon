@@ -547,6 +547,16 @@ export const WARD_SPIN = 0.8;
  * spend one for nothing.
  */
 export const WARD_GAP = 1.5;
+/**
+ * Seconds to set a ward down, standing still. Moving, swinging or being hit
+ * stops it, and a ward that was not set is not spent.
+ *
+ * The same rule as opening a chest, so there is nothing new to learn: a ward
+ * is set where you are *sure* is safe for a moment, which is the judgement
+ * the whole dungeon is built around. A shade under the potion's POTION_DRINK,
+ * because this one is not paid for up front.
+ */
+export const WARD_TIME = 0.8;
 /** Holds the shield up. The right mouse button does the same. */
 export const GUARD_KEY = 'F';
 /** Opens the controls panel, and closes it again. */

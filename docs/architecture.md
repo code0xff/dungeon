@@ -495,7 +495,9 @@ content-hashed bundles are never touched, only superseded assets are.
 ## Wards
 
 `src/ward.ts`. A gem on the floor, set with `WARD_KEY`, to mark a corridor as
-searched. It glows by an emissive, flat-shaded gem and two additive textures —
+searched. Setting one is the chest's rule: `WARD_TIME` standing still on the
+loot bar, called off by moving (in `updateWard()`), by an attack or by a hit
+(in combat.ts), and spent only when it finishes. It glows by an emissive, flat-shaded gem and two additive textures —
 a halo sprite and a pool on the floor — and deliberately **not** a PointLight:
 three bakes the light count into every lit shader, so a light added mid-run
 recompiles every material in the dungeon on the frame the key is pressed. The

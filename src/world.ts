@@ -531,6 +531,9 @@ export function buildWorld(): void {
   // The map is never carried — see the note on Progress in src/progress.ts.
   // A potion left half-drunk when the run ended must not leave its bar on screen.
   state.drinkT = -1;
+  // A ward half set when the run ended is simply not set. cancelLoot() below
+  // puts away the bar the two share.
+  state.wardT = -1;
   drinkBarEl.style.display = 'none';
   // Cleared with the rest of the run. updateChests() rewrites it every frame,
   // but E and the loot button are read before the next frame — so starting a new

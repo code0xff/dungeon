@@ -13,12 +13,12 @@ import {
   SWAY_DAMP, TYPES,
   LUNGE_HIT_GLOW, LUNGE_HIT_KICK, LUNGE_HIT_LIGHT, LUNGE_HIT_TIME, LUNGE_WINDOW, SWING_IMPACT,
   SWING_SPEED, SWING_WINDUP, TURN_RATE, WALK_TIMESCALE_RANGE, WALL_H,
-  TP_LIGHT_AHEAD, TP_LIGHT_UP, TRAP_SPRING_TIME,
+  TP_LIGHT_AHEAD, TP_LIGHT_UP, TRAP_SPRING_TIME, WARD_TIME,
 } from './config';
 import { playerHurt, releaseQueuedAttack, resolveSwing, springTrap, staggerPush } from './combat';
 import { findPath } from './dungeon';
 import { edgeTurn, keys, moveInput } from './input';
-import { finishDrink, openChest } from './loot';
+import { finishDrink, finishWard, openChest } from './loot';
 import { setTrapJaws } from './props';
 import { nearestPlayer, sendOwnPose, updateRemotes } from './net/remote';
 import { followMobs, mobAnim, publishMobs, reportMobHit } from './net/mobsync';
@@ -40,7 +40,7 @@ import { collides } from './world';
 import type {
   ClipName, CreatureRig, Monster, MonsterPlayback } from './types';
 import {
-  atkBtn, cancelLoot, drawMinimap, drinkFillEl, endRun, lootBtn, lootFillEl,
+  atkBtn, cancelLoot, cancelWard, drawMinimap, drinkFillEl, endRun, lootBtn, lootFillEl,
   promptEl, reloadBarEl, reloadFillEl, showMsg, updateHUD,
 } from './ui';
 
@@ -816,6 +816,22 @@ function updateDrink(dt: number): void {
 }
 
 /** Burns the lantern down, warns once, and puts it out when the fuel runs dry. */
+/**
+ * A ward going down. Moving calls it off, as it does a chest — walking includes
+ * the dodge, which reports as movement — and the attack and the hit that call
+ * it off do so where they happen, in combat.ts.
+ */
+function updateWard(dt: number, moving: boolean): void {
+  if (state.wardT < 0) return;
+  if (moving) {
+    cancelWard('Ward not set — you moved');
+    return;
+  }
+  state.wardT += dt;
+  lootFillEl.style.width = Math.min(100, (state.wardT / WARD_TIME) * 100) + '%';
+  if (state.wardT >= WARD_TIME) finishWard();
+}
+
 function updateLantern(dt: number): void {
   if (state.lanternT <= 0) return;
   state.lanternT -= dt;
@@ -955,6 +971,7 @@ export function animate(): void {
     updateWeapons(dt);
     updateLantern(dt);
     updateDrink(dt);
+    updateWard(dt, moving);
     // One dungeon, one simulation. Everyone else draws what they are told —
     // two clients running the same AI drift apart within seconds, and then two
     // players are swinging at a zombie that is metres apart on their screens.

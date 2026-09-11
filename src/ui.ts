@@ -393,6 +393,19 @@ export function endRun(extracted: boolean): void {
 }
 
 /** Cancel looting in progress and reset the progress bar. */
+/**
+ * Stops a ward being set, and says why when there is a reason worth saying.
+ * It shares the loot bar — the two never run together — so this is also what
+ * puts that bar away.
+ */
+export function cancelWard(why?: string): void {
+  if (state.wardT < 0) return;
+  state.wardT = -1;
+  lootBarEl.style.display = 'none';
+  lootFillEl.style.width = '0%';
+  if (why) showMsg(why);
+}
+
 export function cancelLoot(): void {
   state.looting = null;
   lootBarEl.style.display = 'none';

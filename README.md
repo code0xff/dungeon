@@ -190,7 +190,8 @@ would strand you with no way back to the exit. A **whetstone** from a chest or
 the shop grinds 45 points back, spent with `5` — the only repair available while
 you are still down there.
 
-**Wards** mark where you have been. Press `6` and a green gem is set on the
+**Wards** mark where you have been. Press `6`, hold still for 0.8s — move,
+swing or get hit and it is not set, and not spent — and a green gem is set on the
 floor where you stand, glowing far enough down a corridor to say *turn back*
 before you walk the same loop twice. They come out of chests and the shop, go
 on the map beside the chests, and in multiplayer the whole party sees every

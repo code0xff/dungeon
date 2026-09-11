@@ -168,6 +168,8 @@ export const state = {
   lanterns: 0,
   whetstones: 0,
   wards: 0,
+  /** Seconds into setting a ward down; -1 means not setting one. */
+  wardT: -1,
   /** Wards set down in this dungeon — by this player or, in co-op, the party. */
   wardMarks: [] as Ward[],
   /** Base intensity of the player's light. A lit lantern raises it. */

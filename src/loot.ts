@@ -9,12 +9,15 @@ import { dropWard, wardNear } from './ward';
 import { setLampLit, setPortalOpen } from './scene';
 import { state } from './state';
 import type { Chest } from './types';
-import { drinkBarEl, drinkFillEl, lootBarEl, minimapEl, objectiveEl, showMsg, updateHUD, wpnBtn } from './ui';
+import {
+  cancelWard, drinkBarEl, drinkFillEl, lootBarEl, lootFillEl, minimapEl, objectiveEl, showMsg, updateHUD, wpnBtn,
+} from './ui';
 import { setWeapon, startReload } from './weapons';
 import { STEP, taught } from './tutorial';
 
 export function startLoot(): void {
-  if (state.gameOver || !state.nearChest || state.looting) return;
+  // Not while a ward is going down: the two share one bar and one pair of hands.
+  if (state.gameOver || !state.nearChest || state.looting || state.wardT >= 0) return;
   state.looting = { chest: state.nearChest, t: 0 };
   lootBarEl.style.display = 'block';
   sfxCreak();
@@ -173,12 +176,27 @@ export function useWhetstone(): void {
 }
 
 /**
- * Sets a ward down at the player's feet. See ward.ts for what it is for.
- * Refused on top of another, where it would say nothing new.
+ * Starts setting a ward at the player's feet. See ward.ts for what it is for.
+ *
+ * It takes WARD_TIME standing still; the loop finishes it or calls it off.
+ * Refused on top of another ward, where it would say nothing new, and while a
+ * chest is being opened, whose bar it would share.
  */
 export function useWard(): void {
-  if (state.gameOver) return;
+  if (state.gameOver || state.wardT >= 0 || state.looting) return;
   if (state.wards <= 0) return showMsg('No wards');
+  if (wardNear(state.pos.x, state.pos.z)) return showMsg('A ward already marks this spot');
+  state.wardT = 0;
+  lootFillEl.style.width = '0%';
+  lootBarEl.style.display = 'block';
+  showMsg('Setting a ward — hold still');
+}
+
+/** The ward is down. Spent here, at the end, not when it was started. */
+export function finishWard(): void {
+  cancelWard();
+  // Checked again: in co-op an ally's ward can land on this spot over the wire
+  // while this one was going down.
   if (wardNear(state.pos.x, state.pos.z)) return showMsg('A ward already marks this spot');
   state.wards--;
   dropWard(state.pos.x, state.pos.z);

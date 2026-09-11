@@ -14,7 +14,7 @@ import { announceKill, reportHit } from './net/mobsync';
 import { tellShot } from './net/worldsync';
 import { state } from './state';
 import type { Monster } from './types';
-import { cancelLoot, flashHurt, endRun, showMsg, updateHUD } from './ui';
+import { cancelLoot, cancelWard, flashHurt, endRun, showMsg, updateHUD } from './ui';
 import { startReload } from './weapons';
 
 /**
@@ -187,6 +187,8 @@ function startSwing(lunge: boolean): void {
 
 export function tryAttack(): void {
   if (state.gameOver) return;
+  // A swing or a shot is not holding still. The ward is not spent.
+  if (state.wardT >= 0) cancelWard('Ward not set');
   // Both hands are busy behind a shield. This is the other half of what the
   // guard costs — a parry drops it for you precisely so the counter can land.
   if (state.guarding) return;
@@ -423,6 +425,7 @@ export function playerHurt(dmg: number, from?: Monster): 'hit' | 'blocked' | 'pa
     cancelLoot();
     showMsg('Looting interrupted!');
   }
+  cancelWard('Ward interrupted!');
   flashHurt();
   updateHUD();
   if (state.hp <= 0) endRun(false);
