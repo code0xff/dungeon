@@ -166,11 +166,12 @@ again the price. The HUD says which you are in.
 **A trapped chest springs on the blade that pried it**, in every mode: 6
 points of durability along with the 10 HP and the noise.
 
-`H` opens a pause menu — resume, the controls, or a new game. It used to open the
-control list directly, which meant the only thing reachable mid-run was a
-reference card and there was no way to abandon a run short of clearing the
-browser's storage. A new game wipes the bank, so it asks first and names the
-number it is about to destroy.
+`H` opens a pause menu — Resume, Controls, Quit. Quit goes to the title
+screen, where a new game, the tutorial and multiplayer are chosen; a solo run
+waits behind it and Continue picks it up, so it does not ask. Quitting a
+multiplayer run walks out on the party, so that one asks first. New game on
+the title wipes the bank, so it asks too and names what it is about to
+destroy.
 
 The controls list itself replaced a permanent strip of key hints along the bottom
 of the screen. That strip had to stay short enough not to be clutter, so it never

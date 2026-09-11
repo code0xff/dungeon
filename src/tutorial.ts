@@ -1,6 +1,6 @@
 import {
   CELL, GUARD_KEY, LANTERN_KEY, lanternMinutes, LUNGE_DMG, POTION_KEY, TUTORIAL_DODGES, TUTORIAL_MOVE_DIST,
-  TUTORIAL_POTION_HP, TUTORIAL_ROOM,
+  TUTORIAL_POTION_HP, TUTORIAL_ROOM, TUTORIAL_SPOT_CLEAR,
 } from './config';
 import { el } from './dom';
 import { state } from './state';
@@ -52,8 +52,29 @@ interface Lesson {
  * — the torch reaches 11m and the room is 20 across, so a zombie in the far
  * corner is a zombie the player cannot see and does not know to walk toward.
  */
+/** Other spots within torchlight of the door, in cells, tried after a lesson's own. */
+const SPOTS: readonly (readonly [number, number])[] = [
+  [2.5, 2.5], [3.2, 1], [1, 3.2], [3, 3], [3.6, 2], [2, 3.6],
+];
+
+/**
+ * A lesson's spot, or the first of SPOTS clear of every body still on the floor
+ * — alive, or dead and still lying there. Two lessons share a spot, and a
+ * refill lands where the last one fell.
+ */
+function freeSpot(cx: number, cz: number): [number, number] {
+  for (const [x, z] of [[cx, cz] as const, ...SPOTS]) {
+    const wx = x * CELL, wz = z * CELL;
+    const taken = state.monsters.some((m) => (m.hp > 0 || m.dead)
+      && Math.hypot(m.mesh.position.x - wx, m.mesh.position.z - wz) < TUTORIAL_SPOT_CLEAR);
+    if (!taken) return [wx, wz];
+  }
+  return [cx * CELL, cz * CELL];
+}
+
 function zombieAt(cx: number, cz: number): Monster {
-  const m = spawnAt('zombie', cx * CELL, cz * CELL);
+  const [wx, wz] = freeSpot(cx, cz);
+  const m = spawnAt('zombie', wx, wz);
   m.mesh.rotation.y = Math.atan2(state.pos.x - m.mesh.position.x, state.pos.z - m.mesh.position.z);
   // Rooted, every one of them: it turns and swings when the player is in
   // reach, but never closes. The lesson is the sword, the shot, the lunge and

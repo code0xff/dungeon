@@ -199,15 +199,20 @@ only the sound key does anything, or Space would swing the sword at a frozen
 dungeon.
 
 `menu.ts` owns the pause and the panel stack; the guide is a child screen whose
-Back returns to the menu rather than to the game, so there is one way out and it
-is always the same key. It registers its own key, click and touch handlers rather
+Back returns to whichever screen opened it, so there is one way out and it is
+always the same key. It registers its own key, click and touch handlers rather
 than being driven from `input.ts` — `world.ts` imports `input.ts`, and the menu
-needs `buildWorld()` for New game, which through `input.ts` would have been a
-cycle.
+needs `buildWorld()`, which through `input.ts` would have been a cycle.
 
-New game is the same wipe as a death, chosen rather than suffered. It arms on
-the first click and names the sum it is about to erase; leaving the menu disarms
-it, so a stray click on the way past cannot wipe a run's savings.
+The pause menu is Resume, Controls and Quit; everything that starts something
+lives on the title. Quit is not destructive solo — the run waits behind the
+title and Continue resumes it — so it does not ask. From a settled run (the
+death or extraction screen) it builds the next dungeon first, so Continue is
+never into one that has ended; from the tutorial it leaves the room; in a party
+it walks out, so that one arms on the first click.
+
+New game, on the title, is the same wipe as a death, chosen rather than
+suffered. It arms on the first click and names the sum it is about to erase.
 
 It is deliberately separate from `gameOver`. That one means the run is over and
 the shop is up; this one means the world is on hold and will carry on.
@@ -510,8 +515,8 @@ co-op travel as a `ward` world event whose `i` is the position packed by
 
 ## Hard mode
 
-`progress.hard`, set by `src/mode.ts` — a panel asked on New game (from the
-title or the menu) and after a first tutorial, because the answer is for the
+`progress.hard`, set by `src/mode.ts` — a panel asked on New game (on the
+title) and after a first tutorial, because the answer is for the
 life of the save. `loseRun()` keeps it: it used to assign `fresh()` whole and
 turn hard mode back into normal on the first death. Three places read it:
 `spawnChests()` builds one untrapped chest with the key and nothing else, the
@@ -538,7 +543,10 @@ going up on its own is exactly what a parry is not. `playerHurt()` floors hp at
 1 while the room is up. The portal at the end goes to `endTutorial()`, not
 `endRun()`, because nothing in the room is a run; `progress` is never touched.
 
-It is started from the title screen or the pause menu, never on its own. From
+It is started from the title screen, never on its own. Its zombies stand at
+fixed spots within torchlight, moved by `freeSpot()` off any body still on the
+floor — a killed zombie lies there for `CORPSE_LINGER`, and the next lesson's
+used to stand up inside it. From
 the title on a first visit it walks out into the mode picker; from a save it
 walks back into that save's dungeon. The host's start calls `leaveTutorial()`
 first, or `buildWorld()` would build the party's dungeon as a practice room.

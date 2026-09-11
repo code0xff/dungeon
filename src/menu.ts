@@ -7,9 +7,9 @@ import { closeLobbyPanel, leaveLobby, openLobbyPanel } from './net/lobby';
 import { coop } from './net/session';
 import { closeShop } from './shop';
 import { state } from './state';
-import { startTutorial } from './tutorial';
+import { leaveTutorial, startTutorial } from './tutorial';
 import { lockFromClick } from './input';
-import { guideBtn, guideCloseBtn, lockHintEl, overlayEl } from './ui';
+import { guideBtn, guideCloseBtn, lockHintEl } from './ui';
 import { buildWorld } from './world';
 import { pickMode } from './mode';
 
@@ -33,9 +33,7 @@ const menuEl = el('menu');
 const statusEl = el('menuStatus');
 const resumeBtn = el('menuResume');
 const guideItem = el('menuGuide');
-const newBtn = el('menuNew');
-const coopItem = el('menuCoop');
-const tutorialItem = el('menuTutorial');
+const quitBtn = el('menuQuit');
 const titleEl = el('title');
 const titleContinue = el('titleContinue');
 const titleNew = el('titleNew');
@@ -43,7 +41,7 @@ const titleTutorial = el('titleTutorial');
 const coopCloseBtn = el('coopClose');
 const coopPanelEl = el('coop');
 
-/** Whether New game has been clicked once and is waiting for confirmation. */
+/** Whether Quit has been clicked once in a party and is waiting for confirmation. */
 let armed = false;
 let guideOpen = false;
 /** New game on the title has been clicked once and is waiting for confirmation. */
@@ -69,8 +67,8 @@ function coopOpen(): boolean {
 
 function disarm(): void {
   armed = false;
-  newBtn.classList.remove('arm');
-  newBtn.textContent = 'New game';
+  quitBtn.classList.remove('arm');
+  quitBtn.textContent = 'Quit';
 }
 
 /**
@@ -105,22 +103,16 @@ export function openMenu(): void {
   if (!state.gameOver && !coop.active) state.paused = true;
   // Reading needs the cursor back; the click that re-locks it is harmless.
   if (document.pointerLockElement) document.exitPointerLock();
-  // New game wipes the solo bank and rebuilds the world. In a co-op run that is
-  // destroying a save this run has nothing to do with, and then starting a
-  // dungeon the host never announced — so it is not offered here at all.
-  // Hidden rather than disabled: a greyed button invites a second click.
-  newBtn.style.display = coop.active ? 'none' : 'block';
-  // The lesson is a solo thing: starting it from a co-op run would build a
-  // room the party never announced.
-  tutorialItem.style.display = coop.active ? 'none' : 'block';
   statusEl.textContent = state.tutorial
     ? 'Tutorial'
     : coop.active
       ? `Multiplayer  ·  level ${coop.level}`
       : `${progress.hard ? 'Hard  ·  ' : ''}Stage ${progress.stage}  ·  Bank ${progress.bankGold} G`;
-  el('menuNote').textContent = coop.active
-    ? 'A multiplayer run banks nothing and changes nothing you have saved. The dungeon does not stop while you read this.'
-    : 'A new game wipes the bank and starts again at stage 1.';
+  el('menuNote').textContent = coop.active || coop.watching
+    ? 'The dungeon does not stop while you read this. Quit leaves the party.'
+    : state.tutorial
+      ? 'Quit leaves the lesson. Nothing done in it counts.'
+      : 'Quit goes to the title screen. Your run waits there — Continue picks it up.';
   menuEl.style.display = 'flex';
   syncUi();
 }
@@ -154,11 +146,11 @@ function back(): void {
   if (coopOpen()) {
     // Back out of the lobby drops the connection rather than hiding it. A
     // socket left open behind a closed panel is a player the host still counts
-    // against the four, and nobody can see they are there.
+    // against the four, and nobody can see they are there. It goes to the
+    // title whichever way it was reached — the title or a multiplayer end
+    // screen — because the title is where multiplayer is chosen.
     leaveLobby();
-    if (fromTitle) showTitle();
-    else menuEl.style.display = 'flex';
-    syncUi();
+    openTitle();
     return;
   }
   if (state.title) return;
@@ -264,13 +256,6 @@ el('titleGuide').addEventListener('click', () => {
 
 resumeBtn.addEventListener('click', closeMenu);
 
-coopItem.addEventListener('click', () => {
-  disarm();
-  menuEl.style.display = 'none';
-  openLobbyPanel();
-  syncUi();
-});
-
 coopCloseBtn.addEventListener('click', back);
 
 guideItem.addEventListener('click', () => {
@@ -281,34 +266,32 @@ guideItem.addEventListener('click', () => {
   syncUi();
 });
 
-newBtn.addEventListener('click', () => {
-  if (!armed) {
+quitBtn.addEventListener('click', () => {
+  // In a party, quitting walks out on it — the one thing here that cannot be
+  // undone — so it asks. Solo it is not a loss: the run waits behind the title.
+  const inParty = coop.active || coop.watching;
+  if (inParty && !armed) {
     armed = true;
-    newBtn.classList.add('arm');
-    // The bank is named because it is the only thing that survives death, so it
-    // is the only thing this destroys that the player would miss.
-    newBtn.textContent = `Erase ${progress.bankGold} G and start over?`;
+    quitBtn.classList.add('arm');
+    quitBtn.textContent = 'Leave the party?';
     return;
   }
-  resetProgress();
-  closeShop();
-  overlayEl.style.display = 'none';
-  state.gameOver = false;
   closeMenu();
-  // Straight to the mode, then stage 1. The lesson is its own item now, here
-  // and on the title, rather than something a new game opens on.
-  state.tutorial = false;
-  pickMode(buildWorld);
-});
-
-tutorialItem.addEventListener('click', () => {
   closeShop();
-  overlayEl.style.display = 'none';
-  state.gameOver = false;
-  closeMenu();
-  startTutorial();
+  el('restart').textContent = 'Descend';
+  if (inParty) {
+    // Disconnects and builds the solo world, the same way the lobby's Back does.
+    leaveLobby();
+  } else if (state.tutorial) {
+    leaveTutorial();
+    buildWorld();
+  } else if (state.gameOver) {
+    // The run is already settled — banked or lost — so what Continue should
+    // open is the next dungeon, not the one that just ended.
+    buildWorld();
+  }
+  openTitle();
 });
-
 
 guideCloseBtn.addEventListener('click', back);
 guideBtn.addEventListener('click', toggleMenu);

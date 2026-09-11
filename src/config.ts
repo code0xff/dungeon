@@ -1286,6 +1286,12 @@ export const TUTORIAL_DODGES = 2;
 export const TUTORIAL_POTION_HP = 50;
 /** The room is seeded once so its sconces land in the same places every time. */
 export const TUTORIAL_SEED = 7;
+/**
+ * Metres a lesson's zombie keeps from any body still on the floor. A killed
+ * zombie lies there for CORPSE_LINGER, and the next lesson's stood up inside
+ * it — two zombies on one spot, one of them dead.
+ */
+export const TUTORIAL_SPOT_CLEAR = 2;
 
 /** Radians a second the camera turns behind the title screen. Slow enough to read over. */
 export const TITLE_DRIFT = 0.06;
