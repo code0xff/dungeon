@@ -628,8 +628,10 @@ integrates over `dt` must tolerate a frame that large.
 ## Coordinates and units
 
 - **Metres.** Creature heights, weapon lengths and reach are all real-world
-  scale. `CELL` is 4m, `WALL_H` is 3.4m, eye height is 1.55m.
-- **The maze grid** is `maze[z][x]`, `0` floor and `1` wall, `GRID` cells square.
+  scale. `CELL` is 4m, `WALL_H` is 3.4m, eye height (`EYE_H`) is 1.55m.
+- **The maze grid** is `maze[z][x]`, `0` floor and `1` wall, `state.gw` by
+  `state.gh` cells — not square, and not fixed: `dungeonSize()` sets both per
+  stage, so nothing may assume a compile-time size.
   World position is `cell * CELL`.
 - **-Z is forward.** Weapon models are normalised so their long axis points down
   -Z; `facing()` in `combat.ts` returns the horizontal unit vector for the yaw.
