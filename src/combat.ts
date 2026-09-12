@@ -3,7 +3,8 @@ import { sfxBlock, sfxHit, sfxLunge, sfxParry, sfxShot, sfxSwing, sfxTrap } from
 import { impact } from './feedback';
 import {
   ATTACK_BUFFER, ATTACK_CD, ATTACK_RANGE, CORPSE_LINGER, GUARD_ARC, GUARD_LEAK, GUARD_LEAK_HEAVY,
-  BLOCK_ARC, CREATURE_HIT_TIME, HURT_DIRECTION_TIME, LUNGE_DMG, LUNGE_WINDOW, MUSKET_DMG, MUSKET_RANGE,
+  BLOCK_ARC, CREATURE_HIT_TIME, HIT_KICK, HIT_KICK_TIME, HURT_DIRECTION_TIME, LUNGE_DMG, LUNGE_WINDOW,
+  MUSKET_DMG, MUSKET_RANGE,
   LUNGE_HIT_LIGHT, LUNGE_HIT_TIME, REWARD_SPREAD, STAGGER_PUSH, STAGGER_TIME, staggerSpeed,
   TRAP_ALERT_RADIUS, TRAP_ALERT_TIME, TRAP_DMG,
   SHOT_ALERT_RADIUS, SHOT_ALERT_TIME,
@@ -42,6 +43,16 @@ function facing(): [fx: number, fz: number] {
  * kill — a caller that formatted `m.type.reward` into the message would show a
  * different number from the one the HUD just added.
  */
+/**
+ * The view's own recoil when a blow of ours lands. Set here rather than in the
+ * frame loop because only combat knows whether anything was actually struck —
+ * a swing through empty air must not shake the screen.
+ */
+function kickCamera(shielded: boolean): void {
+  state.hitKick = HIT_KICK * (shielded ? 0.5 : 1);
+  state.hitKickT = HIT_KICK_TIME;
+}
+
 export function killMonster(m: Monster, opts: { pay?: boolean; gold?: number } = {}): number {
   m.hp = 0;
   // A creature killed mid-stagger would otherwise keep its lean through the
@@ -149,6 +160,7 @@ export function fireMusket(): void {
     if (shielded > 0) sfxBlock();
     else sfxHit(false);
     impact(shielded > 0 ? 'blocked' : 'hit');
+    kickCamera(shielded > 0);
     if (shielded > 0) showMsg('The shield takes the ball');
     // The flash and the sound are drawn regardless — a shot that looked like it
     // missed while the ball was in flight to the authority would feel broken.
@@ -311,6 +323,7 @@ export function resolveSwing(): void {
     if (shielded > 0) sfxBlock();
     else sfxHit(false);
     impact(shielded > 0 ? 'blocked' : 'hit');
+    kickCamera(shielded > 0);
     if (shielded > 0 && !lines.includes('The shield takes it')) lines.push('The shield takes it');
     if (isAuthority()) {
       m.hp -= dmg * (1 - shielded);

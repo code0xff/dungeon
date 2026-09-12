@@ -424,6 +424,21 @@ export function sfxHit(low: boolean): void {
   if (!audio) return;
   const { ctx, effects: master, noiseBuf } = audio;
   const t = ctx.currentTime;
+
+  // A body under the crack. The hit used to start at 160Hz and be gone in
+  // 0.18s, which is a click: nothing below the speech range to feel, so a sword
+  // landing on a body sounded like a switch being thrown.
+  const body = ctx.createOscillator();
+  body.type = 'sine';
+  body.frequency.setValueAtTime(low ? 70 : 96, t);
+  body.frequency.exponentialRampToValueAtTime(38, t + 0.26);
+  const bodyGain = ctx.createGain();
+  bodyGain.gain.setValueAtTime(0.55, t);
+  bodyGain.gain.exponentialRampToValueAtTime(0.0001, t + 0.3);
+  body.connect(bodyGain);
+  bodyGain.connect(master);
+  body.start(t);
+  body.stop(t + 0.32);
   const o = ctx.createOscillator();
   o.type = 'triangle';
   o.frequency.setValueAtTime(low ? 90 : 160, t);

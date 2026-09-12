@@ -111,6 +111,9 @@ export const state = {
   swingHit: false,
   /** Cosmetic contact hold; never pauses the simulation or changes hit timing. */
   swingContact: false,
+  /** Seconds left of the camera punch from a landed blow, and how hard it was. */
+  hitKickT: 0,
+  hitKick: 0,
   /**
    * Whether the swing in flight was launched out of a forward dodge.
    *

@@ -489,6 +489,25 @@ export const LUNGE_HIT_GLOW = 1.9;
 export const LUNGE_HIT_KICK = 0.055;
 /** Peak intensity of the light thrown at the point of impact. */
 export const LUNGE_HIT_LIGHT = 2.6;
+/**
+ * Camera pitch punch when an ordinary blow lands, in radians.
+ *
+ * A fifth of the lunge's kick: every hit should be felt, and the lunge should
+ * still be the one that throws the view. Halved again when a shield takes it —
+ * the blow stopped short, and the shock is the blocker's, not yours.
+ */
+export const HIT_KICK = 0.012;
+/** Seconds the hit kick takes to settle. Shorter than the lunge's: a jab, not a shove. */
+export const HIT_KICK_TIME = 0.13;
+/**
+ * Seconds a struck creature's animation is held still, inside CREATURE_HIT_TIME.
+ *
+ * The body stops dead for a moment on contact while the blade dwells
+ * (SWING_CONTACT_HOLD). Two things stopping at once is the whole trick: either
+ * alone reads as a dropped frame, together they read as impact. Cosmetic —
+ * attack timers, positions and the network all keep running.
+ */
+export const CREATURE_HIT_FREEZE = 0.05;
 
 /**
  * Chests at the reference size, scaled by area like everything else — but never
@@ -869,10 +888,21 @@ export const SWORD_CLEAVE = 2;
 
 // ---- Sword swing ----
 // The blade is raised, then brought down. One cycle takes 1/SWING_SPEED seconds.
-/** A 0.4s cycle leaves room for a weighted recovery before ATTACK_CD clears. */
-export const SWING_SPEED = 2.5;
-/** Fraction of the cycle spent raising the blade. 0.11s. */
-export const SWING_WINDUP = 0.28;
+/**
+ * Higher is faster. 2.3 is a 0.435s cycle — it must stay under ATTACK_CD
+ * (0.45s) or the motion is cut off, and near it so the blade has time to look
+ * like it weighs something on the way back.
+ */
+export const SWING_SPEED = 2.3;
+/**
+ * Fraction of the cycle spent raising the blade: 0.14s.
+ *
+ * The anticipation is what sells the weight. A short windup reads as a flick of
+ * the wrist however slow the rest of the swing is, so this was lengthened along
+ * with the raise pose itself rather than by slowing the cut, which would have
+ * cost ATTACK_IMPACT its 0.2s.
+ */
+export const SWING_WINDUP = 0.32;
 /**
  * Point in the cycle (0..1) where the blade lands. Damage resolves here.
  * Same idea as ATTACK_IMPACT on the zombie side, but this one answers to player
@@ -883,8 +913,15 @@ export const SWING_WINDUP = 0.28;
  * crowd it up against WINDUP.
  */
 export const SWING_IMPACT = 0.5;
-/** Fraction held at contact on a hit only; misses follow through freely. */
-export const SWING_CONTACT_HOLD = 0.075;
+/**
+ * Fraction of the cycle the blade dwells where it hit, on a hit only; misses
+ * follow through freely.
+ *
+ * This is the hit stop, and it is most of what "landing on something solid"
+ * means when the target does not visibly give way. Long enough to read at
+ * 60fps, short enough that the recovery still finishes inside ATTACK_CD.
+ */
+export const SWING_CONTACT_HOLD = 0.11;
 /** Small cosmetic recoil: regular cuts must not grant the parry's interruption. */
 export const CREATURE_HIT_LEAN = 0.085;
 /** Reuse the hit flash window so a reaction also works on network-reported hits. */
@@ -948,6 +985,20 @@ export const SWAY_DAMP = 2.6;
  * term runs at twice the rate because both feet land per cycle.
  */
 export const GEAR_BOB = 0.013;
+/**
+ * How far the held weapon trails a turn, in radians per radian-per-second of
+ * camera movement.
+ *
+ * Nothing here had inertia: the sword was welded to the camera and arrived
+ * wherever you looked on the same frame, which is what made an iron blade feel
+ * like a painted overlay. Now it lags and catches up, so a fast turn drags it
+ * and stopping lets it settle.
+ */
+export const GEAR_LAG = 0.09;
+/** How fast the trailing weapon catches up, per second. Lower is heavier. */
+export const GEAR_LAG_SPRING = 9;
+/** The most it may trail, in radians. A blade that swings past the shoulder is a flail. */
+export const GEAR_LAG_MAX = 0.16;
 export const GEAR_BOB_ROLL = 0.014;
 
 /**

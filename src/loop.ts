@@ -15,7 +15,7 @@ import {
   SWAY_DAMP, TYPES,
   LUNGE_HIT_GLOW, LUNGE_HIT_KICK, LUNGE_HIT_LIGHT, LUNGE_HIT_TIME, LUNGE_WINDOW, SWING_IMPACT,
   SWING_SPEED, SWING_WINDUP, TURN_RATE, WALK_TIMESCALE_RANGE, WALL_H,
-  TP_LIGHT_AHEAD, TP_LIGHT_UP, TRAP_SPRING_TIME, WARD_TIME, TITLE_DRIFT,
+  TP_LIGHT_AHEAD, TP_LIGHT_UP, TRAP_SPRING_TIME, WARD_TIME, TITLE_DRIFT, CREATURE_HIT_FREEZE, GEAR_LAG, GEAR_LAG_MAX, GEAR_LAG_SPRING, HIT_KICK_TIME,
 } from './config';
 import { playerHurt, releaseQueuedAttack, resolveSwing, springTrap, staggerPush } from './combat';
 import { findPath } from './dungeon';
@@ -68,7 +68,8 @@ function animLoaded(m: Monster, pb: MonsterPlayback, dt: number): void {
   }
 
   m.moving = false;
-  pb.mixer.update(dt);
+  // Held still for the first moments of the hit flash: see CREATURE_HIT_FREEZE.
+  if (m.hurtT < CREATURE_HIT_TIME - CREATURE_HIT_FREEZE) pb.mixer.update(dt);
   hitReaction(m);
 }
 
@@ -228,8 +229,11 @@ function updatePlayer(dt: number, now: number): boolean {
  * The rule for both poses is that the blade must stay side-on — a sword seen
  * down its own length is a stick, which is the whole problem the rest pose fixed.
  */
-const SWING_UP = { rot: [0.55, 0.25, 0.3], pos: [0.06, 0.1, 0.1] } as const;
-const SWING_DOWN = { rot: [-0.35, 0.9, -1.35], pos: [-0.28, -0.08, -0.04] } as const;
+// Both were widened by about a third when the swing was given its weight: a
+// longer arc is what a heavy blade looks like, and the extra travel is spent in
+// the windup and the follow-through rather than in the 0.2s before the hit.
+const SWING_UP = { rot: [0.72, 0.32, 0.4], pos: [0.08, 0.14, 0.13] } as const;
+const SWING_DOWN = { rot: [-0.46, 1.16, -1.72], pos: [-0.36, -0.11, -0.05] } as const;
 
 /**
  * The swing curve, mapping t (0..1) to -1 (raised), +1 (cut through) and back to 0.
@@ -607,7 +611,7 @@ function animFollowed(m: Monster, pb: MonsterPlayback, dt: number, anim: number 
     m.mesh.rotation.x = 0;
     setAnim(pb, restClip(m, pb));
   }
-  pb.mixer.update(dt);
+  if (m.hurtT < CREATURE_HIT_TIME - CREATURE_HIT_FREEZE) pb.mixer.update(dt);
   if (anim !== ANIM_STAGGER && anim !== ANIM_STAGGER_START) hitReaction(m);
 }
 
@@ -898,6 +902,9 @@ function updateLantern(dt: number): void {
  */
 let swayT = 0;
 
+/** Where the view was last frame, and how far the gear is still trailing it. */
+let lastYaw = 0, lastPitch = 0, lagYaw = 0, lagPitch = 0;
+
 function updateHeldGear(dt: number, now: number, moving: boolean): void {
   swayT = Math.max(0, Math.min(1, swayT + (moving ? dt : -dt) * SWAY_DAMP));
   const t = (now / 1000) * STRIDE_RATE;
@@ -908,6 +915,23 @@ function updateHeldGear(dt: number, now: number, moving: boolean): void {
   gearBob.position.y = Math.abs(Math.sin(t)) * -b;
   gearBob.rotation.z = Math.sin(t) * swayT * GEAR_BOB_ROLL * settings.motion;
   gearBob.rotation.x = Math.abs(Math.sin(t)) * swayT * GEAR_BOB_ROLL * 0.4 * settings.motion;
+
+  // ---- Inertia: the blade trails the turn and catches up ----
+  // Chased rather than set, so it drags while the view is moving and settles
+  // when it stops. dt guards the division: a zero-length frame has no turn in
+  // it, and THREE.Clock hands out exactly one of those on its first call.
+  if (dt > 0) {
+    const clamp = (v: number): number => Math.max(-GEAR_LAG_MAX, Math.min(GEAR_LAG_MAX, v));
+    const wantYaw = clamp(((state.yaw - lastYaw) / dt) * GEAR_LAG);
+    const wantPitch = clamp(((state.pitch - lastPitch) / dt) * GEAR_LAG);
+    lagYaw += (wantYaw - lagYaw) * Math.min(1, dt * GEAR_LAG_SPRING);
+    lagPitch += (wantPitch - lagPitch) * Math.min(1, dt * GEAR_LAG_SPRING);
+  }
+  lastYaw = state.yaw;
+  lastPitch = state.pitch;
+  gearBob.rotation.y = lagYaw * settings.motion;
+  gearBob.rotation.x += -lagPitch * settings.motion;
+  gearBob.rotation.z += lagYaw * 0.5 * settings.motion;
 
   // ---- Shield: hung from the other hand, or up ----
   //
@@ -1075,7 +1099,11 @@ export function animate(): void {
   // A landed lunge kicks the view up and settles. Added to the pitch here rather
   // than written into state.pitch, so it cannot accumulate into the player's aim.
   const kickK = state.lungeHitT / LUNGE_HIT_TIME;
-  const kick = LUNGE_HIT_KICK * kickK * kickK;
+  // Both punches are squared: they arrive hard and leave quickly, which is what
+  // separates a blow landing from the camera drifting.
+  state.hitKickT = Math.max(0, state.hitKickT - dt);
+  const hitK = state.hitKickT / HIT_KICK_TIME;
+  const kick = LUNGE_HIT_KICK * kickK * kickK + state.hitKick * hitK * hitK;
   camera.rotation.set(state.pitch + kick * settings.motion, state.yaw + Math.PI,
     state.dashSide * DASH_ROLL * dashK * settings.motion, 'YXZ');
   animateWards(dt, now);

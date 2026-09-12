@@ -543,9 +543,16 @@ resolves) are in `src/config.ts`; the raised and cut-through poses are `SWING_UP
 `SWING_IMPACT` — at five frames or more at 60fps, or the blade does not read as
 passing through.
 
-The cut still lands 0.2 seconds after pressing attack. Recovery now fills a
-0.4-second cycle, with a brief contact hold on a hit (`SWING_CONTACT_HOLD`);
-the next attack still clears after 0.45 seconds. Ordinary hits give creatures a
+The cut still lands 0.2 seconds after pressing attack, and the next attack
+still clears after 0.45 — everything else about the swing is spent making it
+weigh something. The cycle is 0.435 seconds, a third of it anticipation; the
+arc is wider than it was; the blade dwells where it hit
+(`SWING_CONTACT_HOLD`) while the body it hit holds still for a moment
+(`CREATURE_HIT_FREEZE`); a landed blow punches the view (`HIT_KICK`), a
+quarter of what a lunge does; and the held weapon trails a turn and catches up
+(`GEAR_LAG`) instead of being welded to the camera. The hit itself has a low
+body under the crack now. Camera motion at zero in Settings removes the punch
+and the trailing. Ordinary hits give creatures a
 small cosmetic recoil, reduced on heavier bodies, while only a parry interrupts
 their attack. Creature groans pan left and right relative to the listener.
 Footsteps follow distance travelled, and both sounds track the listener as they
