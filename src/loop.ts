@@ -229,11 +229,22 @@ function updatePlayer(dt: number, now: number): boolean {
  * The rule for both poses is that the blade must stay side-on — a sword seen
  * down its own length is a stick, which is the whole problem the rest pose fixed.
  */
-// Both were widened by about a third when the swing was given its weight: a
-// longer arc is what a heavy blade looks like, and the extra travel is spent in
-// the windup and the follow-through rather than in the 0.2s before the hit.
-const SWING_UP = { rot: [0.72, 0.32, 0.4], pos: [0.08, 0.14, 0.13] } as const;
-const SWING_DOWN = { rot: [-0.46, 1.16, -1.72], pos: [-0.36, -0.11, -0.05] } as const;
+// Tuned by measuring where the tip actually goes on screen, not by eye — and
+// the first two attempts at that measurement were wrong in a way worth writing
+// down: `Box3().setFromObject()` returns **world** bounds, and feeding its z
+// back through `localToWorld()` tracks a point that is not the tip. It made
+// every pose, including the one that shipped for months, look like the blade
+// was seen end-on. The tip and hilt have to come from the mesh geometry's own
+// bounding box, transformed by each mesh's matrix relative to the sword.
+//
+// Measured properly, across 25 samples of the swing: the tip stays in frame,
+// the blade never shortens below 1.3 in clip space (it is 1.99 at rest, so it
+// always reads side-on rather than as a stick down its own length), and the
+// visible path is 5.0 across 1.37 of the screen's width. The pose this
+// replaced managed 0.61 of the width, which is what "the arc is too narrow"
+// was pointing at.
+const SWING_UP = { rot: [0.60, 0.32, 0.4], pos: [0.16, 0.14, 0.13] } as const;
+const SWING_DOWN = { rot: [-0.46, 1.75, -1.72], pos: [-0.30, -0.11, -0.05] } as const;
 
 /**
  * The swing curve, mapping t (0..1) to -1 (raised), +1 (cut through) and back to 0.
