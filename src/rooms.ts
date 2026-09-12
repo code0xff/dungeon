@@ -1,16 +1,25 @@
 import * as THREE from 'three';
 import { furnitureModel } from './assets';
 import { CELL, LANDMARK_INFO, ROOM_DETAIL as D, ROOM_INLAY_HEIGHT, ROOM_LAMP, WALL_H } from './config';
-import type { Chest, DungeonRoom, FurnitureKey, Monster, RoomKind } from './types';
+import type { Chest, DungeonRoom, FurnitureKey, Maze, Monster, RoomKind } from './types';
 
 /**
  * The three landmark rooms: what stands in them, and what the floor says.
  *
- * The furniture is real geometry now — Poly Haven's CC0 models, fetched and
- * baked by `npm run fetch-assets` — where it used to be coloured boxes standing
- * in for shelves and banners. At lamplight range the boxes read as flat panels
- * stuck to the wall, which made an authored room look less finished than the
- * corridor outside it.
+ * The furniture is real geometry — Poly Haven's CC0 models, fetched and baked
+ * by `npm run fetch-assets` — where it used to be coloured boxes standing in
+ * for shelves and banners. At lamplight range a box reads as a flat panel stuck
+ * to the wall, which made an authored room look less finished than the corridor
+ * outside it.
+ *
+ * **Nothing collides with any of it.** `collides()` reads the maze grid and
+ * nothing else, and giving a bookcase its own collision box would strand the
+ * creatures, which path on that same grid and cannot see one. So the large
+ * pieces are backed onto real wall cells instead, and a piece with no wall to
+ * stand against is not placed at all: a creature keeps its whole `clearance`
+ * (1.15m and up) from a wall face and can never reach one, and the player, at
+ * PLAYER_R, can only brush its front. Fixed coordinates put a bookcase in an
+ * open doorway, which is exactly where something walks through it.
  *
  * What is still drawn in code is what a model cannot do: the floor inlay that
  * names the room even when a carved corridor has opened one of its walls, and
@@ -18,8 +27,8 @@ import type { Chest, DungeonRoom, FurnitureKey, Monster, RoomKind } from './type
  * bear trap or a chest.
  *
  * Every model is optional, like every other asset here. A missing file leaves a
- * box of about its size in its place — the room keeps its shape and its lamp,
- * and the `[assets]` log says which file to drop in.
+ * box of about its size in its place, and the `[assets]` log says which file to
+ * drop in.
  */
 
 const geometry = new THREE.BoxGeometry(1, 1, 1);
@@ -62,11 +71,18 @@ export function furnishRooms(rooms: DungeonRoom[], chests: Chest[], monsters: Mo
   }
 }
 
-/** One piece of furniture, in metres from the room's centre. */
+/**
+ * One piece of furniture. A `wall` piece is backed onto that side of the room
+ * and dropped if the maze opened it; the rest stand where they are put, in
+ * metres from the room's centre.
+ */
 interface Piece {
   key: FurnitureKey;
-  x: number;
-  z: number;
+  wall?: readonly [x: number, z: number];
+  /** How far along that wall from its middle, in metres. */
+  along?: number;
+  x?: number;
+  z?: number;
   yaw?: number;
 }
 
@@ -74,38 +90,37 @@ interface Piece {
  * Where each room's furniture stands.
  *
  * A room is three cells — twelve metres — so its walls are 6m from the centre.
- * Nothing is placed within 2m of that centre: the chest a room is built around
- * sits there, and the guard stands a cell behind it. Everything else hugs a
- * wall at 4.4-5m, which is also what keeps it clear of a doorway another
- * corridor may have carved through any side.
+ * Nothing stands within 2m of that centre: the chest a room is built around
+ * sits there, and its guard a cell behind it. Free-standing pieces are small
+ * enough to walk around, since nothing here stops anyone walking through.
  */
 const FURNISHING: Record<RoomKind, readonly Piece[]> = {
-  // The figure faces the door across its own offering.
+  // The figure stands against the far wall, over its own offering.
   chapel: [
-    { key: 'statue', x: 0, z: -4.7 },
+    { key: 'statue', wall: [0, -1], along: 0 },
     { key: 'candlestick', x: -1.9, z: -2.7 },
     { key: 'candlestick', x: 1.9, z: -2.7 },
-    { key: 'crate', x: -4.7, z: 4.5, yaw: 0.4 },
+    { key: 'crate', wall: [-1, 0], along: 3.4 },
   ],
-  // Shelving down both long walls, with the overflow stacked in the corners.
+  // Shelving down whichever long walls the maze left standing.
   store: [
-    { key: 'shelf', x: -4.9, z: -3.3, yaw: Math.PI / 2 },
-    { key: 'shelf', x: -4.9, z: 0, yaw: Math.PI / 2 },
-    { key: 'shelf', x: -4.9, z: 3.3, yaw: Math.PI / 2 },
-    { key: 'shelf', x: 4.9, z: -3.3, yaw: -Math.PI / 2 },
-    { key: 'shelf', x: 4.9, z: 3.3, yaw: -Math.PI / 2 },
-    { key: 'barrel', x: 4.4, z: -0.2 },
-    { key: 'crate', x: 3.9, z: 4.6, yaw: -0.3 },
-    { key: 'crate', x: -3.6, z: -4.7, yaw: 0.7 },
+    { key: 'shelf', wall: [-1, 0], along: -3.4 },
+    { key: 'shelf', wall: [-1, 0], along: 0 },
+    { key: 'shelf', wall: [-1, 0], along: 3.4 },
+    { key: 'shelf', wall: [1, 0], along: -3.4 },
+    { key: 'shelf', wall: [1, 0], along: 3.4 },
+    { key: 'barrel', wall: [0, 1], along: 1.8 },
+    { key: 'crate', wall: [0, 1], along: -1.8 },
+    { key: 'crate', wall: [0, -1], along: 3.6 },
   ],
-  // Somewhere a watch was actually kept: a table, seats, and stores to hand.
+  // Somewhere a watch was kept: a table and seats in the open, stores behind.
   guard: [
     { key: 'table', x: 3.2, z: 2.6, yaw: 0.35 },
     { key: 'stool', x: 1.9, z: 3.5, yaw: 1.1 },
     { key: 'stool', x: 4.3, z: 1.3, yaw: -0.6 },
-    { key: 'barrel', x: -4.6, z: 4.3 },
-    { key: 'barrel', x: -4.5, z: 2.6 },
-    { key: 'crate', x: -4.5, z: -4.4, yaw: 0.2 },
+    { key: 'barrel', wall: [-1, 0], along: 3.6 },
+    { key: 'barrel', wall: [-1, 0], along: 1.9 },
+    { key: 'crate', wall: [-1, 0], along: -3.6 },
   ],
 };
 
@@ -120,8 +135,77 @@ const STAND_IN: Record<FurnitureKey, { w: number; h: number; d: number; colour: 
   stool: { w: 0.42, h: 0.46, d: 0.42, colour: D.woodColour },
 };
 
+/** Measured once per model: how deep it sits, so its back can go on the wall. */
+const depths = new Map<THREE.Object3D, number>();
+function depthOf(model: THREE.Object3D | null, fallback: number): number {
+  if (!model) return fallback;
+  const known = depths.get(model);
+  if (known !== undefined) return known;
+  const size = new THREE.Box3().setFromObject(model).getSize(new THREE.Vector3());
+  // The larger footprint decides: a model may be authored facing either axis.
+  const d = Math.max(size.x, size.z);
+  depths.set(model, d);
+  return d;
+}
+
+/** The maze the rooms are being built into, for the wall checks below. */
+let roomMaze: Maze = [];
+
+/** A place against a wall: which side of the room, and which cell along it. */
+interface Slot {
+  dir: readonly [number, number];
+  along: number;
+}
+
+/** The four sides, in the order a piece falls back through them. */
+const SIDES: readonly (readonly [number, number])[] = [[0, -1], [0, 1], [-1, 0], [1, 0]];
+
+/**
+ * Every spot in this room with a wall behind it — one per cell of each side.
+ *
+ * A room's walls are not a given: the maze carves corridors through them, and
+ * which sides survive changes with the seed. Enumerating what is actually
+ * there, and letting a piece fall back to another slot, is what keeps a room
+ * furnished when its own wall turned out to be a doorway. Skipping outright
+ * left one wall of the store bare, which is the unfinished look this set out
+ * to fix.
+ */
+function wallSlots(room: DungeonRoom): Slot[] {
+  const mid = (room.size - 1) / 2;
+  const slots: Slot[] = [];
+  for (const dir of SIDES) {
+    const [dx, dz] = dir;
+    for (let i = 0; i < room.size; i++) {
+      const step = i - mid;
+      const gx = room.x + (dx > 0 ? room.size - 1 : dx < 0 ? 0 : mid + step);
+      const gz = room.z + (dz > 0 ? room.size - 1 : dz < 0 ? 0 : mid + step);
+      if (roomMaze[gz + dz]?.[gx + dx] === 1) slots.push({ dir, along: step * CELL });
+    }
+  }
+  return slots;
+}
+
+/** Where a slot puts a piece of this depth: back to the wall, facing the room. */
+function slotPlacement(room: DungeonRoom, slot: Slot, depth: number): { x: number; z: number; yaw: number } {
+  const cx = (room.x + (room.size - 1) / 2) * CELL;
+  const cz = (room.z + (room.size - 1) / 2) * CELL;
+  const [dx, dz] = slot.dir;
+  const mid = (room.size - 1) / 2;
+  const step = slot.along / CELL;
+  const gx = room.x + (dx > 0 ? room.size - 1 : dx < 0 ? 0 : mid + step);
+  const gz = room.z + (dz > 0 ? room.size - 1 : dz < 0 ? 0 : mid + step);
+  // Out to the wall face, then back off by half the piece's own depth.
+  const back = CELL / 2 - depth / 2;
+  return {
+    x: dx === 0 ? cx + slot.along : gx * CELL + dx * back,
+    z: dz === 0 ? cz + slot.along : gz * CELL + dz * back,
+    yaw: Math.atan2(-dx, -dz),
+  };
+}
+
 /** Distinct floors and furnished interiors; nothing here obstructs the room. */
-export function buildRooms(rooms: DungeonRoom[]): THREE.Group {
+export function buildRooms(maze: Maze, rooms: DungeonRoom[]): THREE.Group {
+  roomMaze = maze;
   for (const child of root.children) if (child instanceof THREE.InstancedMesh) child.dispose();
   root.clear();
   const matrices: THREE.Matrix4[] = [];
@@ -172,20 +256,36 @@ export function buildRooms(rooms: DungeonRoom[]): THREE.Group {
     }
 
     // ---- The furniture itself ----
+    const free = wallSlots(room);
     for (const piece of FURNISHING[room.kind]) {
       const model = furnitureModel(piece.key);
-      const x = cx + piece.x, z = cz + piece.z;
+      const stand = STAND_IN[piece.key];
+      let x = cx + (piece.x ?? 0), z = cz + (piece.z ?? 0), yaw = piece.yaw ?? 0;
+
+      if (piece.wall) {
+        const want = piece.wall;
+        const along = piece.along ?? 0;
+        // The authored spot, then the same wall elsewhere, then any wall at all.
+        let i = free.findIndex(sl => sl.dir === want && Math.abs(sl.along - along) < CELL / 2);
+        if (i < 0) i = free.findIndex(sl => sl.dir === want);
+        if (i < 0) i = 0;
+        // A room with every side opened has nowhere to stand this; leave it out
+        // rather than put it where something will walk through it.
+        if (!free.length) continue;
+        const slot = free.splice(i, 1)[0];
+        ({ x, z, yaw } = slotPlacement(room, slot, depthOf(model, stand.d)));
+      }
+
       if (model) {
         // Cloned per placement: one loaded model stands in every room that
         // wants it, and the clones share its geometry and materials.
         const copy = model.clone(true);
         copy.position.set(x, model.position.y, z);
-        copy.rotation.y = piece.yaw ?? 0;
+        copy.rotation.y = yaw;
         root.add(copy);
         continue;
       }
-      const s = STAND_IN[piece.key];
-      box(x, s.h / 2, z, s.w, s.h, s.d, s.colour, piece.yaw ?? 0);
+      box(x, stand.h / 2, z, stand.w, stand.h, stand.d, stand.colour, yaw);
     }
   }
 

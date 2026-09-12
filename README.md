@@ -557,9 +557,12 @@ The three rooms are carved by `generateDungeon()` and furnished by
 `src/rooms.ts` with Poly Haven CC0 models — a statue and candlesticks in the
 chapel, shelving, crates and barrels in the store, a table and stools in the
 watch room — fetched and baked by `npm run fetch-assets`. Each has one lamp of
-its own. The floor inlay that names a room is still drawn in code, thin enough
-to leave a bear trap proud of it, and every model is optional: without the file
-a box of about its size stands in its place. Corridors are left as they are.
+its own. Nothing in the dungeon collides with furniture, so the big pieces stand
+backed onto real walls where nothing can walk through them, and a piece with no
+wall left to stand against is not placed. The floor inlay that names a room is
+still drawn in code, thin enough to leave a bear trap proud of it, and every
+model is optional: without the file a box of about its size stands in its place.
+Corridors are left as they are.
 
 Poly Haven has **no musket or flintlock**, so a bolt-action rifle stands in. The
 name stays `musket` throughout the code.

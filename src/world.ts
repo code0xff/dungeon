@@ -518,7 +518,7 @@ export function buildWorld(): void {
     placeTraps(scale);
     furnishRooms(state.rooms, state.chests, state.monsters, coop.active ? coop.hard : progress.hard);
     scatterProps();
-    const rooms = buildRooms(state.rooms);
+    const rooms = buildRooms(state.maze, state.rooms);
     scene.add(rooms);
     state.props.push({ object: rooms, swing: null });
   }

@@ -634,8 +634,17 @@ draws, so the Node host and browser still generate exactly the same maze.
 then moves existing chests and creatures into authored positions, preserving
 array indices for co-op events, and stands the furniture up. The key stays random. Hard mode skips all loot
 relocation and retains its single key chest. Furniture is Poly Haven CC0 models (`FURNITURE_ASSETS`), cloned per placement
-from one loaded copy and hugging the walls at 4.4-5m from the centre, clear of
-the chest and its guard. It began as coloured boxes standing in for shelves and
+from one loaded copy. **Nothing collides with it**: `collides()` reads the maze
+grid and nothing else, and giving a bookcase its own box would strand the
+creatures, which path on that grid and cannot see one. So the large pieces are
+backed onto real wall cells — `wallSlots()` enumerates the sides the maze left
+standing, and a piece takes the slot it was authored for, then any other slot in
+that room, and is dropped only when the room has no walls left. A creature keeps
+its whole `clearance` (1.15m and up) from a wall face and can never reach one;
+the player, at `PLAYER_R`, can brush its front. Fixed coordinates put a bookcase
+in an open doorway, which is exactly where something walks through it. Only the
+small free-standing pieces — candlesticks, a table, two stools — stand in the
+open. It began as coloured boxes standing in for shelves and
 banners, which at lamplight range read as panels stuck to the wall. What is
 still drawn in code is what a model cannot do: the floor inlay that names the
 room, thin enough to leave a bear trap proud of it, and the lamp. A missing
