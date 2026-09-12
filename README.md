@@ -553,12 +553,13 @@ turn. Walls reduce their volume and soften high frequencies. A short contact
 label distinguishes hits, blocks and kills, and an arc points toward the last
 creature that damaged you.
 
-Corridors have shallow masonry ribs, overhead beams and wall crests, built in
-code by `src/architecture.ts`. They use one instanced mesh, do not consume the
-world's random stream, and leave the collision grid unchanged.
-The three rooms themselves are carved by `generateDungeon()` and decorated by
-`src/rooms.ts`, with one local lamp each and shared instanced furniture. All
-decoration is built in code; no additional asset download is needed.
+The three rooms are carved by `generateDungeon()` and furnished by
+`src/rooms.ts` with Poly Haven CC0 models — a statue and candlesticks in the
+chapel, shelving, crates and barrels in the store, a table and stools in the
+watch room — fetched and baked by `npm run fetch-assets`. Each has one lamp of
+its own. The floor inlay that names a room is still drawn in code, thin enough
+to leave a bear trap proud of it, and every model is optional: without the file
+a box of about its size stands in its place. Corridors are left as they are.
 
 Poly Haven has **no musket or flintlock**, so a bolt-action rifle stands in. The
 name stays `musket` throughout the code.

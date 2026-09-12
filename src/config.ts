@@ -1,5 +1,6 @@
 import type {
-  CreatureAsset, CreatureKey, CreatureType, ItemKind, RoomKind, Settings, SpawnRate, WeaponAsset, WeaponKind,
+  CreatureAsset, CreatureKey, CreatureType, FurnitureKey, ItemKind, RoomKind, Settings, SpawnRate,
+  WeaponAsset, WeaponKind,
 } from './types';
 
 // ================= Asset configuration =================
@@ -597,18 +598,32 @@ export const LANDMARK_INFO = {
   store: { name: 'Provision Store', hint: 'Supplies worth searching for', colour: 0x967247 },
   guard: { name: 'Watch Room', hint: 'Treasure under guard', colour: 0x813f36 },
 } as const;
-/** Wall furniture fits inside body clearance; it must not become an invisible obstacle. */
-export const ROOM_RELIEF_DEPTH = 0.28;
 /** Keep room floor inlays below feet and traps; they are markings, not obstacles. */
 export const ROOM_INLAY_HEIGHT = 0.012;
-/** Furniture proportions are shared so all themes fit the same traversable room. */
+/**
+ * What the rooms are furnished with, and how tall each piece stands.
+ *
+ * Poly Haven CC0 models, fetched and baked by `npm run fetch-assets`. Heights
+ * are metres against the player's 1.55m eye: the statue reads over a crowd, the
+ * shelving is wall-height, and the rest is waist-down so nothing hides the
+ * chest a room is built around. Every one is optional — rooms.ts stands a
+ * primitive in its place and the room still reads.
+ */
+export const FURNITURE_ASSETS: Record<FurnitureKey, { url: string; height: number }> = {
+  statue: { url: 'props/statue.glb', height: 2.1 },
+  candlestick: { url: 'props/candlestick.glb', height: 1.15 },
+  shelf: { url: 'props/shelf.glb', height: 1.9 },
+  crate: { url: 'props/crate.glb', height: 0.72 },
+  barrel: { url: 'props/barrel.glb', height: 0.86 },
+  table: { url: 'props/table.glb', height: 0.74 },
+  stool: { url: 'props/stool.glb', height: 0.46 },
+};
+/** Shared trim for what is still drawn in code: the floor inlays and the lamp cage. */
 export const ROOM_DETAIL = {
-  wallWidth: 2.5, shelfHeight: 2.4, shelfLevels: 3, shelfBar: 0.12,
-  bannerWidth: 1.4, bannerHeight: 2.2, bannerY: 1.9,
-  beamWidth: 0.24, beamBottom: 3.08, aisleWidth: 2,
-  crestWidth: 0.18, crestHeight: 1.25, crestCross: 0.85,
-  stoneColour: 0xa69e8e, woodColour: 0x8c653d, ironColour: 0x647381,
-  trimColour: 0xb79d65, roughness: 0.92,
+  aisleWidth: 2, bar: 0.12,
+  ironColour: 0x647381, trimColour: 0xb79d65,
+  /** Only the stand-ins use these: a missing model leaves a box of about its size. */
+  woodColour: 0x8c653d, stoneColour: 0xa69e8e, roughness: 0.92,
 } as const;
 /** One practical lamp per landmark reveals its identity without lighting the whole maze. */
 export const ROOM_LAMP = {
@@ -878,22 +893,6 @@ export const CREATURE_HIT_TIME = 0.18;
 export const CREATURE_HIT_WEIGHT: Record<CreatureKey, number> = {
   zombie: 1, brute: 0.4, lunatic: 1.15, orc: 0.65, blackknight: 0.35,
 };
-/** Repeated bays give corridors a rhythm without decorating every cell. */
-export const ARCHITECTURE_SPACING = 3;
-/** Caps instance count on deep floors; detail must not scale without a budget. */
-export const ARCHITECTURE_BAYS = 36;
-/** Shallow relief stays inside the player's wall clearance, leaving paths usable. */
-export const ARCHITECTURE_DEPTH = 0.1;
-/** Slender uprights read as masonry ribs rather than a second wall. */
-export const ARCHITECTURE_WIDTH = 0.34;
-/** All cross-passage pieces are above creatures' moving bodies. */
-export const ARCHITECTURE_TOP = 3.05;
-/** Muted district colours help distinguish passages in the same torchlight. */
-export const ARCHITECTURE_COLOURS = [0x68645a, 0x63574b, 0x505d66] as const;
-/** A broad shallow crest is visible at eye level without hiding floor traps. */
-export const ARCHITECTURE_CREST = { width: 0.7, height: 0.9, y: 2.05 } as const;
-/** Almost matte masonry avoids bright specular stripes on shallow relief. */
-export const ARCHITECTURE_ROUGHNESS = 0.95;
 export const LOOT_TIME = 1.2;
 /** How close the player must be to the portal to use it, in metres. */
 export const PORTAL_RADIUS = 1.6;

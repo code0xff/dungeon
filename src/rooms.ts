@@ -1,6 +1,26 @@
 import * as THREE from 'three';
-import { CELL, LANDMARK_INFO, ROOM_DETAIL as D, ROOM_INLAY_HEIGHT, ROOM_LAMP, ROOM_RELIEF_DEPTH, WALL_H } from './config';
-import type { Chest, DungeonRoom, Maze, Monster } from './types';
+import { furnitureModel } from './assets';
+import { CELL, LANDMARK_INFO, ROOM_DETAIL as D, ROOM_INLAY_HEIGHT, ROOM_LAMP, WALL_H } from './config';
+import type { Chest, DungeonRoom, FurnitureKey, Monster, RoomKind } from './types';
+
+/**
+ * The three landmark rooms: what stands in them, and what the floor says.
+ *
+ * The furniture is real geometry now — Poly Haven's CC0 models, fetched and
+ * baked by `npm run fetch-assets` — where it used to be coloured boxes standing
+ * in for shelves and banners. At lamplight range the boxes read as flat panels
+ * stuck to the wall, which made an authored room look less finished than the
+ * corridor outside it.
+ *
+ * What is still drawn in code is what a model cannot do: the floor inlay that
+ * names the room even when a carved corridor has opened one of its walls, and
+ * the lamp that lights it. Both are thin or overhead, so neither can hide a
+ * bear trap or a chest.
+ *
+ * Every model is optional, like every other asset here. A missing file leaves a
+ * box of about its size in its place — the room keeps its shape and its lamp,
+ * and the `[assets]` log says which file to drop in.
+ */
 
 const geometry = new THREE.BoxGeometry(1, 1, 1);
 const material = new THREE.MeshStandardMaterial({ roughness: D.roughness });
@@ -42,8 +62,66 @@ export function furnishRooms(rooms: DungeonRoom[], chests: Chest[], monsters: Mo
   }
 }
 
-/** Distinct silhouettes and floor markings, with all raised furniture on real walls. */
-export function buildRooms(maze: Maze, rooms: DungeonRoom[]): THREE.Group {
+/** One piece of furniture, in metres from the room's centre. */
+interface Piece {
+  key: FurnitureKey;
+  x: number;
+  z: number;
+  yaw?: number;
+}
+
+/**
+ * Where each room's furniture stands.
+ *
+ * A room is three cells — twelve metres — so its walls are 6m from the centre.
+ * Nothing is placed within 2m of that centre: the chest a room is built around
+ * sits there, and the guard stands a cell behind it. Everything else hugs a
+ * wall at 4.4-5m, which is also what keeps it clear of a doorway another
+ * corridor may have carved through any side.
+ */
+const FURNISHING: Record<RoomKind, readonly Piece[]> = {
+  // The figure faces the door across its own offering.
+  chapel: [
+    { key: 'statue', x: 0, z: -4.7 },
+    { key: 'candlestick', x: -1.9, z: -2.7 },
+    { key: 'candlestick', x: 1.9, z: -2.7 },
+    { key: 'crate', x: -4.7, z: 4.5, yaw: 0.4 },
+  ],
+  // Shelving down both long walls, with the overflow stacked in the corners.
+  store: [
+    { key: 'shelf', x: -4.9, z: -3.3, yaw: Math.PI / 2 },
+    { key: 'shelf', x: -4.9, z: 0, yaw: Math.PI / 2 },
+    { key: 'shelf', x: -4.9, z: 3.3, yaw: Math.PI / 2 },
+    { key: 'shelf', x: 4.9, z: -3.3, yaw: -Math.PI / 2 },
+    { key: 'shelf', x: 4.9, z: 3.3, yaw: -Math.PI / 2 },
+    { key: 'barrel', x: 4.4, z: -0.2 },
+    { key: 'crate', x: 3.9, z: 4.6, yaw: -0.3 },
+    { key: 'crate', x: -3.6, z: -4.7, yaw: 0.7 },
+  ],
+  // Somewhere a watch was actually kept: a table, seats, and stores to hand.
+  guard: [
+    { key: 'table', x: 3.2, z: 2.6, yaw: 0.35 },
+    { key: 'stool', x: 1.9, z: 3.5, yaw: 1.1 },
+    { key: 'stool', x: 4.3, z: 1.3, yaw: -0.6 },
+    { key: 'barrel', x: -4.6, z: 4.3 },
+    { key: 'barrel', x: -4.5, z: 2.6 },
+    { key: 'crate', x: -4.5, z: -4.4, yaw: 0.2 },
+  ],
+};
+
+/** Roughly what each model occupies, for the box that stands in when it is missing. */
+const STAND_IN: Record<FurnitureKey, { w: number; h: number; d: number; colour: number }> = {
+  statue: { w: 0.8, h: 2.1, d: 0.8, colour: D.stoneColour },
+  candlestick: { w: 0.18, h: 1.15, d: 0.18, colour: D.trimColour },
+  shelf: { w: 1.6, h: 1.9, d: 0.45, colour: D.woodColour },
+  crate: { w: 0.72, h: 0.72, d: 0.72, colour: D.woodColour },
+  barrel: { w: 0.7, h: 0.86, d: 0.7, colour: D.woodColour },
+  table: { w: 1.2, h: 0.74, d: 0.7, colour: D.woodColour },
+  stool: { w: 0.42, h: 0.46, d: 0.42, colour: D.woodColour },
+};
+
+/** Distinct floors and furnished interiors; nothing here obstructs the room. */
+export function buildRooms(rooms: DungeonRoom[]): THREE.Group {
   for (const child of root.children) if (child instanceof THREE.InstancedMesh) child.dispose();
   root.clear();
   const matrices: THREE.Matrix4[] = [];
@@ -53,11 +131,14 @@ export function buildRooms(maze: Maze, rooms: DungeonRoom[]): THREE.Group {
     pose.position.set(x, y, z); pose.rotation.set(0, yaw, 0); pose.scale.set(w, h, d); pose.updateMatrix();
     matrices.push(pose.matrix.clone()); colours.push(new THREE.Color(colour));
   };
+
   for (const room of rooms) {
     const cx = (room.x + (room.size - 1) / 2) * CELL;
     const cz = (room.z + (room.size - 1) / 2) * CELL;
     const span = room.size * CELL;
     const theme = LANDMARK_INFO[room.kind];
+
+    // ---- The lamp: one practical light, hung from the ceiling on a bar ----
     const lamp = new THREE.Mesh(lampGeometry, lampMaterials[room.kind]);
     lamp.position.set(cx, ROOM_LAMP.height, cz);
     root.add(lamp);
@@ -72,55 +153,42 @@ export function buildRooms(maze: Maze, rooms: DungeonRoom[]): THREE.Group {
       box(cx + side * ROOM_LAMP.cage / 2, ROOM_LAMP.height, cz,
         ROOM_LAMP.bar, ROOM_LAMP.cage, ROOM_LAMP.bar, D.ironColour);
     }
-    // Floor inlays make a room legible even when another carved room has
-    // opened one of its walls. Thin geometry cannot conceal a bear trap.
+
+    // ---- The floor: what names the room from the doorway ----
+    // Thin enough to walk over and to leave a bear trap's jaws proud of it.
     if (room.kind === 'chapel') {
       box(cx, ROOM_INLAY_HEIGHT / 2, cz, D.aisleWidth, ROOM_INLAY_HEIGHT, span, theme.colour);
-      for (const side of [-1, 1]) box(cx + side * D.aisleWidth / 2, ROOM_INLAY_HEIGHT,
-        cz, D.shelfBar, ROOM_INLAY_HEIGHT, span, D.trimColour);
+      for (const side of [-1, 1]) {
+        box(cx + side * D.aisleWidth / 2, ROOM_INLAY_HEIGHT, cz, D.bar, ROOM_INLAY_HEIGHT, span, D.trimColour);
+      }
     } else if (room.kind === 'guard') {
       box(cx, ROOM_INLAY_HEIGHT / 2, cz, span, ROOM_INLAY_HEIGHT, D.aisleWidth, theme.colour);
       box(cx, ROOM_INLAY_HEIGHT, cz, D.aisleWidth, ROOM_INLAY_HEIGHT, span, theme.colour);
     } else {
-      for (let i = 0; i < room.size; i++) {
-        box((room.x + i) * CELL, (D.beamBottom + WALL_H) / 2, cz,
-          D.beamWidth, WALL_H - D.beamBottom, span, D.woodColour);
+      // A boarded floor down each shelved wall, so the aisle between them reads.
+      for (const side of [-1, 1]) {
+        box(cx + side * (span / 2 - 1.4), ROOM_INLAY_HEIGHT / 2, cz, 2.4, ROOM_INLAY_HEIGHT, span, theme.colour);
       }
     }
-    for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
-      const yaw = dx === 0 ? 0 : Math.PI / 2;
-      for (let i = 0; i < room.size; i++) {
-        const gx = dx === 0 ? room.x + i : dx > 0 ? room.x + room.size - 1 : room.x;
-        const gz = dz === 0 ? room.z + i : dz > 0 ? room.z + room.size - 1 : room.z;
-        if (maze[gz + dz]?.[gx + dx] !== 1) continue;
-        const wx = gx * CELL + dx * (CELL / 2 - ROOM_RELIEF_DEPTH / 2);
-        const wz = gz * CELL + dz * (CELL / 2 - ROOM_RELIEF_DEPTH / 2);
-        const wallBox = (side: number, y: number, w: number, h: number, colour: number): void => {
-          box(wx + side * Math.cos(yaw), y, wz - side * Math.sin(yaw), w, h, ROOM_RELIEF_DEPTH, colour, yaw);
-        };
-        if (room.kind === 'store') {
-          for (const side of [-1, 1]) wallBox(side * D.wallWidth / 2, D.shelfHeight / 2,
-            D.shelfBar, D.shelfHeight, D.woodColour);
-          for (let level = 1; level <= D.shelfLevels; level++) {
-            wallBox(0, level * D.shelfHeight / D.shelfLevels, D.wallWidth, D.shelfBar, D.woodColour);
-            // Shallow crates sit within the shelf's footprint, not in a walkable aisle.
-            wallBox(0, (level - 0.5) * D.shelfHeight / D.shelfLevels,
-              D.bannerWidth, D.shelfHeight / D.shelfLevels - D.shelfBar, theme.colour);
-          }
-        } else if (room.kind === 'chapel') {
-          for (const side of [-1, 1]) wallBox(side * D.wallWidth / 2, WALL_H / 2,
-            D.beamWidth, WALL_H, D.stoneColour);
-          wallBox(0, D.bannerY, D.crestWidth, D.crestHeight, D.trimColour);
-          wallBox(0, D.bannerY, D.crestCross, D.crestWidth, D.trimColour);
-        } else {
-          wallBox(0, D.bannerY, D.bannerWidth, D.bannerHeight, theme.colour);
-          for (const side of [-1, 1]) wallBox(side * D.wallWidth / 2,
-            D.bannerY, D.shelfBar, D.bannerHeight, D.ironColour);
-          wallBox(0, D.bannerY + D.bannerHeight / 2, D.wallWidth, D.shelfBar, D.ironColour);
-        }
+
+    // ---- The furniture itself ----
+    for (const piece of FURNISHING[room.kind]) {
+      const model = furnitureModel(piece.key);
+      const x = cx + piece.x, z = cz + piece.z;
+      if (model) {
+        // Cloned per placement: one loaded model stands in every room that
+        // wants it, and the clones share its geometry and materials.
+        const copy = model.clone(true);
+        copy.position.set(x, model.position.y, z);
+        copy.rotation.y = piece.yaw ?? 0;
+        root.add(copy);
+        continue;
       }
+      const s = STAND_IN[piece.key];
+      box(x, s.h / 2, z, s.w, s.h, s.d, s.colour, piece.yaw ?? 0);
     }
   }
+
   if (matrices.length) {
     const mesh = new THREE.InstancedMesh(geometry, material, matrices.length);
     matrices.forEach((matrix, i) => { mesh.setMatrixAt(i, matrix); mesh.setColorAt(i, colours[i]); });

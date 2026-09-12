@@ -22,6 +22,8 @@ export interface Settings {
   fov: number;
 }
 export type ImpactKind = 'hit' | 'blocked' | 'kill';
+/** Furniture standing in the landmark rooms. See FURNITURE_ASSETS. */
+export type FurnitureKey = 'statue' | 'candlestick' | 'shelf' | 'crate' | 'barrel' | 'table' | 'stool';
 export interface SoundPosition { x: number; z: number }
 export interface SpatialVoice {
   position: SoundPosition;

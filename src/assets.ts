@@ -4,14 +4,14 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import {
   CLIP_NAMES, CREATURE_ASSETS, ENV_INTENSITY, FLOOR_TEX_DIR, PLAYER_ASSET, PLAYER_KEY,
-  PROP_ASSETS, RUN_AT, WALK_CLIP_SPEED, WALL_TEX_DIR,
+  FURNITURE_ASSETS, PROP_ASSETS, RUN_AT, WALK_CLIP_SPEED, WALL_TEX_DIR,
   WEAPON_ASSETS,
 } from './config';
 import { MAKERS } from './creatures';
 import { envMap, equipShield, equipWeaponModel } from './scene';
 import type {
   CreatureAsset,
-  ClipName, Clips, CreatureKey, CreatureRig, CreatureTemplate, MonsterPlayback, PBRMaps, WeaponAsset, WeaponKind,
+  ClipName, Clips, CreatureKey, CreatureRig, FurnitureKey, CreatureTemplate, MonsterPlayback, PBRMaps, WeaponAsset, WeaponKind,
 } from './types';
 
 function isMesh(o: THREE.Object3D): o is THREE.Mesh {
@@ -55,6 +55,17 @@ const templates: Partial<Record<string, CreatureTemplate>> = {};
 const pbr: { wall: PBRMaps | null; floor: PBRMaps | null } = { wall: null, floor: null };
 /** Loaded prop models. A null here means props.ts builds the primitive instead. */
 const props: { chest: THREE.Object3D | null } = { chest: null };
+
+/**
+ * Room furniture, cloned per placement by rooms.ts. A key missing here means
+ * the file was not there and rooms.ts stands a primitive in its place.
+ */
+const furniture: Partial<Record<FurnitureKey, THREE.Object3D>> = {};
+
+/** One piece of room furniture, or null when its file is missing. */
+export function furnitureModel(key: FurnitureKey): THREE.Object3D | null {
+  return furniture[key] ?? null;
+}
 
 /** The chest model, or null when the file is missing. Cloned per chest by props.ts. */
 export function chestTemplate(): THREE.Object3D | null {
@@ -342,6 +353,28 @@ async function loadChest(): Promise<string> {
 }
 
 /**
+ * One piece of room furniture: scaled to its configured height and stood on
+ * the floor, so rooms.ts can place it by its feet and not by whatever origin
+ * the exporter happened to leave.
+ */
+async function loadFurniture(key: FurnitureKey): Promise<string> {
+  const cfg = FURNITURE_ASSETS[key];
+  let gltf;
+  try {
+    gltf = await gltfLoader.loadAsync(versioned(cfg.url));
+  } catch {
+    return `${key}: file missing → primitive stand-in`;
+  }
+  const root = gltf.scene;
+  const box = new THREE.Box3().setFromObject(root);
+  root.scale.multiplyScalar(cfg.height / (box.max.y - box.min.y));
+  root.position.y = -new THREE.Box3().setFromObject(root).min.y;
+  applyEnvMap(root);
+  furniture[key] = root;
+  return `${key}: loaded (scale x${root.scale.x.toFixed(2)})`;
+}
+
+/**
  * Loads the shield into the player's left hand, scaled to PROP_ASSETS.shield.height.
  *
  * Only the inner face is ever seen — the shield is held edge-on until raised and
@@ -489,6 +522,9 @@ export async function loadAssets(onProgress: (msg: string) => void): Promise<voi
   onProgress('Loading props');
   log.push(await loadChest());
   log.push(await loadShield());
+
+  onProgress('Loading room furniture');
+  for (const key of Object.keys(FURNITURE_ASSETS) as FurnitureKey[]) log.push(await loadFurniture(key));
 
   onProgress('Loading textures');
   pbr.wall = await loadPBR(WALL_TEX_DIR, 1.5);

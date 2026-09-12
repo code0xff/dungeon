@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-import { buildArchitecture } from './architecture';
 import { buildRooms, furnishRooms } from './rooms';
 import { clearSpatialAudio } from './audio';
 import { floorPBR, spawnCreature, wallPBR } from './assets';
@@ -519,10 +518,7 @@ export function buildWorld(): void {
     placeTraps(scale);
     furnishRooms(state.rooms, state.chests, state.monsters, coop.active ? coop.hard : progress.hard);
     scatterProps();
-    const architecture = buildArchitecture(state.maze);
-    scene.add(architecture);
-    state.props.push({ object: architecture, swing: null });
-    const rooms = buildRooms(state.maze, state.rooms);
+    const rooms = buildRooms(state.rooms);
     scene.add(rooms);
     state.props.push({ object: rooms, swing: null });
   }

@@ -632,10 +632,14 @@ remaining random rooms. Its optional metadata output never affects random
 draws, so the Node host and browser still generate exactly the same maze.
 `world.ts` reserves their cells before random content is placed; `rooms.ts`
 then moves existing chests and creatures into authored positions, preserving
-array indices for co-op events. The key stays random. Hard mode skips all loot
-relocation and retains its single key chest. Wall furniture stays within player
-wall clearance, ceiling pieces stay overhead, and floor inlays sit below traps.
-Each room has one practical lamp; their furniture shares a single instanced mesh.
+array indices for co-op events, and stands the furniture up. The key stays random. Hard mode skips all loot
+relocation and retains its single key chest. Furniture is Poly Haven CC0 models (`FURNITURE_ASSETS`), cloned per placement
+from one loaded copy and hugging the walls at 4.4-5m from the centre, clear of
+the chest and its guard. It began as coloured boxes standing in for shelves and
+banners, which at lamplight range read as panels stuck to the wall. What is
+still drawn in code is what a model cannot do: the floor inlay that names the
+room, thin enough to leave a bear trap proud of it, and the lamp. A missing
+model leaves a box of about its size, so the room keeps its shape either way.
 
 A 3,000-dungeon survey (1,000 seeds each at stages 1, 6 and 12) found all three
 room types in every maze, no overlapping footprints, and no disconnected floor.
@@ -655,12 +659,7 @@ used by loot. Creature voices and footfalls are played for every listener, with
 live panning, distance attenuation and wall filtering; expired voice nodes are
 disconnected and stage rebuilds clear the remaining voices.
 
-## World detail and pathfinding
-
-`src/architecture.ts` adds wall relief and overhead corridor ribs after ordinary
-props are placed. It derives placement from the grid without consuming random
-draws, so decoration cannot move the key or change a co-op dungeon. Geometry and
-material are shared; rebuilding disposes the previous instance buffer.
+## Pathfinding
 
 Pathfinding reuses typed scratch arrays per maze, held by a weak key so old maps
 can be collected. Each search clears visits and propagates its first step;

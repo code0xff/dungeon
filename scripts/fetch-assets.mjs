@@ -49,6 +49,23 @@ const PICKS = {
     // where only its inner face is ever seen. Held close to the camera, so it is
     // decimated lightly.
     shield: { id: 'kite_shield', dir: 'weapons', texture: 512, simplify: 0.5 },
+    // ---- Landmark room furniture ----
+    // Seen by lamplight in a 12m room, never held, and several stand in one
+    // room at once, so all of these are decimated hard and baked at 512.
+    // A figure to kneel to, and the reason the chapel reads as a chapel.
+    statue: { id: 'gothic_statue', dir: 'props', texture: 256, simplify: 0.06 },
+    // Tall enough to flank the offering without hiding it.
+    candlestick: { id: 'wooden_candlestick', dir: 'props', texture: 256, simplify: 0.06 },
+    // The store's walls. Shelf_01 was tried first and is a clean white modern
+    // bookcase — in a torchlit cellar it read as flat-pack furniture.
+    shelf: { id: 'wooden_bookshelf_worn', dir: 'props', texture: 512, simplify: 0.25 },
+    crate: { id: 'wooden_crate_01', dir: 'props', texture: 512, simplify: 0.3 },
+    // Wooden, and staved. barrel_03 is a steel oil drum, which is exactly the
+    // wrong century.
+    barrel: { id: 'wine_barrel_01', dir: 'props', texture: 512, simplify: 0.35 },
+    // The watch room is somewhere people sat: a table and a stool.
+    table: { id: 'small_wooden_table_01', dir: 'props', texture: 512, simplify: 0.5 },
+    stool: { id: 'wooden_stool_01', dir: 'props', texture: 512, simplify: 0.4 },
   },
 };
 

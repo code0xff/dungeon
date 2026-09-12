@@ -123,8 +123,8 @@ service worker only makes the second visit free.
 | | |
 |---|---|
 | creatures | 8.2MB (idle carries the skin and textures; the other clips are curves only) |
+| props | 3.1MB (the chest, and the landmark rooms' furniture) |
 | weapons | 1.5MB |
-| props | 0.9MB |
 | textures | 1.4MB |
 | fonts | 76KB (two woff2, latin subsets) |
 | icons | 36KB |
