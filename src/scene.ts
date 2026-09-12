@@ -1,5 +1,6 @@
 import * as THREE from 'three';
-import { ENV_INTENSITY, FOG_BASE, LIGHT_DIM, LIGHT_LIT, WALL_H } from './config';
+import { ENV_INTENSITY, FOG_BASE, LIGHT_DIM, LIGHT_LIT, RENDER_PIXEL_CAP, WALL_H } from './config';
+import { onSettingsChange, settings } from './settings';
 import { el } from './dom';
 import type { WeaponKind } from './types';
 
@@ -15,15 +16,22 @@ export const scene = new THREE.Scene();
 export const fog = new THREE.FogExp2(0x020304, FOG_BASE);
 scene.fog = fog;
 
-export const camera = new THREE.PerspectiveCamera(74, innerWidth / innerHeight, 0.1, 60);
+export const camera = new THREE.PerspectiveCamera(settings.fov, innerWidth / innerHeight, 0.1, 60);
 
 export const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setClearColor(0x020304, 1);
 renderer.setSize(innerWidth, innerHeight);
-renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setPixelRatio(Math.min(devicePixelRatio, RENDER_PIXEL_CAP) * settings.resolution);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 0.95;
+renderer.toneMappingExposure = settings.exposure;
+onSettingsChange(() => {
+  const ratio = Math.min(devicePixelRatio, RENDER_PIXEL_CAP) * settings.resolution;
+  if (renderer.getPixelRatio() !== ratio) renderer.setPixelRatio(ratio);
+  renderer.toneMappingExposure = settings.exposure;
+  camera.fov = settings.fov;
+  camera.updateProjectionMatrix();
+});
 // Automatic clearing is off because the weapons are drawn in a second pass.
 renderer.autoClear = false;
 el('game').appendChild(renderer.domElement);

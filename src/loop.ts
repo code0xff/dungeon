@@ -1,8 +1,10 @@
 import * as THREE from 'three';
 import { clipDuration, flashLoadedMesh, gait, setAnim } from './assets';
-import { audioReady, lastBeat, setLastBeat, sfxCreature, sfxHeartbeat, sfxReloadStep } from './audio';
+import { audioReady, lastBeat, setLastBeat, sfxCreature, sfxFootstep, sfxHeartbeat, sfxReloadStep, updateSpatialAudio } from './audio';
 import {
   ATTACK_IMPACT, ATTACK_IMPACT_REACH, CELL, CHEST_LID_OPEN, CREATURE_DRAW_DISTANCE,
+  CREATURE_HIT_LEAN, CREATURE_HIT_TIME, CREATURE_HIT_WEIGHT, SWING_CONTACT_HOLD,
+  CREATURE_STEP, SPATIAL_AUDIO,
   DASH_ROLL, DASH_SPEED, DASH_TIME, EYE_H, GROUND_SPEED_SMOOTH,
   FALLBACK_ATTACK_TIME, GEAR_BOB, GEAR_BOB_ROLL, LAMP_SWAY, LAMP_SWAY_LAG,
   CREATURE_PUSH, DRINK_SLOW, GUARD_RAISE, GUARD_SLOW, LANTERN_WARN, SWING_SLOW, LOOT_TIME, MUSKET_RELOAD, PLAYER_R,
@@ -36,6 +38,8 @@ import {
   smoke, sword, SWORD_REST, playerLight,
 } from './scene';
 import { state } from './state';
+import { settings } from './settings';
+import { updateFeedback } from './feedback';
 import { collides } from './world';
 import type {
   ClipName, CreatureRig, Monster, MonsterPlayback } from './types';
@@ -65,6 +69,16 @@ function animLoaded(m: Monster, pb: MonsterPlayback, dt: number): void {
 
   m.moving = false;
   pb.mixer.update(dt);
+  hitReaction(m);
+}
+
+/** A visual recoil leaves attack clocks and collision positions authoritative. */
+function hitReaction(m: Monster): void {
+  // Parry owns the root lean until its recovery ends; stacking a cut over it
+  // would erase the much larger stumble at the moment the counter connects.
+  if (m.staggerT > 0) return;
+  const k = Math.max(0, Math.min(1, m.hurtT / CREATURE_HIT_TIME));
+  m.mesh.rotation.x = -CREATURE_HIT_LEAN * CREATURE_HIT_WEIGHT[m.key] * Math.sin(k * Math.PI);
 }
 
 /**
@@ -81,11 +95,15 @@ function animProcedural(m: Monster, rig: CreatureRig, dt: number, now: number): 
   const t = m.type;
   const flash = m.hurtT > 0;
   if (flash) m.hurtT -= dt;
+  hitReaction(m);
   for (const mt of rig.mats) mt.emissive.setHex(flash ? 0x7a1a1a : 0x000000);
 
   if (m.attackT > 0) {
     // Raise the arms high, then bring them down.
-    const k = Math.sin((1 - m.attackT / FALLBACK_ATTACK_TIME) * Math.PI);
+    // startAttack divides the duration by attackSpeed for fallback models too.
+    // Using the unscaled duration begins fast creatures halfway into the pose.
+    const duration = FALLBACK_ATTACK_TIME / t.attackSpeed;
+    const k = Math.sin((1 - m.attackT / duration) * Math.PI);
     rig.armL.rotation.x = rig.armBase[0] - k * 1.4;
     rig.armR.rotation.x = rig.armBase[1] - k * 1.4;
     m.moving = false;
@@ -193,7 +211,7 @@ function updatePlayer(dt: number, now: number): boolean {
     state.moveDirX = 0;
     state.moveDirZ = 0;
   }
-  state.pos.y = EYE_H + (moving ? Math.sin(now * 0.012) * 0.045 : 0);
+  state.pos.y = EYE_H + (moving ? Math.sin(now * 0.012) * 0.045 * settings.motion : 0);
   return moving;
 }
 
@@ -223,7 +241,12 @@ function swingCurve(t: number): number {
   const u = (t - SWING_WINDUP) / (1 - SWING_WINDUP);
   const strike = (SWING_IMPACT - SWING_WINDUP) / (1 - SWING_WINDUP);
   if (u < strike) return -1 + 2 * (1 - Math.cos((u / strike) * (Math.PI / 2)));
-  return 1 - Math.sin(((u - strike) / (1 - strike)) * (Math.PI / 2));
+  // A landed blade dwells at contact; the remaining recovery eases at both
+  // ends. The hit still resolves at 0.2s and the next input still clears at
+  // ATTACK_CD, so the extra weight does not turn into input latency.
+  const hold = state.swingContact ? SWING_CONTACT_HOLD : 0;
+  const recovery = Math.max(0, (t - SWING_IMPACT - hold) / (1 - SWING_IMPACT - hold));
+  return 1 - recovery * recovery * (3 - 2 * recovery);
 }
 
 function updateWeapons(dt: number): void {
@@ -377,11 +400,9 @@ function updateMonsters(dt: number, now: number): number {
     // returning at a constant rate like a door closing.
     if (m.staggerT > 0) {
       m.staggerT = Math.max(0, m.staggerT - dt);
-      // Kept running through the stagger. They live below the `continue`, so a
-      // parried creature was otherwise staying alerted — and holding its groan —
-      // for however long it spent rocked back.
+      // Alert time still passes through a stagger. Sound is advanced separately
+      // for every listener, including clients following network poses.
       m.alert = Math.max(0, m.alert - dt);
-      m.groanT -= dt;
       const k = m.staggerT / STAGGER_TIME;
       // A body with a stagger clip acts the stumble out and keeps a reduced
       // lean under it; one without gets the full lean. See STAGGER_LEAN_ACTED.
@@ -432,12 +453,6 @@ function updateMonsters(dt: number, now: number): number {
       }
     }
 
-    m.groanT -= dt;
-    if (m.groanT <= 0) {
-      m.groanT = t.groan[0] + Math.random() * (t.groan[1] - t.groan[0]);
-      // Heard by distance from the listener, not from whoever it is chasing.
-      if (mine < 13) sfxCreature(t.voice, Math.max(0.15, 1 - mine / 13));
-    }
     if (m.alert > 0) m.alert -= dt;
 
     const aggroed = dist < t.aggro || m.alert > 0;
@@ -508,6 +523,26 @@ function updateMonsters(dt: number, now: number): number {
   return nearest;
 }
 
+/** Each listener hears its own nearby creatures, including co-op followers. */
+function updateCreatureAudio(dt: number): void {
+  for (const m of state.monsters) {
+    if (m.hp <= 0 || !m.mesh.visible) continue;
+    m.groanT -= dt;
+    const distance = Math.hypot(m.mesh.position.x - state.pos.x, m.mesh.position.z - state.pos.z);
+    if (m.groanT <= 0) {
+      m.groanT = m.type.groan[0] + Math.random() * (m.type.groan[1] - m.type.groan[0]);
+      if (distance < SPATIAL_AUDIO.distance) sfxCreature(m.type.voice, 1, 0, m.mesh.position);
+    }
+    if (m.groundSpeed < CREATURE_STEP.minSpeed || m.attackT > 0 || m.staggerT > 0) continue;
+    if (m.playback?.animName === 'attack' || m.playback?.animName === 'stagger') continue;
+    m.stepSoundDistance += m.groundSpeed * dt;
+    if (m.stepSoundDistance >= CREATURE_STEP.stride) {
+      m.stepSoundDistance %= CREATURE_STEP.stride;
+      if (distance < SPATIAL_AUDIO.distance) sfxFootstep(m.type.voice, m.mesh.position);
+    }
+  }
+}
+
 /**
  * The creature pass for clients that are not simulating.
  *
@@ -573,6 +608,7 @@ function animFollowed(m: Monster, pb: MonsterPlayback, dt: number, anim: number 
     setAnim(pb, restClip(m, pb));
   }
   pb.mixer.update(dt);
+  if (anim !== ANIM_STAGGER && anim !== ANIM_STAGGER_START) hitReaction(m);
 }
 
 /**
@@ -867,11 +903,11 @@ function updateHeldGear(dt: number, now: number, moving: boolean): void {
   const t = (now / 1000) * STRIDE_RATE;
 
   // ---- Weapons: carried by the body ----
-  const b = swayT * GEAR_BOB;
+  const b = swayT * GEAR_BOB * settings.motion;
   gearBob.position.x = Math.sin(t) * b;
   gearBob.position.y = Math.abs(Math.sin(t)) * -b;
-  gearBob.rotation.z = Math.sin(t) * swayT * GEAR_BOB_ROLL;
-  gearBob.rotation.x = Math.abs(Math.sin(t)) * swayT * GEAR_BOB_ROLL * 0.4;
+  gearBob.rotation.z = Math.sin(t) * swayT * GEAR_BOB_ROLL * settings.motion;
+  gearBob.rotation.x = Math.abs(Math.sin(t)) * swayT * GEAR_BOB_ROLL * 0.4 * settings.motion;
 
   // ---- Shield: hung from the other hand, or up ----
   //
@@ -887,7 +923,7 @@ function updateHeldGear(dt: number, now: number, moving: boolean): void {
     SHIELD_REST.rot.y + (SHIELD_GUARD.rot.y - SHIELD_REST.rot.y) * g,
     SHIELD_REST.rot.z + (SHIELD_GUARD.rot.z - SHIELD_REST.rot.z) * g,
   );
-  const a = swayT * LAMP_SWAY * (1 - g);
+  const a = swayT * LAMP_SWAY * (1 - g) * settings.motion;
   handShield.rotation.z += Math.sin(t - LAMP_SWAY_LAG) * a;
   handShield.rotation.x += Math.sin(t * 2 - LAMP_SWAY_LAG) * a * 0.35;
   handShield.position.x += Math.sin(t - LAMP_SWAY_LAG) * a * 0.09;
@@ -1040,8 +1076,12 @@ export function animate(): void {
   // than written into state.pitch, so it cannot accumulate into the player's aim.
   const kickK = state.lungeHitT / LUNGE_HIT_TIME;
   const kick = LUNGE_HIT_KICK * kickK * kickK;
-  camera.rotation.set(state.pitch + kick, state.yaw + Math.PI, state.dashSide * DASH_ROLL * dashK, 'YXZ');
+  camera.rotation.set(state.pitch + kick * settings.motion, state.yaw + Math.PI,
+    state.dashSide * DASH_ROLL * dashK * settings.motion, 'YXZ');
   animateWards(dt, now);
   updateAmbience(dt, now);
+  updateFeedback(dt);
+  if (!state.paused && (!state.gameOver || coop.watching)) updateCreatureAudio(dt);
+  updateSpatialAudio(state.pos, state.yaw, state.maze);
   renderFrame();
 }

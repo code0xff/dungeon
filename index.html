@@ -247,11 +247,11 @@
   #modePick { position:fixed; inset:0; z-index:25; display:none; align-items:center; justify-content:center;
               background:rgba(2,3,4,.94); padding:20px; color:var(--ink); }
   .modeNote { font-size:13px; opacity:.6; line-height:1.5; margin:6px 2px 14px; }
-  #guide, #coop { position:fixed; inset:0; z-index:24; display:none; align-items:center;
+  #guide, #coop, #settings { position:fixed; inset:0; z-index:24; display:none; align-items:center;
            justify-content:flex-start; flex-direction:column;
            overflow-y:auto; overscroll-behavior:contain; touch-action:pan-y;
            background:rgba(2,3,4,.94); padding:20px; color:var(--ink); }
-  #guide > :first-child, #coop > :first-child { margin-top:auto; margin-bottom:auto; }
+  #guide > :first-child, #coop > :first-child, #settings > :first-child { margin-top:auto; margin-bottom:auto; }
   /* The lobby borrows the guide's panel, rows and Back button wholesale — it is
      the same kind of screen, and a second visual language for it would only
      make the menu look assembled from parts. */
@@ -296,11 +296,28 @@
                display:none; font-size:13.5px; font-style:italic; opacity:.6; color:var(--ink);
                background:rgba(6,7,9,.72); padding:7px 16px; border-radius:4px;
                border:1px solid rgba(201,192,174,.16); pointer-events:none; user-select:none; }
-  #guideClose, #coopClose { display:block; margin:18px auto 0; font-family:var(--display); font-size:12px;
+  #guideClose, #coopClose, #settingsClose { display:block; margin:18px auto 0; font-family:var(--display); font-size:12px;
                 letter-spacing:2.4px; text-transform:uppercase; padding:11px 30px; border-radius:2px;
                 border:1px solid rgba(201,192,174,.28); background:rgba(30,28,25,.9); color:var(--ink);
                 cursor:pointer; font-weight:600; transition:border-color .14s, color .14s; }
-  #guideClose:hover, #coopClose:hover { border-color:rgba(212,178,90,.6); color:var(--gold); }
+  #guideClose:hover, #coopClose:hover, #settingsClose:hover { border-color:rgba(212,178,90,.6); color:var(--gold); }
+  #settings { background:rgba(2,3,4,.6); }
+  .settingRow { display:grid; grid-template-columns:1fr auto; gap:8px 16px; margin:16px 0; color:var(--ink); }
+  .settingRow input { grid-column:1 / -1; width:100%; accent-color:var(--gold); touch-action:pan-x; }
+  .settingRow output { color:var(--gold); font-variant-numeric:tabular-nums; }
+  #roomName { position:fixed; top:26%; left:50%; transform:translateX(-50%); z-index:12;
+              text-align:center; pointer-events:none; width:min(80vw,420px); color:#d9cda9;
+              text-shadow:0 2px 8px #000; transition:opacity .3s; opacity:0; }
+  #roomName strong { display:block; font:18px var(--display); letter-spacing:.12em; }
+  #roomName small { display:block; margin-top:6px; font:italic 14px var(--text); }
+  #hurtDirection { position:fixed; top:50%; left:50%; width:120px; height:120px; z-index:13;
+                   pointer-events:none; opacity:0; border-top:4px solid #e4a082; border-radius:50%;
+                   transform:translate(-50%,-50%); }
+  #impactLabel { position:fixed; top:calc(50% + 26px); left:50%; transform:translateX(-50%);
+                 z-index:13; pointer-events:none; color:#e0c9ab; font:12px var(--display);
+                 letter-spacing:.1em; text-shadow:0 2px 5px #000; opacity:0; }
+  #impactLabel[data-kind="blocked"] { color:#a6bfd2; }
+  #impactLabel[data-kind="kill"] { color:var(--gold); }
   #prompt { position:fixed; bottom:52px; left:50%; transform:translateX(-50%); color:var(--gold); font-size:15px; z-index:10; display:none;
             background:rgba(6,7,9,.7); padding:6px 14px; border-radius:6px; border:1px solid rgba(212,178,90,.3); user-select:none; pointer-events:none; }
   #prompt b { background:#d4b25a; color:#1a1207; padding:1px 7px; border-radius:4px; margin-right:6px; }
@@ -587,6 +604,7 @@
       <button class="menuItem" id="titleTutorial">Tutorial</button>
       <button class="menuItem" id="titleCoop">Multiplayer</button>
       <button class="menuItem" id="titleGuide">Controls</button>
+      <button class="menuItem" id="titleSettings">Settings</button>
     </div>
     <ul class="titleRules">
       <li>Every stage is a new maze in the dark. The key is in one of its chests, and the portal will not open without it.</li>
@@ -616,6 +634,7 @@
     <p class="menuStatus" id="menuStatus"></p>
     <button class="menuItem" id="menuResume">Resume</button>
     <button class="menuItem" id="menuGuide">Controls</button>
+    <button class="menuItem" id="menuSettings">Settings</button>
     <button class="menuItem" id="menuQuit">Quit</button>
     <p class="guideNote" id="menuNote"></p>
   </div>
@@ -653,7 +672,7 @@
     <div id="guideList"></div>
     <p class="guideNote">Find the key in a chest — the portal will not open without
       it. Carry the treasure out. Die and this run's gold stays down there; the bank
-      does not.</p>
+      goes with it.</p>
     <p class="guideNote">Watch the floor, and the lids. A sprung trap barely hurts —
       what it costs you is every creature within earshot. Your lantern is what shows
       them to you in time.</p>
@@ -661,6 +680,19 @@
   </div>
 </div>
 <div id="lockHint"><div>Move the mouse to look around<br><small>Click once to lock the cursor for smoother aiming (Esc to release)</small></div></div>
+<div id="settings">
+  <div class="guidePanel">
+    <div class="guideHead">Settings</div>
+    <p class="guideNote">Changes apply immediately and are remembered between runs.</p>
+    <div id="settingsRows"></div>
+    <p class="guideNote">Brightness changes the dungeon behind this panel. Keep lit stone readable while distant corridors remain dark. Camera motion at zero removes walking bob and impact kicks.</p>
+    <button class="menuItem" id="settingsReset">Restore defaults</button>
+    <button id="settingsClose">Back</button>
+  </div>
+</div>
+<div id="roomName"><strong></strong><small></small></div>
+<div id="hurtDirection" aria-hidden="true"></div>
+<div id="impactLabel" aria-hidden="true"></div>
 <div id="prompt"><b>E</b>Open chest</div>
 <div id="lootBar"><div></div></div>
 <div id="crosshair"></div>

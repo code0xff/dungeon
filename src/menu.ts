@@ -12,6 +12,7 @@ import { lockFromClick } from './input';
 import { guideBtn, guideCloseBtn, lockHintEl, objectiveEl } from './ui';
 import { buildWorld, showObjective } from './world';
 import { pickMode } from './mode';
+import { closeSettingsPanel, openSettingsPanel } from './settings-panel';
 
 /**
  * The pause menu, on GUIDE_KEY.
@@ -44,6 +45,7 @@ const coopPanelEl = el('coop');
 /** Whether Quit has been clicked once and is waiting for confirmation. */
 let armed = false;
 let guideOpen = false;
+let settingsOpen = false;
 /** New game on the title has been clicked once and is waiting for confirmation. */
 let titleArmed = false;
 /**
@@ -83,7 +85,7 @@ function syncUi(): void {
 }
 
 export function isMenuOpen(): boolean {
-  return state.title || menuEl.style.display === 'flex' || guideOpen || coopOpen();
+  return state.title || menuEl.style.display === 'flex' || guideOpen || settingsOpen || coopOpen();
 }
 
 export function openMenu(): void {
@@ -92,6 +94,8 @@ export function openMenu(): void {
   disarm();
   guideOpen = false;
   fromTitle = false;
+  settingsOpen = false;
+  closeSettingsPanel();
   closeGuidePanel();
   closeLobbyPanel();
   // Not while the end-of-run overlay is up: the loop is already stopped there,
@@ -120,6 +124,8 @@ export function openMenu(): void {
 export function closeMenu(): void {
   disarm();
   guideOpen = false;
+  settingsOpen = false;
+  closeSettingsPanel();
   closeGuidePanel();
   closeLobbyPanel();
   menuEl.style.display = 'none';
@@ -135,6 +141,14 @@ export function toggleMenu(): void {
 
 /** Escape steps back one screen rather than dropping straight into the game. */
 function back(): void {
+  if (settingsOpen) {
+    settingsOpen = false;
+    closeSettingsPanel();
+    if (fromTitle) showTitle();
+    else menuEl.style.display = 'flex';
+    syncUi();
+    return;
+  }
   if (guideOpen) {
     guideOpen = false;
     closeGuidePanel();
@@ -180,6 +194,8 @@ function titleDisarm(): void {
 }
 
 export function openTitle(): void {
+  settingsOpen = false;
+  closeSettingsPanel();
   state.title = true;
   state.paused = true;
   fromTitle = false;
@@ -259,6 +275,22 @@ el('titleGuide').addEventListener('click', () => {
 });
 
 resumeBtn.addEventListener('click', closeMenu);
+el('titleSettings').addEventListener('click', () => {
+  fromTitle = true;
+  settingsOpen = true;
+  titleEl.style.display = 'none';
+  openSettingsPanel();
+  syncUi();
+});
+el('menuSettings').addEventListener('click', () => {
+  disarm();
+  fromTitle = false;
+  settingsOpen = true;
+  menuEl.style.display = 'none';
+  openSettingsPanel();
+  syncUi();
+});
+el('settingsClose').addEventListener('click', back);
 
 coopCloseBtn.addEventListener('click', back);
 
@@ -307,6 +339,9 @@ addEventListener('keydown', (e) => {
   // the menu flicker open and shut and left the pause state wherever the release
   // happened to land.
   if (e.repeat) return;
+  // A focused range needs its own keyboard controls; typing must not toggle a
+  // game panel underneath it. Escape still follows the normal panel stack.
+  if (e.target instanceof HTMLInputElement && e.code !== 'Escape') return;
   if (e.code === `Key${GUIDE_KEY}`) {
     toggleMenu();
     return;

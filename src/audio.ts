@@ -1,4 +1,6 @@
-import { MASTER_VOLUME } from './config';
+import { BLOCK_SOUND, CELL, CREATURE_STEP, MASTER_VOLUME, SPATIAL_AUDIO } from './config';
+import { onSettingsChange, settings } from './settings';
+import type { Maze, SoundPosition, SpatialVoice } from './types';
 
 declare global {
   interface Window {
@@ -9,12 +11,90 @@ declare global {
 interface Audio {
   ctx: AudioContext;
   master: GainNode;
+  effects: GainNode;
+  ambience: GainNode;
   noiseBuf: AudioBuffer;
   /** Time of the last heartbeat, in seconds. Used to pace the next one. */
   lastBeat: number;
 }
 
 let audio: Audio | null = null;
+const voices: SpatialVoice[] = [];
+
+/** Live pan and wall filtering: turning during a groan must turn the sound too. */
+export function updateSpatialAudio(listener: SoundPosition, yaw: number, maze: Maze): void {
+  if (!audio) return;
+  for (let i = voices.length - 1; i >= 0; i--) {
+    const voice = voices[i];
+    if (voice.ends <= audio.ctx.currentTime) {
+      voice.stereo.disconnect(); voice.gain.disconnect(); voice.filter.disconnect();
+      voices.splice(i, 1);
+      continue;
+    }
+    const dx = voice.position.x - listener.x, dz = voice.position.z - listener.z;
+    const distance = Math.hypot(dx, dz);
+    const pan = distance > 0 ? (-dx * Math.cos(yaw) + dz * Math.sin(yaw)) / distance : 0;
+    // Half-cell samples cannot skip an entire grid wall. Only active nearby
+    // voices are sampled, keeping this independent of the dungeon population.
+    const steps = Math.max(1, Math.ceil(distance / (CELL / 2)));
+    let blocked = false;
+    for (let j = 1; j < steps; j++) {
+      const x = Math.round((listener.x + dx * j / steps) / CELL);
+      const z = Math.round((listener.z + dz * j / steps) / CELL);
+      if (maze[z]?.[x] === 1) { blocked = true; break; }
+    }
+    const time = audio.ctx.currentTime;
+    voice.stereo.pan.setTargetAtTime(Math.max(-1, Math.min(1, pan)), time, SPATIAL_AUDIO.smoothing);
+    voice.gain.gain.setTargetAtTime(Math.max(0, 1 - distance / SPATIAL_AUDIO.distance)
+      * (blocked ? SPATIAL_AUDIO.wallGain : 1), time, SPATIAL_AUDIO.smoothing);
+    voice.filter.frequency.setTargetAtTime(blocked ? SPATIAL_AUDIO.wallCutoff : SPATIAL_AUDIO.openCutoff,
+      time, SPATIAL_AUDIO.smoothing);
+  }
+}
+
+/** Stage changes must not leave a departed room's voice pointing into a new maze. */
+export function clearSpatialAudio(): void {
+  for (const voice of voices) {
+    voice.stereo.disconnect(); voice.gain.disconnect(); voice.filter.disconnect();
+  }
+  voices.length = 0;
+}
+
+function worldSound(input: AudioNode, position: SoundPosition, duration: number, pan = 0): void {
+  if (!audio || voices.length >= SPATIAL_AUDIO.maxVoices) return;
+  const { ctx, effects } = audio;
+  const stereo = ctx.createStereoPanner();
+  stereo.pan.value = Math.max(-1, Math.min(1, pan));
+  const gain = ctx.createGain();
+  // Start silent; the listener pass applies distance and walls in this frame.
+  gain.gain.value = 0;
+  const filter = ctx.createBiquadFilter();
+  filter.type = 'lowpass'; filter.frequency.value = SPATIAL_AUDIO.openCutoff;
+  input.connect(stereo); stereo.connect(filter); filter.connect(gain); gain.connect(effects);
+  voices.push({ position, stereo, gain, filter, ends: ctx.currentTime + duration });
+}
+
+export function sfxFootstep(voice: number, position: SoundPosition): void {
+  if (!audio) return;
+  const { ctx, noiseBuf } = audio;
+  const noise = ctx.createBufferSource(); noise.buffer = noiseBuf;
+  const filter = ctx.createBiquadFilter(); filter.type = 'lowpass';
+  filter.frequency.value = CREATURE_STEP.highFrequency * voice;
+  const gain = ctx.createGain();
+  env(gain, ctx.currentTime, CREATURE_STEP.time / 10, CREATURE_STEP.volume, CREATURE_STEP.time);
+  noise.connect(filter); filter.connect(gain);
+  const thud = ctx.createOscillator(); thud.type = 'sine';
+  thud.frequency.value = CREATURE_STEP.lowFrequency * voice;
+  thud.connect(gain);
+  worldSound(gain, position, CREATURE_STEP.time);
+  noise.start(); thud.start();
+  noise.stop(ctx.currentTime + CREATURE_STEP.time); thud.stop(ctx.currentTime + CREATURE_STEP.time);
+}
+onSettingsChange(() => {
+  if (!audio) return;
+  audio.effects.gain.value = settings.effects;
+  audio.ambience.gain.value = settings.ambience;
+});
 
 /**
  * Muting, remembered across runs in its own localStorage key.
@@ -62,6 +142,12 @@ export function initAudio(): void {
   const master = ctx.createGain();
   master.gain.value = muted ? 0 : MASTER_VOLUME;
   master.connect(ctx.destination);
+  const effects = ctx.createGain();
+  effects.gain.value = settings.effects;
+  effects.connect(master);
+  const ambience = ctx.createGain();
+  ambience.gain.value = settings.ambience;
+  ambience.connect(master);
 
   // ---- Low drone ----
   const lp = ctx.createBiquadFilter();
@@ -78,7 +164,7 @@ export function initAudio(): void {
     o.start();
   }
   lp.connect(dg);
-  dg.connect(master);
+  dg.connect(ambience);
 
   // Drift the filter cutoff very slowly so the ambience seems to breathe.
   const lfo = ctx.createOscillator();
@@ -105,7 +191,7 @@ export function initAudio(): void {
   ng.gain.value = 0.04;
   ns.connect(nf);
   nf.connect(ng);
-  ng.connect(master);
+  ng.connect(ambience);
   ns.start();
 
   const nlfo = ctx.createOscillator();
@@ -116,7 +202,7 @@ export function initAudio(): void {
   nlfoG.connect(ng.gain);
   nlfo.start();
 
-  audio = { ctx, master, noiseBuf: buf, lastBeat: 0 };
+  audio = { ctx, master, effects, ambience, noiseBuf: buf, lastBeat: 0 };
 }
 
 export function audioReady(): boolean {
@@ -140,7 +226,7 @@ function env(g: GainNode, t: number, attack: number, peak: number, decay: number
 
 export function sfxHeartbeat(strength: number): void {
   if (!audio) return;
-  const { ctx, master } = audio;
+  const { ctx, effects: master } = audio;
   const t = ctx.currentTime;
   // Two beats: strong then weak
   for (const [dt, amp] of [[0, 1], [0.17, 0.6]] as const) {
@@ -165,9 +251,10 @@ export function sfxHeartbeat(strength: number): void {
  * Sound arrives before sight down a corridor, so this is the player's first
  * warning of which creature is ahead — the two pitches have to be far apart.
  */
-export function sfxCreature(voice: number, vol: number): void {
+export function sfxCreature(voice: number, vol: number, pan = 0, position?: SoundPosition): void {
   if (!audio) return;
-  const { ctx, master } = audio;
+  if (position && voices.length >= SPATIAL_AUDIO.maxVoices) return;
+  const { ctx, effects: master } = audio;
   const t = ctx.currentTime;
 
   // Hoarse groan: a sawtooth shaved down by a low-pass, wavering with vibrato.
@@ -196,7 +283,13 @@ export function sfxCreature(voice: number, vol: number): void {
 
   o.connect(lp);
   lp.connect(g);
-  g.connect(master);
+  if (position) {
+    worldSound(g, position, 1.6, pan);
+  } else {
+    const stereo = ctx.createStereoPanner();
+    stereo.pan.value = Math.max(-1, Math.min(1, pan));
+    g.connect(stereo); stereo.connect(master);
+  }
   o.start(t);
   o.stop(t + 1.6);
 }
@@ -204,7 +297,7 @@ export function sfxCreature(voice: number, vol: number): void {
 /** The dodge: a short downward whoosh, so it does not read as another sword swing. */
 export function sfxDash(): void {
   if (!audio) return;
-  const { ctx, master, noiseBuf } = audio;
+  const { ctx, effects: master, noiseBuf } = audio;
   const t = ctx.currentTime;
   const s = ctx.createBufferSource();
   s.buffer = noiseBuf;
@@ -225,7 +318,7 @@ export function sfxDash(): void {
 
 export function sfxSwing(): void {
   if (!audio) return;
-  const { ctx, master, noiseBuf } = audio;
+  const { ctx, effects: master, noiseBuf } = audio;
   const t = ctx.currentTime;
   const s = ctx.createBufferSource();
   s.buffer = noiseBuf;
@@ -252,7 +345,7 @@ export function sfxSwing(): void {
  */
 export function sfxLunge(): void {
   if (!audio) return;
-  const { ctx, master } = audio;
+  const { ctx, effects: master } = audio;
   const t = ctx.currentTime;
   const o = ctx.createOscillator();
   o.type = 'sawtooth';
@@ -280,7 +373,7 @@ export function sfxLunge(): void {
  */
 export function sfxParry(): void {
   if (!audio) return;
-  const { ctx, master, noiseBuf } = audio;
+  const { ctx, effects: master, noiseBuf } = audio;
   const t = ctx.currentTime;
   for (const [f, amp] of [[1180, 0.3], [1770, 0.18]] as const) {
     const o = ctx.createOscillator();
@@ -311,10 +404,25 @@ export function sfxParry(): void {
   s.stop(t + 0.16);
 }
 
+export function sfxBlock(): void {
+  if (!audio) return;
+  const { ctx, effects } = audio;
+  for (const frequency of BLOCK_SOUND.frequencies) {
+    const tone = ctx.createOscillator();
+    tone.type = 'triangle';
+    tone.frequency.value = frequency;
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(BLOCK_SOUND.volume, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + BLOCK_SOUND.time);
+    tone.connect(gain); gain.connect(effects);
+    tone.start(); tone.stop(ctx.currentTime + BLOCK_SOUND.time);
+  }
+}
+
 /** low=true is the duller thud of the player taking the hit. */
 export function sfxHit(low: boolean): void {
   if (!audio) return;
-  const { ctx, master, noiseBuf } = audio;
+  const { ctx, effects: master, noiseBuf } = audio;
   const t = ctx.currentTime;
   const o = ctx.createOscillator();
   o.type = 'triangle';
@@ -355,7 +463,7 @@ export function sfxHit(low: boolean): void {
  */
 export function sfxTrap(): void {
   if (!audio) return;
-  const { ctx, master, noiseBuf } = audio;
+  const { ctx, effects: master, noiseBuf } = audio;
   const t = ctx.currentTime;
   for (const [f, amp] of [[880, 0.32], [1319, 0.2], [1970, 0.12]] as const) {
     const o = ctx.createOscillator();
@@ -389,7 +497,7 @@ export function sfxTrap(): void {
 
 export function sfxCreak(): void {
   if (!audio) return;
-  const { ctx, master } = audio;
+  const { ctx, effects: master } = audio;
   const t = ctx.currentTime;
   const o = ctx.createOscillator();
   o.type = 'sawtooth';
@@ -411,7 +519,7 @@ export function sfxCreak(): void {
 
 export function sfxPickup(): void {
   if (!audio) return;
-  const { ctx, master } = audio;
+  const { ctx, effects: master } = audio;
   const t = ctx.currentTime;
   [523, 784].forEach((f, i) => {
     const o = ctx.createOscillator();
@@ -428,7 +536,7 @@ export function sfxPickup(): void {
 
 export function sfxShot(): void {
   if (!audio) return;
-  const { ctx, master, noiseBuf } = audio;
+  const { ctx, effects: master, noiseBuf } = audio;
   const t = ctx.currentTime;
 
   // Sharp crack
@@ -478,7 +586,7 @@ export function sfxShot(): void {
 /** One click per reload step: ramrod, powder, hammer. */
 export function sfxReloadStep(i: number): void {
   if (!audio) return;
-  const { ctx, master, noiseBuf } = audio;
+  const { ctx, effects: master, noiseBuf } = audio;
   const t = ctx.currentTime;
   const s = ctx.createBufferSource();
   s.buffer = noiseBuf;

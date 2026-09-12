@@ -1,4 +1,7 @@
 import * as THREE from 'three';
+import { buildArchitecture } from './architecture';
+import { buildRooms, furnishRooms } from './rooms';
+import { clearSpatialAudio } from './audio';
 import { floorPBR, spawnCreature, wallPBR } from './assets';
 import {
   BEYOND_DMG, BEYOND_HP, BEYOND_REWARD, BLACK_KNIGHT_SHADE, CEIL_TILES_PER_CELL, CELL, CHEST_COUNT, CHEST_ITEMS, CHEST_SAFE_ITEMS,
@@ -97,6 +100,7 @@ function randomFloorCell(minDist: number): GridCell {
 let guideTimer: ReturnType<typeof setTimeout> | null = null;
 
 function clearWorld(): void {
+  clearSpatialAudio();
   // The allies of the last dungeon are not the allies of this one, and a body
   // left behind would stand in the new maze until the fade timer noticed.
   clearRemotes();
@@ -305,6 +309,7 @@ export function spawnAt(key: CreatureKey, wx: number, wz: number): Monster {
     swingSeq: 0,
     pendingHit: null,
     hurtT: 0,
+    stepSoundDistance: 0,
     staggerT: 0,
     staggerX: 0,
     staggerZ: 0,
@@ -476,10 +481,11 @@ export function buildWorld(): void {
   const { gw, gh } = state.tutorial ? { gw: TUTORIAL_ROOM, gh: TUTORIAL_ROOM } : dungeonSize(level);
   state.gw = gw;
   state.gh = gh;
+  state.rooms = [];
   state.maze = state.tutorial
     ? Array.from({ length: gh }, (_, z) => Array.from({ length: gw }, (_, x) =>
       (x === 0 || z === 0 || x === gw - 1 || z === gh - 1 ? 1 : 0)))
-    : generateDungeon(gw, gh);
+    : generateDungeon(gw, gh, state.rooms);
   state.exitCell = { x: gw - 2, z: gh - 2 };
   state.maze[state.exitCell.z][state.exitCell.x] = 0;
 
@@ -487,6 +493,13 @@ export function buildWorld(): void {
   claimed.clear();
   claimed.add(cellKey(1, 1));
   claimed.add(cellKey(state.exitCell.x, state.exitCell.z));
+  // Authored rooms get authored encounters. Reserving the entire footprint
+  // prevents a random barrel hiding their reward or a trap under their marker.
+  for (const room of state.rooms) {
+    for (let z = room.z; z < room.z + room.size; z++) {
+      for (let x = room.x; x < room.x + room.size; x++) claimed.add(cellKey(x, z));
+    }
+  }
 
   buildGeometry();
 
@@ -504,7 +517,14 @@ export function buildWorld(): void {
     spawnMonsters(scale);
     spawnChests(scale);
     placeTraps(scale);
+    furnishRooms(state.rooms, state.chests, state.monsters, coop.active ? coop.hard : progress.hard);
     scatterProps();
+    const architecture = buildArchitecture(state.maze);
+    scene.add(architecture);
+    state.props.push({ object: architecture, swing: null });
+    const rooms = buildRooms(state.maze, state.rooms);
+    scene.add(rooms);
+    state.props.push({ object: rooms, swing: null });
   }
   placeSconces();
 
@@ -521,6 +541,8 @@ export function buildWorld(): void {
     ? { ...TUTORIAL_KIT, hp: MAX_HP, swordDur: SWORD_DUR_MAX, lanternT: 0 }
     : coop.active ? (coop.carry ?? coopKit(level, coop.hard)) : progress;
   state.hp = kit.hp;
+  state.hurtDirectionT = 0;
+  state.impactT = 0;
   state.runGold = 0;
   state.gameOver = false;
   state.atkTimer = 0;
@@ -528,6 +550,7 @@ export function buildWorld(): void {
   state.queueLunge = false;
   state.swingT = -1;
   state.swingHit = false;
+  state.swingContact = false;
   state.dashT = -1;
   state.dashCd = 0;
   state.dashSide = 0;

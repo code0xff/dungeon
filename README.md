@@ -17,6 +17,19 @@ whatever is left burns on into the next stage.
 
 It installs as a PWA and plays offline after the first visit.
 
+Every floor now has three landmarks: the **Forsaken Chapel**, with an exposed
+offering and a zombie; the **Provision Store**, with a potion chest; and the
+**Watch Room**, with a valuable chest and one of the floor's strongest creatures.
+Their order changes with the seed. The encounters reuse the floor's enemies and
+chests, and the key stays in its randomly placed chest. Hard mode keeps its one
+key chest and no supplies; the landmarks and their sentries remain.
+
+Open **Settings** from the title or pause menu to adjust mouse and touch
+sensitivity, camera motion, effects and ambience volume, brightness, render scale
+and field of view. Changes apply immediately and survive death and a new game.
+Camera motion at zero removes walking bob, shield sway and impact camera kicks.
+Lower render scale reduces GPU work while keeping the interface sharp.
+
 Creatures (FBX/GLB plus animations) and the wall/floor PBR textures load from
 external files, and **anything missing falls back to a box model or a texture drawn
 in code**. So the game runs on a fresh clone and you can drop assets in one at a
@@ -529,6 +542,23 @@ resolves) are in `src/config.ts`; the raised and cut-through poses are `SWING_UP
 `SWING_DOWN` in `src/loop.ts`. Keep the downswing — `SWING_WINDUP` to
 `SWING_IMPACT` — at five frames or more at 60fps, or the blade does not read as
 passing through.
+
+The cut still lands 0.2 seconds after pressing attack. Recovery now fills a
+0.4-second cycle, with a brief contact hold on a hit (`SWING_CONTACT_HOLD`);
+the next attack still clears after 0.45 seconds. Ordinary hits give creatures a
+small cosmetic recoil, reduced on heavier bodies, while only a parry interrupts
+their attack. Creature groans pan left and right relative to the listener.
+Footsteps follow distance travelled, and both sounds track the listener as they
+turn. Walls reduce their volume and soften high frequencies. A short contact
+label distinguishes hits, blocks and kills, and an arc points toward the last
+creature that damaged you.
+
+Corridors have shallow masonry ribs, overhead beams and wall crests, built in
+code by `src/architecture.ts`. They use one instanced mesh, do not consume the
+world's random stream, and leave the collision grid unchanged.
+The three rooms themselves are carved by `generateDungeon()` and decorated by
+`src/rooms.ts`, with one local lamp each and shared instanced furniture. All
+decoration is built in code; no additional asset download is needed.
 
 Poly Haven has **no musket or flintlock**, so a bolt-action rifle stands in. The
 name stays `musket` throughout the code.

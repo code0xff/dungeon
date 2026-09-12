@@ -16,8 +16,8 @@ import {
   soundBtn, viewBtn, wardBtn, whetBtn, wpnBtn,
 } from './ui';
 import { setWeapon, toggleWeapon } from './weapons';
+import { settings } from './settings';
 
-const SENS = 0.0022;
 const PITCH_MAX = 0.7;
 /** This fraction of the screen's left and right edges is the 'edge turn' zone. */
 const EDGE_FRAC = 0.12;
@@ -275,8 +275,8 @@ addEventListener('pointermove', (e) => {
   // new when the panel closed. A watcher is dead and may not look about either.
   if (state.uiOpen || state.paused || state.gameOver) return;
   // Turn on mouse movement whether or not the pointer is locked; no click required.
-  state.yaw -= e.movementX * SENS;
-  state.pitch = Math.max(-PITCH_MAX, Math.min(PITCH_MAX, state.pitch - e.movementY * SENS));
+  state.yaw -= e.movementX * settings.mouseSensitivity;
+  state.pitch = Math.max(-PITCH_MAX, Math.min(PITCH_MAX, state.pitch - e.movementY * settings.mouseSensitivity));
 });
 
 /** Unlocked, a cursor parked at the screen edge keeps turning that way. */
@@ -417,7 +417,7 @@ addEventListener(
     for (const t of Array.from(e.changedTouches)) {
       if (t.identifier === stickId) updateStick(t);
       else if (t.identifier === lookId) {
-        state.yaw -= (t.clientX - lookLastX) * 0.006;
+        state.yaw -= (t.clientX - lookLastX) * settings.touchSensitivity;
         lookLastX = t.clientX;
       }
     }

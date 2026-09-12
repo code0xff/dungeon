@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { LIGHT_DIM, MAX_HP } from './config';
-import type { Chest, Looting, Maze, Monster, Prop, Sconce, Trap, Ward, WeaponKind } from './types';
+import type { Chest, DungeonRoom, ImpactKind, Looting, Maze, Monster, Prop, Sconce, Trap, Ward, WeaponKind } from './types';
 
 /**
  * Mutable state for one run. buildWorld() resets all of it.
@@ -20,6 +20,8 @@ export const state = {
    */
   gw: 0,
   gh: 0,
+  /** Recognisable rooms generated with the maze, also used to reserve their contents. */
+  rooms: [] as DungeonRoom[],
   exitCell: { x: 0, z: 0 },
 
   // ---- Player ----
@@ -27,6 +29,12 @@ export const state = {
   yaw: 0,
   pitch: 0,
   hp: MAX_HP,
+  /** World direction of the last damaging creature hit; never changes aim. */
+  hurtDirection: 0,
+  hurtDirectionT: 0,
+  impactT: 0,
+  /** Union annotation keeps later feedback assignments strictly typed. */
+  impactKind: 'hit' as ImpactKind,
   runGold: 0,
 
   // ---- World contents ----
@@ -101,6 +109,8 @@ export const state = {
   swingT: -1,
   /** Whether this swing already resolved, so one swing cuts once. */
   swingHit: false,
+  /** Cosmetic contact hold; never pauses the simulation or changes hit timing. */
+  swingContact: false,
   /**
    * Whether the swing in flight was launched out of a forward dodge.
    *

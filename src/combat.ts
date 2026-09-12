@@ -1,8 +1,9 @@
 import { clipDuration, setAnim } from './assets';
-import { sfxHit, sfxLunge, sfxParry, sfxShot, sfxSwing, sfxTrap } from './audio';
+import { sfxBlock, sfxHit, sfxLunge, sfxParry, sfxShot, sfxSwing, sfxTrap } from './audio';
+import { impact } from './feedback';
 import {
   ATTACK_BUFFER, ATTACK_CD, ATTACK_RANGE, CORPSE_LINGER, GUARD_ARC, GUARD_LEAK, GUARD_LEAK_HEAVY,
-  BLOCK_ARC, LUNGE_DMG, LUNGE_WINDOW, MUSKET_DMG, MUSKET_RANGE,
+  BLOCK_ARC, CREATURE_HIT_TIME, HURT_DIRECTION_TIME, LUNGE_DMG, LUNGE_WINDOW, MUSKET_DMG, MUSKET_RANGE,
   LUNGE_HIT_LIGHT, LUNGE_HIT_TIME, REWARD_SPREAD, STAGGER_PUSH, STAGGER_TIME, staggerSpeed,
   TRAP_ALERT_RADIUS, TRAP_ALERT_TIME, TRAP_DMG,
   SHOT_ALERT_RADIUS, SHOT_ALERT_TIME,
@@ -55,6 +56,7 @@ export function killMonster(m: Monster, opts: { pay?: boolean; gold?: number } =
   // And paying is optional, because a kill is not always yours: the authority
   // resolves everyone's hits, and the gold belongs to whoever swung.
   if (opts.pay !== false) {
+    impact('kill');
     state.runGold += gold;
     updateHUD();
   }
@@ -144,7 +146,9 @@ export function fireMusket(): void {
   if (best) {
     best.hurtT = 0.25;
     const shielded = shieldedFraction(best, state.pos.x, state.pos.z);
-    sfxHit(shielded > 0);
+    if (shielded > 0) sfxBlock();
+    else sfxHit(false);
+    impact(shielded > 0 ? 'blocked' : 'hit');
     if (shielded > 0) showMsg('The shield takes the ball');
     // The flash and the sound are drawn regardless — a shot that looked like it
     // missed while the ball was in flight to the authority would feel broken.
@@ -179,6 +183,7 @@ function startSwing(lunge: boolean): void {
   state.atkTimer = ATTACK_CD;
   state.swingT = 0;
   state.swingHit = false;
+  state.swingContact = false;
   state.swingLunge = lunge;
   state.lungeT = 0;
   state.atkQueue = 0;
@@ -279,6 +284,7 @@ export function resolveSwing(): void {
   const lunge = state.swingLunge;
   const dmg = swordDamage() * (lunge ? LUNGE_DMG : 1);
   const landed = lunge && inArc.length > 0;
+  state.swingContact = inArc.length > 0;
   if (landed) {
     sfxLunge();
     state.lungeHitT = LUNGE_HIT_TIME;
@@ -294,7 +300,7 @@ export function resolveSwing(): void {
   // because the explanation below fired a frame's worth of logic later.
   const lines: string[] = [];
   for (const { m } of inArc.slice(0, SWORD_CLEAVE)) {
-    m.hurtT = 0.18;
+    m.hurtT = CREATURE_HIT_TIME;
     // Charged per creature cut, so a cleave that catches two costs two. Charged
     // whoever is simulating, because the blade was swung either way.
     state.swordDur = Math.max(0, state.swordDur - SWORD_WEAR);
@@ -302,7 +308,9 @@ export function resolveSwing(): void {
     // once, because a player who does not know why the knight will not die
     // has no way to find out the shield is the reason.
     const shielded = shieldedFraction(m, state.pos.x, state.pos.z);
-    sfxHit(shielded > 0);
+    if (shielded > 0) sfxBlock();
+    else sfxHit(false);
+    impact(shielded > 0 ? 'blocked' : 'hit');
     if (shielded > 0 && !lines.includes('The shield takes it')) lines.push('The shield takes it');
     if (isAuthority()) {
       m.hp -= dmg * (1 - shielded);
@@ -411,11 +419,15 @@ export function playerHurt(dmg: number, from?: Monster): 'hit' | 'blocked' | 'pa
     }
   }
   if (dmg <= 0 && outcome !== 'hit') {
-    if (outcome === 'blocked') sfxHit(true);
+    if (outcome === 'blocked') { sfxBlock(); impact('blocked'); }
     updateHUD();
     return outcome;
   }
   state.hp -= dmg;
+  if (from) {
+    state.hurtDirection = Math.atan2(from.mesh.position.x - state.pos.x, from.mesh.position.z - state.pos.z);
+    state.hurtDirectionT = HURT_DIRECTION_TIME;
+  }
   // The lesson hurts but does not kill: a death screen in the middle of
   // learning the parry would send the player back to the start of the lesson,
   // which is the one thing it has no reason to do.

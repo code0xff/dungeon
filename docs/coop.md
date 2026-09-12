@@ -130,6 +130,13 @@ Two consequences for the client:
 Because the Pages build and the host can now be different versions of the game,
 `PROTOCOL_VERSION` is doing real work rather than guarding a theoretical case.
 
+Version 13 includes the landmark-room generator and content relocation. The
+wire shapes are unchanged, but version 12 would derive different walls and
+chest positions from the same seed, so it must be rejected at the handshake.
+Two local browser clients were checked at level 6: grids, room metadata, chest
+positions and creature indices matched. Settings kept the authority running
+while suppressing its gameplay input, and a version-12 join was rejected.
+
 ## Hosting needs Node 22.6
 
 `npm run host` runs the server straight from TypeScript with

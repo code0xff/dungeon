@@ -4,6 +4,38 @@ import type * as THREE from 'three';
 /** 0 = floor, 1 = wall. Indexed maze[z][x]. */
 export type Maze = number[][];
 export type GridCell = readonly [x: number, z: number];
+export type RoomKind = 'chapel' | 'store' | 'guard';
+export interface DungeonRoom {
+  kind: RoomKind;
+  x: number;
+  z: number;
+  size: number;
+}
+export interface Settings {
+  mouseSensitivity: number;
+  touchSensitivity: number;
+  motion: number;
+  effects: number;
+  ambience: number;
+  exposure: number;
+  resolution: number;
+  fov: number;
+}
+export type ImpactKind = 'hit' | 'blocked' | 'kill';
+export interface SoundPosition { x: number; z: number }
+export interface SpatialVoice {
+  position: SoundPosition;
+  stereo: StereoPannerNode;
+  gain: GainNode;
+  filter: BiquadFilterNode;
+  ends: number;
+}
+/** Scratch storage reused by BFS; no route survives a call or a map rebuild. */
+export interface PathWorkspace {
+  queue: Int32Array;
+  first: Int32Array;
+  seen: Uint8Array;
+}
 
 // ================= Creatures =================
 export type CreatureKey = 'zombie' | 'brute' | 'lunatic' | 'orc' | 'blackknight';
@@ -203,6 +235,8 @@ export interface Monster {
   bobSeed: number;
   /** Seconds until the next groan. */
   groanT: number;
+  /** Ground distance since its last audible footfall; cosmetic, not network state. */
+  stepSoundDistance: number;
   /** Death animation is playing. */
   dead: boolean;
   /** Seconds until removal from the scene. */

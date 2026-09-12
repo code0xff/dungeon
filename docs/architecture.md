@@ -625,6 +625,50 @@ atmosphere, audio pacing, render.
 several seconds at once and teleport everything. Anything you write that
 integrates over `dt` must tolerate a frame that large.
 
+## Landmarks, settings and feedback
+
+`generateDungeon()` carves three separated landmark footprints before the
+remaining random rooms. Its optional metadata output never affects random
+draws, so the Node host and browser still generate exactly the same maze.
+`world.ts` reserves their cells before random content is placed; `rooms.ts`
+then moves existing chests and creatures into authored positions, preserving
+array indices for co-op events. The key stays random. Hard mode skips all loot
+relocation and retains its single key chest. Wall furniture stays within player
+wall clearance, ceiling pieces stay overhead, and floor inlays sit below traps.
+Each room has one practical lamp; their furniture shares a single instanced mesh.
+
+A 3,000-dungeon survey (1,000 seeds each at stages 1, 6 and 12) found all three
+room types in every maze, no overlapping footprints, and no disconnected floor.
+Generating with and without metadata produced identical grids and RNG state.
+Mean floor area changed from 177.9 to 168.3 cells at stage 1, 307.2 to 298.6 at
+stage 6, and 503.4 to 495.2 at stage 12; population still scales with floor area.
+
+`settings.ts` is a data-only preferences module under renderer, audio and input.
+It validates storage values against config bounds and notifies subscribers.
+`settings-panel.ts` builds controls lazily; `menu.ts` owns its panel transitions
+and solo/co-op pause semantics. Audio has separate effects and ambience buses
+under the existing master mute. Resolution scales the canvas, never the DOM.
+
+`feedback.ts` displays room-entry titles, contact results and a world-relative
+damage direction. These effects neither change aim nor consume the message slot
+used by loot. Creature voices and footfalls are played for every listener, with
+live panning, distance attenuation and wall filtering; expired voice nodes are
+disconnected and stage rebuilds clear the remaining voices.
+
+## World detail and pathfinding
+
+`src/architecture.ts` adds wall relief and overhead corridor ribs after ordinary
+props are placed. It derives placement from the grid without consuming random
+draws, so decoration cannot move the key or change a co-op dungeon. Geometry and
+material are shared; rebuilding disposes the previous instance buffer.
+
+Pathfinding reuses typed scratch arrays per maze, held by a weak key so old maps
+can be collected. Each search clears visits and propagates its first step;
+neighbour order preserves the original BFS tie breaks. A 5,000-pair comparison
+across 100 seeded 31-by-31 maps returned identical steps, with five timed batches
+around 43–45ms versus 143–151ms for the old implementation on the development
+machine. This measures pathfinding alone, not whole-frame performance.
+
 ## Coordinates and units
 
 - **Metres.** Creature heights, weapon lengths and reach are all real-world

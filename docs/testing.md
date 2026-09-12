@@ -142,6 +142,25 @@ Then confirm in the real game — 30 rebuilds through the restart button, checki
 for duplicate grid cells — because the simulation only proves the model you
 extracted, not the code that shipped.
 
+## Landmark and settings checks
+
+- Survey seeded maps at stages 1, 6 and 12: three distinct landmark footprints,
+  all room tiles open, all floor reachable from the start, and identical grid
+  and next RNG value with and without the metadata output.
+- Rebuild normal-mode worlds and check creature/chest/trap cells for overlaps.
+  Confirm one key, a potion in the store, and a guard in the watch room. Hard
+  still has one key chest and no extra supplies.
+- Change settings from the title and pause menu. Reload to check persistence;
+  restore defaults afterwards. Verify that co-op keeps running with input
+  suppressed while settings are open.
+- Check the settings panel at portrait and landscape phone sizes, including
+  scrolling to Back, and inspect each lit room with actual creatures visible.
+- Check an ordinary hit, blocked hit, kill and directional damage cue, with
+  loaded models and with creature/weapon requests blocked for fallback testing.
+- Check audio routing separately from audibility: a headless browser may leave
+  its audio clock stopped. Pan and wall-filter targets can still be inspected,
+  but audible timing and device performance require an actual player session.
+
 ## Deployment
 
 Pushing to `dev` runs `.github/workflows/deploy.yml`, which typechecks, bundles

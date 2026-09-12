@@ -1,5 +1,5 @@
 import type {
-  CreatureAsset, CreatureKey, CreatureType, ItemKind, SpawnRate, WeaponAsset, WeaponKind,
+  CreatureAsset, CreatureKey, CreatureType, ItemKind, RoomKind, Settings, SpawnRate, WeaponAsset, WeaponKind,
 } from './types';
 
 // ================= Asset configuration =================
@@ -569,6 +569,71 @@ export const SOUND_KEY = 'M';
  * suspending the context, so the drone resumes exactly where it left off.
  */
 export const MASTER_VOLUME = 0.4;
+/** Defaults preserve the existing view and mix; preferences survive a lost run. */
+export const SETTINGS_DEFAULTS: Settings = {
+  mouseSensitivity: 0.0022, touchSensitivity: 0.006, motion: 1,
+  effects: 1, ambience: 1, exposure: 0.95, resolution: 1, fov: 74,
+};
+/** Bounds keep controls useful without allowing invalid camera or audio values. */
+export const SETTINGS_CONTROLS: Record<keyof Settings, { label: string; min: number; max: number; step: number }> = {
+  mouseSensitivity: { label: 'Mouse sensitivity', min: 0.0005, max: 0.006, step: 0.0001 },
+  touchSensitivity: { label: 'Touch sensitivity', min: 0.002, max: 0.014, step: 0.0005 },
+  motion: { label: 'Camera motion', min: 0, max: 1, step: 0.1 },
+  effects: { label: 'Effects volume', min: 0, max: 1, step: 0.05 },
+  ambience: { label: 'Ambience volume', min: 0, max: 1, step: 0.05 },
+  exposure: { label: 'Brightness', min: 0.65, max: 1.5, step: 0.05 },
+  resolution: { label: 'Render scale', min: 0.5, max: 1, step: 0.1 },
+  fov: { label: 'Field of view', min: 60, max: 95, step: 1 },
+};
+/** Device-pixel cap prevents a high-DPI phone from quadrupling the GPU workload. */
+export const RENDER_PIXEL_CAP = 2;
+/** A room spans twelve metres: room to flank, with its far wall still in lantern range. */
+export const LANDMARK_SIZE = 3;
+/** One of each gives every floor recognisable spaces; the seeded order changes. */
+export const LANDMARK_KINDS: readonly RoomKind[] = ['chapel', 'store', 'guard'];
+/** Names and short cues describe the room's tactical role without a tutorial panel. */
+export const LANDMARK_INFO = {
+  chapel: { name: 'Forsaken Chapel', hint: 'An offering in the open', colour: 0x625079 },
+  store: { name: 'Provision Store', hint: 'Supplies worth searching for', colour: 0x967247 },
+  guard: { name: 'Watch Room', hint: 'Treasure under guard', colour: 0x813f36 },
+} as const;
+/** Wall furniture fits inside body clearance; it must not become an invisible obstacle. */
+export const ROOM_RELIEF_DEPTH = 0.28;
+/** Keep room floor inlays below feet and traps; they are markings, not obstacles. */
+export const ROOM_INLAY_HEIGHT = 0.012;
+/** Furniture proportions are shared so all themes fit the same traversable room. */
+export const ROOM_DETAIL = {
+  wallWidth: 2.5, shelfHeight: 2.4, shelfLevels: 3, shelfBar: 0.12,
+  bannerWidth: 1.4, bannerHeight: 2.2, bannerY: 1.9,
+  beamWidth: 0.24, beamBottom: 3.08, aisleWidth: 2,
+  crestWidth: 0.18, crestHeight: 1.25, crestCross: 0.85,
+  stoneColour: 0xa69e8e, woodColour: 0x8c653d, ironColour: 0x647381,
+  trimColour: 0xb79d65, roughness: 0.92,
+} as const;
+/** One practical lamp per landmark reveals its identity without lighting the whole maze. */
+export const ROOM_LAMP = {
+  height: 2.95, radius: 0.12, cage: 0.42, bar: 0.045,
+  intensity: 1.5, distance: 11, decay: 2,
+  colours: { chapel: 0xffbf78, store: 0xe6ce96, guard: 0xb6c9e1 },
+} as const;
+/** Short-range voices remain clues; walls soften them rather than silencing them. */
+export const SPATIAL_AUDIO = {
+  distance: 13, wallGain: 0.35, wallCutoff: 650, openCutoff: 18000,
+  smoothing: 0.06, maxVoices: 24,
+} as const;
+/** Footfalls follow distance travelled, so a creature stopped by a wall stays quiet. */
+export const CREATURE_STEP = {
+  stride: 1.4, minSpeed: 0.3, time: 0.12, volume: 0.16,
+  lowFrequency: 95, highFrequency: 700,
+} as const;
+/** A short directional marker teaches where a blow came from without turning the camera. */
+export const HURT_DIRECTION_TIME = 0.65;
+/** Room titles fade before a fight develops, rather than becoming permanent HUD clutter. */
+export const ROOM_TITLE_TIME = 3;
+/** Brief contact labels separate flesh, shield and killing blows in the dark. */
+export const IMPACT_LABEL_TIME = 0.3;
+/** A low metallic clash leaves the brighter sustained ring exclusive to a parry. */
+export const BLOCK_SOUND = { frequencies: [310, 487], time: 0.16, volume: 0.22 } as const;
 
 export const MAX_HP = 100;
 /** Health one potion restores. */
@@ -618,8 +683,8 @@ export const GUARD_SLOW = 0.55;
  * person — and on every ally's screen — was a body sliding across the floor in
  * an attack pose that stands still. 0.35 × 5.2 = 1.8 m/s is about what the
  * attack clip's own root motion was authored at, so the feet keep up. Not a
- * full stop: the fight is built on distance, and freezing for 0.33s every
- * swing would hand it to anything faster than a zombie.
+ * full stop: the fight is built on distance, and freezing for a whole swing
+ * would hand it to anything faster than a zombie.
  */
 export const SWING_SLOW = 0.35;
 /**
@@ -789,10 +854,10 @@ export const SWORD_CLEAVE = 2;
 
 // ---- Sword swing ----
 // The blade is raised, then brought down. One cycle takes 1/SWING_SPEED seconds.
-/** Higher is faster. One cycle is 0.33s — it must stay under ATTACK_CD (0.45s) or the motion is cut off. */
-export const SWING_SPEED = 3.0;
+/** A 0.4s cycle leaves room for a weighted recovery before ATTACK_CD clears. */
+export const SWING_SPEED = 2.5;
 /** Fraction of the cycle spent raising the blade. 0.11s. */
-export const SWING_WINDUP = 0.33;
+export const SWING_WINDUP = 0.28;
 /**
  * Point in the cycle (0..1) where the blade lands. Damage resolves here.
  * Same idea as ATTACK_IMPACT on the zombie side, but this one answers to player
@@ -802,7 +867,33 @@ export const SWING_WINDUP = 0.33;
  * about five frames at 60fps for the blade to read as passing through. Do not
  * crowd it up against WINDUP.
  */
-export const SWING_IMPACT = 0.6;
+export const SWING_IMPACT = 0.5;
+/** Fraction held at contact on a hit only; misses follow through freely. */
+export const SWING_CONTACT_HOLD = 0.075;
+/** Small cosmetic recoil: regular cuts must not grant the parry's interruption. */
+export const CREATURE_HIT_LEAN = 0.085;
+/** Reuse the hit flash window so a reaction also works on network-reported hits. */
+export const CREATURE_HIT_TIME = 0.18;
+/** Heavy bodies move less on impact, making their mass visible without changing HP. */
+export const CREATURE_HIT_WEIGHT: Record<CreatureKey, number> = {
+  zombie: 1, brute: 0.4, lunatic: 1.15, orc: 0.65, blackknight: 0.35,
+};
+/** Repeated bays give corridors a rhythm without decorating every cell. */
+export const ARCHITECTURE_SPACING = 3;
+/** Caps instance count on deep floors; detail must not scale without a budget. */
+export const ARCHITECTURE_BAYS = 36;
+/** Shallow relief stays inside the player's wall clearance, leaving paths usable. */
+export const ARCHITECTURE_DEPTH = 0.1;
+/** Slender uprights read as masonry ribs rather than a second wall. */
+export const ARCHITECTURE_WIDTH = 0.34;
+/** All cross-passage pieces are above creatures' moving bodies. */
+export const ARCHITECTURE_TOP = 3.05;
+/** Muted district colours help distinguish passages in the same torchlight. */
+export const ARCHITECTURE_COLOURS = [0x68645a, 0x63574b, 0x505d66] as const;
+/** A broad shallow crest is visible at eye level without hiding floor traps. */
+export const ARCHITECTURE_CREST = { width: 0.7, height: 0.9, y: 2.05 } as const;
+/** Almost matte masonry avoids bright specular stripes on shallow relief. */
+export const ARCHITECTURE_ROUGHNESS = 0.95;
 export const LOOT_TIME = 1.2;
 /** How close the player must be to the portal to use it, in metres. */
 export const PORTAL_RADIUS = 1.6;

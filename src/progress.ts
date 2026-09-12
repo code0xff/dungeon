@@ -7,12 +7,12 @@ import { randomSeed } from './rng';
  * `src/state.ts` holds the current run and is rebuilt from scratch by
  * buildWorld(). This is the other half: extraction banks the gold and carries
  * the gear into the next stage, dying loses both and drops back to stage 1.
- * Only `bankGold` is permanent — it is the score the whole loop is built around.
+ * The bank is the current life's score, and is lost with the gear on death.
  */
 export interface Progress {
   /** 1-based. Counts consecutive successful extractions. */
   stage: number;
-  /** Permanent. Survives death. */
+  /** Banked between stages and browser sessions; wiped on death. */
   bankGold: number;
   // Carried out of the last run, wiped on death.
   //

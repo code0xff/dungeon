@@ -4,10 +4,10 @@
 // resolves it either way, so `npm run build` passes and the host dies at
 // startup — which is exactly how this was found.
 import {
-  MAZE_ASPECT, MAZE_CELLS_PEAK, MAZE_CELLS_START, REF_FLOOR_CELLS, ROOM_COUNT, SPAWN_PEAK_STAGE,
+  LANDMARK_KINDS, LANDMARK_SIZE, MAZE_ASPECT, MAZE_CELLS_PEAK, MAZE_CELLS_START, REF_FLOOR_CELLS, ROOM_COUNT, SPAWN_PEAK_STAGE,
 } from './config.ts';
 import { random } from './rng.ts';
-import type { GridCell, Maze } from './types';
+import type { DungeonRoom, GridCell, Maze, PathWorkspace } from './types';
 
 /**
  * Grid dimensions for a stage, walls included, so both come out odd.
@@ -43,7 +43,7 @@ export function dungeonSize(stage: number): { gw: number; gh: number } {
  *
  * Returns maze[z][x] — 0 is floor, 1 is wall.
  */
-export function generateDungeon(gw: number, gh: number): Maze {
+export function generateDungeon(gw: number, gh: number, landmarks?: DungeonRoom[]): Maze {
   const g: Maze = Array.from({ length: gh }, () => Array<number>(gw).fill(1));
   const stack: GridCell[] = [[1, 1]];
   g[1][1] = 0;
@@ -66,17 +66,31 @@ export function generateDungeon(gw: number, gh: number): Maze {
   }
 
   // Carve the rooms, in proportion to how much dungeon there is to carve them in.
-  const rooms = Math.max(2, Math.round((ROOM_COUNT * ((gw - 1) / 2) * ((gh - 1) / 2) * 2) / REF_FLOOR_CELLS));
+  const rooms = Math.max(LANDMARK_KINDS.length, Math.round((ROOM_COUNT * ((gw - 1) / 2) * ((gh - 1) / 2) * 2) / REF_FLOOR_CELLS));
+  // Opposite regions keep three landmarks distinct even in the smallest map.
+  // The optional metadata must never control RNG draws: the host only needs
+  // the maze, and must carve exactly what clients with room metadata carve.
+  const offset = Math.floor(random() * LANDMARK_KINDS.length);
+  const farX = gw - LANDMARK_SIZE - 1, farZ = gh - LANDMARK_SIZE - 1;
+  const anchors: readonly GridCell[] = [[farX, 1], [1, farZ], [farX, farZ]];
   for (let i = 0; i < rooms; i++) {
-    const w = 3 + 2 * ((random() * 2) | 0), h = 3 + 2 * ((random() * 2) | 0);
-    const x0 = 1 + 2 * ((random() * ((gw - w - 2) / 2)) | 0);
-    const z0 = 1 + 2 * ((random() * ((gh - h - 2) / 2)) | 0);
+    let w = 3 + 2 * ((random() * 2) | 0), h = 3 + 2 * ((random() * 2) | 0);
+    let x0 = 1 + 2 * ((random() * ((gw - w - 2) / 2)) | 0);
+    let z0 = 1 + 2 * ((random() * ((gh - h - 2) / 2)) | 0);
+    if (i < anchors.length) {
+      [x0, z0] = anchors[i];
+      w = h = LANDMARK_SIZE;
+      landmarks?.push({ kind: LANDMARK_KINDS[(i + offset) % LANDMARK_KINDS.length], x: x0, z: z0, size: LANDMARK_SIZE });
+    }
     for (let z = z0; z < z0 + h && z < gh - 1; z++) {
       for (let x = x0; x < x0 + w && x < gw - 1; x++) g[z][x] = 0;
     }
   }
   return g;
 }
+
+const pathWorkspaces = new WeakMap<Maze, PathWorkspace>();
+const pathDirections: readonly GridCell[] = [[1, 0], [-1, 0], [0, 1], [0, -1]];
 
 /**
  * Returns only the **first step** of the shortest path from (sx,sz) to (tx,tz).
@@ -86,29 +100,35 @@ export function findPath(maze: Maze, sx: number, sz: number, tx: number, tz: num
   if (sx === tx && sz === tz) return null;
 
   const gw = maze[0].length, gh = maze.length;
-  const key = (x: number, z: number) => x + z * gw;
-  const prev = new Map<number, GridCell>();
-  const q: GridCell[] = [[sx, sz]];
-  const seen = new Set<number>([key(sx, sz)]);
-
-  while (q.length) {
-    const [x, z] = q.shift()!;
-    for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
+  let work = pathWorkspaces.get(maze);
+  if (!work || work.queue.length !== gw * gh) {
+    work = { queue: new Int32Array(gw * gh), first: new Int32Array(gw * gh), seen: new Uint8Array(gw * gh) };
+    pathWorkspaces.set(maze, work);
+  }
+  // Reuse numeric storage instead of allocating tuples, Map and Set entries
+  // per visited cell. Visits reset for moving targets and edited maps; weak
+  // keys let an abandoned dungeon release its buffers.
+  const { queue, first, seen } = work;
+  seen.fill(0);
+  const start = sx + sz * gw;
+  queue[0] = start;
+  seen[start] = 1;
+  let head = 0, tail = 1;
+  while (head < tail) {
+    const cell = queue[head++];
+    const x = cell % gw, z = Math.floor(cell / gw);
+    for (const [dx, dz] of pathDirections) {
       const nx = x + dx, nz = z + dz;
-      if (nx < 0 || nz < 0 || nx >= gw || nz >= gh || maze[nz][nx] === 1 || seen.has(key(nx, nz))) continue;
-      seen.add(key(nx, nz));
-      prev.set(key(nx, nz), [x, z]);
+      const next = nx + nz * gw;
+      if (nx < 0 || nz < 0 || nx >= gw || nz >= gh || maze[nz][nx] === 1 || seen[next]) continue;
+      seen[next] = 1;
+      // Propagate the first step. FIFO and neighbour order match the original
+      // BFS, including which of two equally short paths a creature chooses.
+      first[next] = cell === start ? next : first[cell];
       if (nx === tx && nz === tz) {
-        // Walk back from the target to the cell right after the start.
-        let cur: GridCell = [nx, nz];
-        for (;;) {
-          const p = prev.get(key(cur[0], cur[1]));
-          if (!p) return cur;
-          if (p[0] === sx && p[1] === sz) return cur;
-          cur = p;
-        }
+        return [first[next] % gw, Math.floor(first[next] / gw)];
       }
-      q.push([nx, nz]);
+      queue[tail++] = next;
     }
   }
   return null;
