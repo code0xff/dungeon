@@ -628,7 +628,11 @@ export const ROOM_INLAY_HEIGHT = 0.012;
  * chest a room is built around. Every one is optional — rooms.ts stands a
  * primitive in its place and the room still reads.
  */
-export const FURNITURE_ASSETS: Record<FurnitureKey, { url: string; height?: number; length?: number }> = {
+/**
+ * `flat` pieces hang on a wall: turned so their thinnest side faces out of it,
+ * then sized by `length` along the wall or by `height` up it.
+ */
+export const FURNITURE_ASSETS: Record<FurnitureKey, { url: string; height?: number; length?: number; flat?: boolean }> = {
   statue: { url: 'props/statue.glb', height: 2.1 },
   candlestick: { url: 'props/candlestick.glb', height: 1.15 },
   shelf: { url: 'props/shelf.glb', height: 1.9 },
@@ -638,7 +642,11 @@ export const FURNITURE_ASSETS: Record<FurnitureKey, { url: string; height?: numb
   stool: { url: 'props/stool.glb', height: 0.46 },
   // Sized by `length`, not height: it hangs on a wall lying along it, and its
   // height there is its thickness. See loadFurniture().
-  estoc: { url: 'props/estoc.glb', length: 1.1 },
+  // 1.6m, longer than any real estoc: at 1.1 it was a thread on the stones from
+  // across the room. It crosses the shield below, the shield carrying the size.
+  estoc: { url: 'props/estoc.glb', length: 1.6, flat: true },
+  // The player's own shield model, reused as the watch room's trophy: no bytes added.
+  shield: { url: 'weapons/shield.glb', height: 1.3, flat: true },
 };
 /** Shared trim for what is still drawn in code: the floor inlays and the lamp cage. */
 export const ROOM_DETAIL = {
@@ -1006,6 +1014,19 @@ export const HIT_PUSH_RATE = 16;
  * noise a lid does (CHEST_ALERT_RADIUS). The chapel and the watch room have a
  * guard in them, so standing still for a blessing there is the price of it.
  */
+/**
+ * How an unused shrine shows itself in the dark: a warm emissive pulse on the
+ * piece's own materials, gone once it is spent. Emissive rather than a light,
+ * because each light added recompiles every lit material and costs every frame.
+ */
+export const SHRINE_GLOW = {
+  colour: 0xffb060,
+  /** Emissive intensity at the bottom and top of the pulse. */
+  min: 0.08,
+  max: 0.3,
+  /** Pulses per second. */
+  rate: 0.5,
+} as const;
 export const SHRINE = {
   /** How close the player must stand to the piece, in metres. */
   reach: 2.2,

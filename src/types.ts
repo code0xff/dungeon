@@ -23,7 +23,7 @@ export interface Settings {
 }
 export type ImpactKind = 'hit' | 'blocked' | 'kill';
 /** Furniture standing in the landmark rooms. See FURNITURE_ASSETS. */
-export type FurnitureKey = 'statue' | 'candlestick' | 'shelf' | 'crate' | 'barrel' | 'table' | 'stool' | 'estoc';
+export type FurnitureKey = 'statue' | 'candlestick' | 'shelf' | 'crate' | 'barrel' | 'table' | 'stool' | 'estoc' | 'shield';
 /** What a landmark room's interactable does. See shrine.ts. */
 export type ShrineKind = 'bless' | 'wrath' | 'search';
 export interface Shrine {
@@ -32,6 +32,11 @@ export interface Shrine {
   z: number;
   /** Spent for this dungeon — by this player, or in co-op by anyone in the party. */
   used: boolean;
+  /**
+   * The piece's own materials, cloned so they glow alone while it is unused.
+   * Empty when the piece is a primitive stand-in, which shares one material.
+   */
+  glow: THREE.MeshStandardMaterial[];
 }
 export interface SoundPosition { x: number; z: number }
 export interface SpatialVoice {

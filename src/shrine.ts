@@ -1,5 +1,5 @@
 import { sfxPickup } from './audio';
-import { BLESS_TIME, SEARCH_ITEMS, SHRINE } from './config';
+import { BLESS_TIME, SEARCH_ITEMS, SHRINE, SHRINE_GLOW } from './config';
 import { sendEvent } from './net/client';
 import { coop } from './net/session';
 import { state } from './state';
@@ -76,6 +76,11 @@ export function updateShrine(dt: number, moving: boolean): void {
   if (Math.ceil(state.blessT) !== bless || Math.ceil(state.wrathT) !== wrath) updateHUD();
 
   state.nearShrine = nearest();
+
+  // One pulse for all of them, so the rooms breathe together rather than flicker.
+  const pulse = (1 - Math.cos(performance.now() / 1000 * SHRINE_GLOW.rate * Math.PI * 2)) / 2;
+  const lit = SHRINE_GLOW.min + (SHRINE_GLOW.max - SHRINE_GLOW.min) * pulse;
+  for (const sh of state.shrines) for (const m of sh.glow) m.emissiveIntensity = sh.used ? 0 : lit;
 
   const s = state.shrineAt;
   if (state.shrineT < 0 || !s) return;

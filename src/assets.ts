@@ -368,20 +368,22 @@ async function loadFurniture(key: FurnitureKey): Promise<string> {
   const root = gltf.scene;
   const size = (): THREE.Vector3 => new THREE.Box3().setFromObject(root).getSize(new THREE.Vector3());
   let piece: THREE.Object3D = root;
-  if (cfg.length !== undefined) {
-    // Laid along X and flat on Z, then sized end to end. Sizing a sword lying on
-    // a wall by its height sizes it by its thickness, forty times over. The turns
-    // are premultiplied so the second is about the world's axes, not the first's.
+  if (cfg.flat) {
+    // Flat on Z (out of the wall), then the longest side along X for something
+    // sized by length or up Y for something sized by height. Sizing a sword on a
+    // wall by its height sizes it by its thickness, forty times over. The turns
+    // are premultiplied so each is about the world's axes, not the last's.
     const turn = (axis: THREE.Vector3): void => {
       root.quaternion.premultiply(new THREE.Quaternion().setFromAxisAngle(axis, Math.PI / 2));
       root.updateMatrixWorld(true);
     };
     let s = size();
-    if (s.y >= s.x && s.y >= s.z) turn(new THREE.Vector3(0, 0, 1));
-    else if (s.z >= s.x && s.z >= s.y) turn(new THREE.Vector3(0, 1, 0));
+    if (s.x <= s.y && s.x <= s.z) turn(new THREE.Vector3(0, 1, 0));
+    else if (s.y <= s.x && s.y <= s.z) turn(new THREE.Vector3(1, 0, 0));
     s = size();
-    if (s.y < s.z) turn(new THREE.Vector3(1, 0, 0));
-    root.scale.multiplyScalar(cfg.length / size().x);
+    const alongX = cfg.length !== undefined;
+    if (alongX ? s.y > s.x : s.x > s.y) turn(new THREE.Vector3(0, 0, 1));
+    root.scale.multiplyScalar(alongX ? (cfg.length ?? 1) / size().x : (cfg.height ?? 1) / size().y);
     root.updateMatrixWorld(true);
     root.position.sub(new THREE.Box3().setFromObject(root).getCenter(new THREE.Vector3()));
     // Held in a group so rooms.ts can turn it to face the room without undoing

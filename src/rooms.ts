@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { furnitureModel } from './assets';
-import { CELL, LANDMARK_INFO, ROOM_DETAIL as D, ROOM_INLAY_HEIGHT, ROOM_LAMP, WALL_H } from './config';
+import { CELL, LANDMARK_INFO, ROOM_DETAIL as D, ROOM_INLAY_HEIGHT, ROOM_LAMP, SHRINE_GLOW, WALL_H } from './config';
 import { state } from './state';
 import type { Chest, DungeonRoom, FurnitureKey, Maze, Monster, RoomKind, ShrineKind } from './types';
 
@@ -87,6 +87,10 @@ interface Piece {
   yaw?: number;
   /** Hung on its wall this high, in metres, instead of standing on the floor. */
   hang?: number;
+  /** Hung on the same stretch of wall as the piece before it, this far in front of it. */
+  onPrevious?: number;
+  /** Turned in the wall's plane, in radians: a blade laid across a shield. */
+  roll?: number;
   /** What pressing E beside it does. See shrine.ts. */
   shrine?: ShrineKind;
 }
@@ -127,7 +131,8 @@ const FURNISHING: Record<RoomKind, readonly Piece[]> = {
     { key: 'barrel', wall: [-1, 0], along: 1.9 },
     { key: 'crate', wall: [-1, 0], along: -3.6 },
     // Across from the stores, at hand height, where it is taken up.
-    { key: 'estoc', wall: [1, 0], along: 0, hang: 1.65, shrine: 'wrath' },
+    { key: 'shield', wall: [1, 0], along: 0, hang: 1.55 },
+    { key: 'estoc', wall: [1, 0], along: 0, hang: 1.5, onPrevious: 0.09, roll: -0.55, shrine: 'wrath' },
   ],
 };
 
@@ -140,11 +145,36 @@ const STAND_IN: Record<FurnitureKey, { w: number; h: number; d: number; colour: 
   barrel: { w: 0.7, h: 0.86, d: 0.7, colour: D.woodColour },
   table: { w: 1.2, h: 0.74, d: 0.7, colour: D.woodColour },
   stool: { w: 0.42, h: 0.46, d: 0.42, colour: D.woodColour },
-  estoc: { w: 1.1, h: 0.12, d: 0.06, colour: D.ironColour },
+  estoc: { w: 1.6, h: 0.12, d: 0.06, colour: D.ironColour },
+  shield: { w: 0.8, h: 1.3, d: 0.08, colour: D.woodColour },
 };
 
 /** Measured once per model: how deep it sits, so its back can go on the wall. */
 const depths = new Map<THREE.Object3D, number>();
+/**
+ * Gives a shrine's copy materials of its own, so its glow does not light every
+ * other shelf in the dungeon that shares them. The emissive map goes: the
+ * emissive colour is multiplied by it, and these models' maps are black.
+ */
+const ownMaterials: THREE.Material[] = [];
+
+function glowable(copy: THREE.Object3D, out: THREE.MeshStandardMaterial[]): void {
+  copy.traverse((o) => {
+    if (!(o instanceof THREE.Mesh)) return;
+    const own = (m: THREE.Material): THREE.Material => {
+      if (!(m instanceof THREE.MeshStandardMaterial)) return m;
+      const c = m.clone();
+      c.emissive.setHex(SHRINE_GLOW.colour);
+      c.emissiveMap = null;
+      c.emissiveIntensity = 0;
+      out.push(c);
+      ownMaterials.push(c);
+      return c;
+    };
+    o.material = Array.isArray(o.material) ? o.material.map(own) : own(o.material);
+  });
+}
+
 function depthOf(model: THREE.Object3D | null, fallback: number, thin = false): number {
   if (!model) return fallback;
   const known = depths.get(model);
@@ -218,6 +248,9 @@ export function buildRooms(maze: Maze, rooms: DungeonRoom[], hard: boolean): THR
   roomMaze = maze;
   for (const child of root.children) if (child instanceof THREE.InstancedMesh) child.dispose();
   root.clear();
+  // The shrines' own materials are the only ones made per build; the rest are the loaded models'.
+  for (const m of ownMaterials) m.dispose();
+  ownMaterials.length = 0;
   const matrices: THREE.Matrix4[] = [];
   const colours: THREE.Color[] = [];
   const pose = new THREE.Object3D();
@@ -267,12 +300,19 @@ export function buildRooms(maze: Maze, rooms: DungeonRoom[], hard: boolean): THR
 
     // ---- The furniture itself ----
     const free = wallSlots(room);
+    let last: { slot: Slot; depth: number } | null = null;
     for (const piece of FURNISHING[room.kind]) {
       const model = furnitureModel(piece.key);
       const stand = STAND_IN[piece.key];
       let x = cx + (piece.x ?? 0), z = cz + (piece.z ?? 0), yaw = piece.yaw ?? 0;
 
-      if (piece.wall) {
+      if (piece.wall && piece.onPrevious !== undefined) {
+        // Shares the last piece's slot rather than taking one of its own, standing
+        // out from the wall by that piece's depth and a little more.
+        if (!last) continue;
+        const depth = last.depth + 2 * piece.onPrevious;
+        ({ x, z, yaw } = slotPlacement(room, last.slot, depth));
+      } else if (piece.wall) {
         const want = piece.wall;
         const along = piece.along ?? 0;
         // The authored spot, then the same wall elsewhere, then any wall at all.
@@ -283,21 +323,26 @@ export function buildRooms(maze: Maze, rooms: DungeonRoom[], hard: boolean): THR
         // rather than put it where something will walk through it.
         if (!free.length) continue;
         const slot = free.splice(i, 1)[0];
-        ({ x, z, yaw } = slotPlacement(room, slot, depthOf(model, stand.d, piece.hang !== undefined)));
+        const depth = depthOf(model, stand.d, piece.hang !== undefined);
+        last = { slot, depth };
+        ({ x, z, yaw } = slotPlacement(room, slot, depth));
       }
       // Registered where the piece actually ended up — a wall piece may have
       // fallen back to another side — and not at all for the store in hard mode,
       // which promises no supplies.
-      if (piece.shrine && !(hard && piece.shrine === 'search')) {
-        state.shrines.push({ kind: piece.shrine, x, z, used: false });
-      }
+      const shrine = piece.shrine && !(hard && piece.shrine === 'search')
+        ? { kind: piece.shrine, x, z, used: false, glow: [] as THREE.MeshStandardMaterial[] }
+        : null;
+      if (shrine) state.shrines.push(shrine);
 
       if (model) {
         // Cloned per placement: one loaded model stands in every room that
         // wants it, and the clones share its geometry and materials.
         const copy = model.clone(true);
         copy.position.set(x, piece.hang ?? model.position.y, z);
-        copy.rotation.y = yaw;
+        // Yaw first, then the roll about the piece's own out-of-wall axis.
+        copy.rotation.set(0, yaw, piece.roll ?? 0, 'YXZ');
+        if (shrine) glowable(copy, shrine.glow);
         root.add(copy);
         continue;
       }

@@ -26,8 +26,8 @@ key chest and no supplies; the landmarks and their sentries remain.
 
 Each landmark has one thing to use, once per floor — stand beside it, press
 **E** (or **Open** on touch) and hold still; it makes the same noise a chest
-does. Pray at the chapel's **statue** to take 35% less damage for 45 seconds;
-take up the **estoc** on the watch room's wall for 40% more sword damage for 45
+does, and glows faintly until it is spent. Pray at the chapel's **statue** to take 35% less damage for 45 seconds;
+take up the **estoc** crossed over a shield on the watch room's wall for 40% more sword damage for 45
 seconds; search the store's **shelves** for one random potion, lantern oil,
 whetstone or ward (not in hard mode). In co-op a blessing covers the whole party.
 
