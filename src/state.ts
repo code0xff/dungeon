@@ -111,6 +111,10 @@ export const state = {
   swingHit: false,
   /** Cosmetic contact hold; never pauses the simulation or changes hit timing. */
   swingContact: false,
+  /** Which cut the swing in flight uses: 0 right-to-left, 1 left-to-right. */
+  comboStep: 0,
+  /** Seconds left in which the next swing answers the last from the other side. */
+  comboT: 0,
   /** Seconds left of the camera punch from a landed blow, and how hard it was. */
   hitKickT: 0,
   hitKick: 0,

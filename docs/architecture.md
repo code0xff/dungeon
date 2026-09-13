@@ -485,6 +485,16 @@ which on a 2.3m sword against a 1.7m arm would create a zone the player can
 strike from and never be struck in. Followers keep the clip playing too, and the
 authority applies both for hits reported by allies in `onNetRemoteHit`.
 
+**Swings alternate.** `startSwing()` picks `comboStep`: the other cut when
+`comboT` — started at `COMBO_WINDOW` when the last swing finished — is still
+running, the first cut otherwise, and always the first for a lunge. The two
+pose pairs (`SWING_UP`/`SWING_DOWN`, `SWING_UP_B`/`SWING_DOWN_B`) are purely
+visual: `resolveSwing()` tests the same arc whichever is playing. The second
+pair is not a mirror of the first — the sword rests on the right, so a cut
+toward the right leaves the frame unless it turns far less — and both were
+found by projecting the blade's tip and hilt through the camera; see the
+comment above the poses in `loop.ts` for how that measurement goes wrong.
+
 `src/blood.ts` is a pool of `BLOOD.count` unlit points, reused oldest-first,
 sprayed from the struck side back toward the attacker so it hangs in front of
 the body. Unlit because a light per hit would recompile every lit shader, the

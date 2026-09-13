@@ -15,7 +15,7 @@ import {
   SWAY_DAMP, TYPES,
   LUNGE_HIT_GLOW, LUNGE_HIT_KICK, LUNGE_HIT_LIGHT, LUNGE_HIT_TIME, LUNGE_WINDOW, SWING_IMPACT,
   SWING_SPEED, SWING_WINDUP, TURN_RATE, WALK_TIMESCALE_RANGE, WALL_H,
-  TP_LIGHT_AHEAD, TP_LIGHT_UP, TRAP_SPRING_TIME, WARD_TIME, TITLE_DRIFT, CREATURE_HIT_FREEZE, GEAR_LAG, GEAR_LAG_MAX, GEAR_LAG_SPRING, HIT_KICK_TIME, FLINCH_LEAN_ACTED,
+  TP_LIGHT_AHEAD, TP_LIGHT_UP, TRAP_SPRING_TIME, WARD_TIME, TITLE_DRIFT, CREATURE_HIT_FREEZE, GEAR_LAG, GEAR_LAG_MAX, GEAR_LAG_SPRING, HIT_KICK_TIME, FLINCH_LEAN_ACTED, COMBO_WINDOW,
 } from './config';
 import { playerHurt, releaseQueuedAttack, resolveSwing, springTrap, staggerPush } from './combat';
 import { findPath } from './dungeon';
@@ -252,6 +252,14 @@ function updatePlayer(dt: number, now: number): boolean {
 // was pointing at.
 const SWING_UP = { rot: [0.60, 0.32, 0.4], pos: [0.16, 0.14, 0.13] } as const;
 const SWING_DOWN = { rot: [-0.46, 1.75, -1.72], pos: [-0.30, -0.11, -0.05] } as const;
+// The answering cut, from upper left to lower right, found the same way. It is
+// not a mirror of the first: the sword rests on the right, so cutting toward
+// the right throws the tip off that edge unless the cut turns far less than
+// the first one does. Measured: raise tip at (-0.95, 0.60), cut tip at
+// (0.90, -0.63), 1.82 of the width, nothing out of frame, blade never shorter
+// than 1.14 against 1.99 at rest.
+const SWING_UP_B = { rot: [0.60, 1.60, 0], pos: [-0.10, 0.12, 0.12] } as const;
+const SWING_DOWN_B = { rot: [-0.35, -0.40, 0.4], pos: [0.15, -0.11, -0.05] } as const;
 
 /**
  * The swing curve, mapping t (0..1) to -1 (raised), +1 (cut through) and back to 0.
@@ -273,6 +281,7 @@ function swingCurve(t: number): number {
 
 function updateWeapons(dt: number): void {
   state.atkTimer = Math.max(0, state.atkTimer - dt);
+  state.comboT = Math.max(0, state.comboT - dt);
   if (state.atkQueue > 0) {
     // Released before the queue is decremented. ATTACK_BUFFER equals ATTACK_CD,
     // so two presses inside one frame gave both timers the same value and they
@@ -291,11 +300,14 @@ function updateWeapons(dt: number): void {
     }
     if (state.swingT >= 1) {
       state.swingT = -1;
+      state.comboT = COMBO_WINDOW;
       sword.rotation.copy(SWORD_REST.rot);
       sword.position.copy(SWORD_REST.pos);
     } else {
       const w = swingCurve(state.swingT);
-      const o = w < 0 ? SWING_UP : SWING_DOWN;
+      const o = state.comboStep
+        ? (w < 0 ? SWING_UP_B : SWING_DOWN_B)
+        : (w < 0 ? SWING_UP : SWING_DOWN);
       const a = Math.abs(w);
       sword.rotation.set(
         SWORD_REST.rot.x + o.rot[0] * a,

@@ -561,7 +561,13 @@ fifth of a second and a brute or the Black Knight hardly at all. It is **not**
 knocked back, on purpose. The sword reaches 2.3m and a zombie's arm 1.7m, so a
 push on every hit would walk it out of its own reach while leaving it in yours:
 free damage from a safe distance. A flinching creature already in reach still
-swings, and the parry stays the only thing that moves one or cancels its blow. Ordinary hits give creatures a
+swings, and the parry stays the only thing that moves one or cancels its blow.
+
+Blows answer each other. A swing that follows the last one within a third of a
+second comes from the other side — the first cut runs from upper right to lower
+left, the next from upper left to lower right, and so on — and a pause, or a
+lunge, starts over with the first. It is only how the swing looks: the damage,
+the reach and the timing are the same either way. Ordinary hits give creatures a
 small cosmetic recoil, reduced on heavier bodies, while only a parry interrupts
 their attack. Creature groans pan left and right relative to the listener.
 Footsteps follow distance travelled, and both sounds track the listener as they

@@ -923,6 +923,18 @@ export const SWING_IMPACT = 0.5;
  */
 export const SWING_CONTACT_HOLD = 0.11;
 /**
+ * Seconds after a swing finishes in which the next one comes from the other
+ * side — right-to-left, then left-to-right — instead of repeating.
+ *
+ * Purely the look of it: damage, reach, the arc that is tested and the timing
+ * are identical either way. What it changes is that a string of blows reads as
+ * a string of blows, each one recovering into the next, rather than one clip
+ * on a loop. 0.35 covers a press buffered during the last swing, which starts
+ * the next as soon as ATTACK_CD clears, and lets a deliberate pause start the
+ * chain over. A lunge always opens with the first cut.
+ */
+export const COMBO_WINDOW = 0.35;
+/**
  * How far an ordinary hit rocks a creature back, in radians, before
  * CREATURE_HIT_WEIGHT scales it down for the heavy ones.
  *

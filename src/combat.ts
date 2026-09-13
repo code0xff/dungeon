@@ -211,6 +211,10 @@ export function fireMusket(): void {
 
 /** Begins a swing. The cooldown is the caller's problem. */
 function startSwing(lunge: boolean): void {
+  // The other side, if this follows the last swing closely; the first cut after
+  // a pause or out of a dodge. See COMBO_WINDOW.
+  state.comboStep = lunge || state.comboT <= 0 ? 0 : 1 - state.comboStep;
+  state.comboT = 0;
   state.atkTimer = ATTACK_CD;
   state.swingT = 0;
   state.swingHit = false;

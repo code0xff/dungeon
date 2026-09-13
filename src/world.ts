@@ -550,6 +550,8 @@ export function buildWorld(): void {
   state.swingT = -1;
   state.swingHit = false;
   state.swingContact = false;
+  state.comboStep = 0;
+  state.comboT = 0;
   state.dashT = -1;
   state.dashCd = 0;
   state.dashSide = 0;
