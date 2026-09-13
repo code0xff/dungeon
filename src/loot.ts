@@ -14,10 +14,18 @@ import {
 } from './ui';
 import { setWeapon, startReload } from './weapons';
 import { STEP, taught } from './lesson';
+import { startShrine } from './shrine';
 
 export function startLoot(): void {
   // Not while a ward is going down: the two share one bar and one pair of hands.
-  if (state.gameOver || !state.nearChest || state.looting || state.wardT >= 0) return;
+  if (state.gameOver || state.looting || state.wardT >= 0 || state.shrineT >= 0) return;
+  // No chest in reach: the same key uses a landmark room's shrine, and makes
+  // the same noise a lid does where the shrine stands.
+  if (!state.nearChest) {
+    const at = startShrine();
+    if (at) alertCreatures(CHEST_ALERT_RADIUS, CHEST_ALERT_TIME, at.x, at.z);
+    return;
+  }
   state.looting = { chest: state.nearChest, t: 0 };
   lootBarEl.style.display = 'block';
   sfxCreak();
@@ -183,7 +191,7 @@ export function useWhetstone(): void {
  * chest is being opened, whose bar it would share.
  */
 export function useWard(): void {
-  if (state.gameOver || state.wardT >= 0 || state.looting) return;
+  if (state.gameOver || state.wardT >= 0 || state.looting || state.shrineT >= 0) return;
   if (state.wards <= 0) return showMsg('No wards');
   if (wardNear(state.pos.x, state.pos.z)) return showMsg('A ward already marks this spot');
   state.wardT = 0;

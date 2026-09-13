@@ -664,6 +664,16 @@ integrates over `dt` must tolerate a frame that large.
 
 ## Landmarks, settings and feedback
 
+**Shrines.** A furniture piece in `FURNISHING` can carry `shrine`, and
+`buildRooms()` registers it in `state.shrines` at the position the piece really
+ended up (a wall piece may fall back to another side). `src/shrine.ts` runs them
+on the loot bar: `startLoot()` hands E to `startShrine()` when no chest is in
+reach, and moving, swinging or being hit cancels, as with the ward. Blessings are
+`state.blessT` (read in `playerHurt`) and `state.wrathT` (read in
+`resolveSwing`); both are cleared on every world reset. In co-op the user sends a
+`shrine` world event with the index; everyone applies a blessing and marks a
+search spent. The host's hit cap includes `WRATH_ATTACK`.
+
 `generateDungeon()` carves three separated landmark footprints before the
 remaining random rooms. Its optional metadata output never affects random
 draws, so the Node host and browser still generate exactly the same maze.

@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { LIGHT_DIM, MAX_HP } from './config';
-import type { Chest, DungeonRoom, ImpactKind, Looting, Maze, Monster, Prop, Sconce, Trap, Ward, WeaponKind } from './types';
+import type {
+  Chest, DungeonRoom, ImpactKind, Looting, Maze, Monster, Prop, Sconce, Shrine, Trap, Ward, WeaponKind,
+} from './types';
 
 /**
  * Mutable state for one run. buildWorld() resets all of it.
@@ -195,6 +197,16 @@ export const state = {
   wardT: -1,
   /** Wards set down in this dungeon — by this player or, in co-op, the party. */
   wardMarks: [] as Ward[],
+  /** The landmark rooms' interactables in this dungeon. See shrine.ts. */
+  shrines: [] as Shrine[],
+  /** The unused shrine in reach, if any, for the prompt. */
+  nearShrine: null as Shrine | null,
+  /** Seconds into using a shrine, and which; -1 when not using one. */
+  shrineT: -1,
+  shrineAt: null as Shrine | null,
+  /** Seconds left of the chapel's blessing (damage taken) and the watch room's (damage dealt). */
+  blessT: 0,
+  wrathT: 0,
   /** Base intensity of the player's light. A lit lantern raises it. */
   // Widened: LIGHT_DIM is `as const`, so without this the field types as 1.75.
   lightBase: LIGHT_DIM.intensity as number,

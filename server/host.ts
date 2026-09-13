@@ -37,7 +37,7 @@ import {
 // duplicated here — a server that clamped to a different number than the client
 // offers would be a bug nobody notices until someone picks the top of the dial.
 import {
-  CELL, COOP_MAX_LEVEL, HIT_REPORT_MARGIN, LOOT_TIME, LUNGE_DMG, MOB_INTEREST, MUSKET_DMG,
+  CELL, COOP_MAX_LEVEL, HIT_REPORT_MARGIN, LOOT_TIME, LUNGE_DMG, MOB_INTEREST, MUSKET_DMG, WRATH_ATTACK,
 } from '../src/config.ts';
 // The host builds the same maze the players do, from the same seed, so it can
 // tell a pose that is inside a wall from one that is not. dungeon.ts and rng.ts
@@ -164,10 +164,12 @@ const runs = new Map<number, Run>();
  * it is a forgery, and it is dropped rather than clamped: a modified client that
  * sends 200 to kill a brute outright should get nothing, not a free maximum.
  */
-const MAX_REPORTED_HIT = Math.max(LUNGE_DMG, MUSKET_DMG) * HIT_REPORT_MARGIN;
+// A lunge under the watch room's blessing is the largest honest blow there is.
+// Leaving the blessing out of this dropped exactly those hits on the floor.
+const MAX_REPORTED_HIT = Math.max(LUNGE_DMG * (1 + WRATH_ATTACK), MUSKET_DMG) * HIT_REPORT_MARGIN;
 
 /** Every valid world-event kind, for checking one off the wire. */
-const WORLD_EVENTS: readonly string[] = ['creak', 'chest', 'trap', 'lantern', 'shot', 'ward'];
+const WORLD_EVENTS: readonly string[] = ['creak', 'chest', 'trap', 'lantern', 'shot', 'ward', 'shrine'];
 
 /**
  * Rebuilds a dungeon's maze exactly as the clients do.

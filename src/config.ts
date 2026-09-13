@@ -628,7 +628,7 @@ export const ROOM_INLAY_HEIGHT = 0.012;
  * chest a room is built around. Every one is optional — rooms.ts stands a
  * primitive in its place and the room still reads.
  */
-export const FURNITURE_ASSETS: Record<FurnitureKey, { url: string; height: number }> = {
+export const FURNITURE_ASSETS: Record<FurnitureKey, { url: string; height?: number; length?: number }> = {
   statue: { url: 'props/statue.glb', height: 2.1 },
   candlestick: { url: 'props/candlestick.glb', height: 1.15 },
   shelf: { url: 'props/shelf.glb', height: 1.9 },
@@ -636,6 +636,9 @@ export const FURNITURE_ASSETS: Record<FurnitureKey, { url: string; height: numbe
   barrel: { url: 'props/barrel.glb', height: 0.86 },
   table: { url: 'props/table.glb', height: 0.74 },
   stool: { url: 'props/stool.glb', height: 0.46 },
+  // Sized by `length`, not height: it hangs on a wall lying along it, and its
+  // height there is its thickness. See loadFurniture().
+  estoc: { url: 'props/estoc.glb', length: 1.1 },
 };
 /** Shared trim for what is still drawn in code: the floor inlays and the lamp cage. */
 export const ROOM_DETAIL = {
@@ -994,6 +997,46 @@ export const HIT_PUSH = 0.35;
 export const HIT_PUSH_REACH = 0.9;
 /** How fast the shove is applied, per second of the remaining distance. */
 export const HIT_PUSH_RATE = 16;
+/**
+ * The landmark rooms' interactables: the chapel's statue, the watch room's
+ * estoc on its wall, and the store's shelves.
+ *
+ * Each is used once per dungeon, standing still, the way a chest is opened:
+ * moving, swinging or being struck calls it off, and starting makes the same
+ * noise a lid does (CHEST_ALERT_RADIUS). The chapel and the watch room have a
+ * guard in them, so standing still for a blessing there is the price of it.
+ */
+export const SHRINE = {
+  /** How close the player must stand to the piece, in metres. */
+  reach: 2.2,
+  /** Seconds standing still to pray at the statue or take up the blade. */
+  prayTime: 1.5,
+  /** Seconds to search the store's shelves. */
+  searchTime: 1.2,
+} as const;
+/**
+ * Fraction of all damage taken that the chapel's blessing removes, multiplied
+ * with the guard, so it cuts what leaks through a block too. A zombie's 17
+ * becomes 11 and the Black Knight's 34 becomes 22: a fight you would have lost
+ * becomes one you can finish, not one you cannot lose. No healing: potions are
+ * what heal, and a statue that did it too would make them the lesser choice.
+ */
+export const BLESS_DEFENCE = 0.35;
+/**
+ * Fraction added to sword damage while the watch room's blessing lasts, the
+ * lunge included and the musket not — the musket's cost is its noise, and a
+ * blessed shot would spend less of it. A fresh blade kills a zombie in three
+ * swings instead of four; a brute still takes two lunges (7.7 of its 9); the
+ * Black Knight is still behind its shield.
+ */
+export const WRATH_ATTACK = 0.4;
+/**
+ * Seconds either blessing lasts. Far short of the lantern's 150 on purpose:
+ * long enough for the fight it was taken for, too short to wear into the next.
+ */
+export const BLESS_TIME = 45;
+/** What the store's shelves can turn up, one at random. Never in hard mode. */
+export const SEARCH_ITEMS: readonly ItemKind[] = ['potion', 'lantern', 'whetstone', 'ward'];
 /**
  * The blood a landed blow throws.
  *

@@ -66,6 +66,9 @@ const PICKS = {
     // The watch room is somewhere people sat: a table and a stool.
     table: { id: 'small_wooden_table_01', dir: 'props', texture: 512, simplify: 0.5 },
     stool: { id: 'wooden_stool_01', dir: 'props', texture: 512, simplify: 0.4 },
+    // Hung on the watch room's wall: what the player takes up for the attack
+    // blessing, so the thing to press is a thing that reads as a weapon.
+    estoc: { id: 'antique_estoc', dir: 'props', texture: 512, simplify: 0.3 },
   },
 };
 

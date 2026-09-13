@@ -30,6 +30,7 @@ import { thirdPersonActive, updateView } from './view';
 import { endTutorial, updateTutorial } from './tutorial';
 import { animateWards } from './ward';
 import { updateBlood } from './blood';
+import { shrineButton, shrinePrompt, updateShrine } from './shrine';
 import { coop } from './net/session';
 import { mayOpen, tellTrapSprung } from './net/worldsync';
 import {
@@ -46,7 +47,7 @@ import type {
   ClipName, CreatureRig, Monster, MonsterPlayback } from './types';
 import {
   atkBtn, cancelLoot, cancelWard, drawMinimap, drinkFillEl, endRun, lootBtn, lootFillEl,
-  promptEl, reloadBarEl, reloadFillEl, showMsg, updateHUD,
+  promptEl, promptTextEl, lootLabelEl, reloadBarEl, reloadFillEl, showMsg, updateHUD,
 } from './ui';
 
 // ================= Creature animation =================
@@ -870,8 +871,14 @@ function updateChests(dt: number, playerMoving: boolean): void {
       state.nearChest = c;
     }
   }
-  promptEl.style.display = state.nearChest && !state.looting ? 'block' : 'none';
-  lootBtn.classList.toggle('show', !!state.nearChest && !state.looting);
+  // A chest wins over a shrine beside it: the chest is the one that can be
+  // lost to someone else first. One prompt, one button, whichever is in reach.
+  const shrine = !state.nearChest && !state.looting && state.shrineT < 0 ? state.nearShrine : null;
+  const prompt = (!!state.nearChest && !state.looting) || !!shrine;
+  promptEl.style.display = prompt ? 'block' : 'none';
+  lootBtn.classList.toggle('show', prompt);
+  promptTextEl.textContent = shrine ? shrinePrompt(shrine.kind) : 'Open chest';
+  lootLabelEl.textContent = shrine ? shrineButton(shrine.kind) : 'Open';
 
   if (state.looting) {
     // Moving interrupts looting.
@@ -1094,6 +1101,7 @@ export function animate(): void {
     updateLantern(dt);
     updateDrink(dt);
     updateWard(dt, moving);
+    updateShrine(dt, moving);
     // One dungeon, one simulation. Everyone else draws what they are told —
     // two clients running the same AI drift apart within seconds, and then two
     // players are swinging at a zombie that is metres apart on their screens.

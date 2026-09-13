@@ -5,7 +5,7 @@ import { bleed } from './blood';
 import {
   ATTACK_BUFFER, ATTACK_CD, ATTACK_RANGE, CORPSE_LINGER, GUARD_ARC, GUARD_LEAK, GUARD_LEAK_HEAVY,
   BLOCK_ARC, CREATURE_HIT_TIME, CREATURE_HIT_WEIGHT, FLINCH_CLIP_SPEED, FLINCH_TIME, HIT_KICK,
-  HIT_PUSH, HIT_PUSH_REACH, HIT_RECOIL_TIME, HIT_KICK_TIME, HURT_DIRECTION_TIME, LUNGE_DMG, LUNGE_WINDOW,
+  HIT_PUSH, HIT_PUSH_REACH, HIT_RECOIL_TIME, BLESS_DEFENCE, WRATH_ATTACK, HIT_KICK_TIME, HURT_DIRECTION_TIME, LUNGE_DMG, LUNGE_WINDOW,
   MUSKET_DMG, MUSKET_RANGE,
   LUNGE_HIT_LIGHT, LUNGE_HIT_TIME, REWARD_SPREAD, STAGGER_PUSH, STAGGER_TIME, staggerSpeed,
   TRAP_ALERT_RADIUS, TRAP_ALERT_TIME, TRAP_DMG,
@@ -18,7 +18,7 @@ import { announceKill, reportHit } from './net/mobsync';
 import { tellShot } from './net/worldsync';
 import { state } from './state';
 import type { Monster } from './types';
-import { cancelLoot, cancelWard, flashHurt, endRun, showMsg, updateHUD } from './ui';
+import { cancelLoot, cancelShrine, cancelWard, flashHurt, endRun, showMsg, updateHUD } from './ui';
 import { startReload } from './weapons';
 
 /**
@@ -253,6 +253,7 @@ export function tryAttack(): void {
   if (state.gameOver) return;
   // A swing or a shot is not holding still. The ward is not spent.
   if (state.wardT >= 0) cancelWard('Ward not set');
+  if (state.shrineT >= 0) cancelShrine('Interrupted');
   // Both hands are busy behind a shield. This is the other half of what the
   // guard costs — a parry drops it for you precisely so the counter can land.
   if (state.guarding) return;
@@ -341,7 +342,8 @@ export function resolveSwing(): void {
   // A swing out of a forward dodge lands with the player's own momentum behind
   // it. Wear is deliberately *not* scaled with the multiplier: see LUNGE_DMG.
   const lunge = state.swingLunge;
-  const dmg = swordDamage() * (lunge ? LUNGE_DMG : 1);
+  // The watch room's blessing applies to the blade and nothing else. See WRATH_ATTACK.
+  const dmg = swordDamage() * (lunge ? LUNGE_DMG : 1) * (state.wrathT > 0 ? 1 + WRATH_ATTACK : 1);
   const landed = lunge && inArc.length > 0;
   state.swingContact = inArc.length > 0;
   if (landed) {
@@ -489,6 +491,8 @@ export function playerHurt(dmg: number, from?: Monster): 'hit' | 'blocked' | 'pa
     updateHUD();
     return outcome;
   }
+  // The chapel's blessing: see BLESS_DEFENCE.
+  if (state.blessT > 0) dmg *= 1 - BLESS_DEFENCE;
   state.hp -= dmg;
   if (from) {
     state.hurtDirection = Math.atan2(from.mesh.position.x - state.pos.x, from.mesh.position.z - state.pos.z);
@@ -504,6 +508,7 @@ export function playerHurt(dmg: number, from?: Monster): 'hit' | 'blocked' | 'pa
     showMsg('Looting interrupted!');
   }
   cancelWard('Ward interrupted!');
+  cancelShrine('Interrupted!');
   flashHurt();
   updateHUD();
   if (state.hp <= 0) endRun(false);

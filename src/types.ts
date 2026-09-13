@@ -23,7 +23,16 @@ export interface Settings {
 }
 export type ImpactKind = 'hit' | 'blocked' | 'kill';
 /** Furniture standing in the landmark rooms. See FURNITURE_ASSETS. */
-export type FurnitureKey = 'statue' | 'candlestick' | 'shelf' | 'crate' | 'barrel' | 'table' | 'stool';
+export type FurnitureKey = 'statue' | 'candlestick' | 'shelf' | 'crate' | 'barrel' | 'table' | 'stool' | 'estoc';
+/** What a landmark room's interactable does. See shrine.ts. */
+export type ShrineKind = 'bless' | 'wrath' | 'search';
+export interface Shrine {
+  kind: ShrineKind;
+  x: number;
+  z: number;
+  /** Spent for this dungeon — by this player, or in co-op by anyone in the party. */
+  used: boolean;
+}
 export interface SoundPosition { x: number; z: number }
 export interface SpatialVoice {
   position: SoundPosition;

@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 import { furnitureModel } from './assets';
 import { CELL, LANDMARK_INFO, ROOM_DETAIL as D, ROOM_INLAY_HEIGHT, ROOM_LAMP, WALL_H } from './config';
-import type { Chest, DungeonRoom, FurnitureKey, Maze, Monster, RoomKind } from './types';
+import { state } from './state';
+import type { Chest, DungeonRoom, FurnitureKey, Maze, Monster, RoomKind, ShrineKind } from './types';
 
 /**
  * The three landmark rooms: what stands in them, and what the floor says.
@@ -84,6 +85,10 @@ interface Piece {
   x?: number;
   z?: number;
   yaw?: number;
+  /** Hung on its wall this high, in metres, instead of standing on the floor. */
+  hang?: number;
+  /** What pressing E beside it does. See shrine.ts. */
+  shrine?: ShrineKind;
 }
 
 /**
@@ -97,14 +102,14 @@ interface Piece {
 const FURNISHING: Record<RoomKind, readonly Piece[]> = {
   // The figure stands against the far wall, over its own offering.
   chapel: [
-    { key: 'statue', wall: [0, -1], along: 0 },
+    { key: 'statue', wall: [0, -1], along: 0, shrine: 'bless' },
     { key: 'candlestick', x: -1.9, z: -2.7 },
     { key: 'candlestick', x: 1.9, z: -2.7 },
     { key: 'crate', wall: [-1, 0], along: 3.4 },
   ],
   // Shelving down whichever long walls the maze left standing.
   store: [
-    { key: 'shelf', wall: [-1, 0], along: -3.4 },
+    { key: 'shelf', wall: [-1, 0], along: -3.4, shrine: 'search' },
     { key: 'shelf', wall: [-1, 0], along: 0 },
     { key: 'shelf', wall: [-1, 0], along: 3.4 },
     { key: 'shelf', wall: [1, 0], along: -3.4 },
@@ -121,6 +126,8 @@ const FURNISHING: Record<RoomKind, readonly Piece[]> = {
     { key: 'barrel', wall: [-1, 0], along: 3.6 },
     { key: 'barrel', wall: [-1, 0], along: 1.9 },
     { key: 'crate', wall: [-1, 0], along: -3.6 },
+    // Across from the stores, at hand height, where it is taken up.
+    { key: 'estoc', wall: [1, 0], along: 0, hang: 1.65, shrine: 'wrath' },
   ],
 };
 
@@ -133,17 +140,20 @@ const STAND_IN: Record<FurnitureKey, { w: number; h: number; d: number; colour: 
   barrel: { w: 0.7, h: 0.86, d: 0.7, colour: D.woodColour },
   table: { w: 1.2, h: 0.74, d: 0.7, colour: D.woodColour },
   stool: { w: 0.42, h: 0.46, d: 0.42, colour: D.woodColour },
+  estoc: { w: 1.1, h: 0.12, d: 0.06, colour: D.ironColour },
 };
 
 /** Measured once per model: how deep it sits, so its back can go on the wall. */
 const depths = new Map<THREE.Object3D, number>();
-function depthOf(model: THREE.Object3D | null, fallback: number): number {
+function depthOf(model: THREE.Object3D | null, fallback: number, thin = false): number {
   if (!model) return fallback;
   const known = depths.get(model);
   if (known !== undefined) return known;
   const size = new THREE.Box3().setFromObject(model).getSize(new THREE.Vector3());
-  // The larger footprint decides: a model may be authored facing either axis.
-  const d = Math.max(size.x, size.z);
+  // The larger footprint decides for something standing: a model may be
+  // authored facing either axis. Something hung lies flat, so only its
+  // thickness stands off the wall.
+  const d = thin ? size.z : Math.max(size.x, size.z);
   depths.set(model, d);
   return d;
 }
@@ -204,7 +214,7 @@ function slotPlacement(room: DungeonRoom, slot: Slot, depth: number): { x: numbe
 }
 
 /** Distinct floors and furnished interiors; nothing here obstructs the room. */
-export function buildRooms(maze: Maze, rooms: DungeonRoom[]): THREE.Group {
+export function buildRooms(maze: Maze, rooms: DungeonRoom[], hard: boolean): THREE.Group {
   roomMaze = maze;
   for (const child of root.children) if (child instanceof THREE.InstancedMesh) child.dispose();
   root.clear();
@@ -273,19 +283,25 @@ export function buildRooms(maze: Maze, rooms: DungeonRoom[]): THREE.Group {
         // rather than put it where something will walk through it.
         if (!free.length) continue;
         const slot = free.splice(i, 1)[0];
-        ({ x, z, yaw } = slotPlacement(room, slot, depthOf(model, stand.d)));
+        ({ x, z, yaw } = slotPlacement(room, slot, depthOf(model, stand.d, piece.hang !== undefined)));
+      }
+      // Registered where the piece actually ended up — a wall piece may have
+      // fallen back to another side — and not at all for the store in hard mode,
+      // which promises no supplies.
+      if (piece.shrine && !(hard && piece.shrine === 'search')) {
+        state.shrines.push({ kind: piece.shrine, x, z, used: false });
       }
 
       if (model) {
         // Cloned per placement: one loaded model stands in every room that
         // wants it, and the clones share its geometry and materials.
         const copy = model.clone(true);
-        copy.position.set(x, model.position.y, z);
+        copy.position.set(x, piece.hang ?? model.position.y, z);
         copy.rotation.y = yaw;
         root.add(copy);
         continue;
       }
-      box(x, stand.h / 2, z, stand.w, stand.h, stand.d, stand.colour, yaw);
+      box(x, piece.hang ?? stand.h / 2, z, stand.w, stand.h, stand.d, stand.colour, yaw);
     }
   }
 

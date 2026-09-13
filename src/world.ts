@@ -121,6 +121,8 @@ function clearWorld(): void {
   state.traps.forEach((t) => scene.remove(t.mesh));
   clearWards();
   clearBlood();
+  // Rebuilt by buildRooms(); the tutorial room has none, and must not inherit the last dungeon's.
+  state.shrines = [];
   state.monsters = [];
   state.chests = [];
   state.props = [];
@@ -531,7 +533,7 @@ export function buildWorld(): void {
     placeTraps(scale);
     furnishRooms(state.rooms, state.chests, state.monsters, coop.active ? coop.hard : progress.hard);
     scatterProps();
-    const rooms = buildRooms(state.maze, state.rooms);
+    const rooms = buildRooms(state.maze, state.rooms, coop.active ? coop.hard : progress.hard);
     scene.add(rooms);
     state.props.push({ object: rooms, swing: null });
   }
@@ -582,6 +584,12 @@ export function buildWorld(): void {
   // A ward half set when the run ended is simply not set. cancelLoot() below
   // puts away the bar the two share.
   state.wardT = -1;
+  // A blessing is for the fight it was taken for, not the next dungeon.
+  state.shrineT = -1;
+  state.shrineAt = null;
+  state.nearShrine = null;
+  state.blessT = 0;
+  state.wrathT = 0;
   drinkBarEl.style.display = 'none';
   // Cleared with the rest of the run. updateChests() rewrites it every frame,
   // but E and the loot button are read before the next frame — so starting a new

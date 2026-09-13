@@ -24,6 +24,13 @@ Their order changes with the seed. The encounters reuse the floor's enemies and
 chests, and the key stays in its randomly placed chest. Hard mode keeps its one
 key chest and no supplies; the landmarks and their sentries remain.
 
+Each landmark has one thing to use, once per floor — stand beside it, press
+**E** (or **Open** on touch) and hold still; it makes the same noise a chest
+does. Pray at the chapel's **statue** to take 35% less damage for 45 seconds;
+take up the **estoc** on the watch room's wall for 40% more sword damage for 45
+seconds; search the store's **shelves** for one random potion, lantern oil,
+whetstone or ward (not in hard mode). In co-op a blessing covers the whole party.
+
 Open **Settings** from the title or pause menu to adjust mouse and touch
 sensitivity, camera motion, effects and ambience volume, brightness, render scale
 and field of view. Changes apply immediately and survive death and a new game.

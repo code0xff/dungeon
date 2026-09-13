@@ -144,6 +144,11 @@ extracted, not the code that shipped.
 
 ## Landmark and settings checks
 
+- Shrines: three registered in normal mode, two in hard (no shelves). Stand in
+  reach, press E, hold still for the time in `SHRINE`: the timer shows in the
+  HUD and the shrine is spent. Moving or swinging cancels. A hit of 20 under the
+  chapel blessing takes 13. Look at the estoc: it lies flat on its wall.
+
 - Survey seeded maps at stages 1, 6 and 12: three distinct landmark footprints,
   all room tiles open, all floor reachable from the start, and identical grid
   and next RNG value with and without the metadata output.

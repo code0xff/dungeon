@@ -13,6 +13,7 @@ import { remotePosition } from './remote';
 import { packWard, unpackWard } from './protocol';
 import type { WorldEvent } from './protocol';
 import { dropWard } from '../ward';
+import { applyShrineEvent } from '../shrine';
 import { coop } from './session';
 
 /**
@@ -193,6 +194,11 @@ onNetEvent((k, i, by) => {
   if (k === 'ward') {
     const { x, z } = unpackWard(i);
     dropWard(x, z);
+    return;
+  }
+
+  if (k === 'shrine') {
+    applyShrineEvent(i, nameOf(by));
     return;
   }
 

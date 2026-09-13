@@ -130,6 +130,10 @@ Two consequences for the client:
 Because the Pages build and the host can now be different versions of the game,
 `PROTOCOL_VERSION` is doing real work rather than guarding a theoretical case.
 
+Version 14 adds the `shrine` world event (the rooms' statue, estoc and shelves)
+and raises the host's hit cap for the blade blessing; a version-13 host would
+drop both the event and the blessed lunge.
+
 Version 13 includes the landmark-room generator and content relocation. The
 wire shapes are unchanged, but version 12 would derive different walls and
 chest positions from the same seed, so it must be rejected at the handshake.

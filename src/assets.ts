@@ -366,11 +366,35 @@ async function loadFurniture(key: FurnitureKey): Promise<string> {
     return `${key}: file missing → primitive stand-in`;
   }
   const root = gltf.scene;
-  const box = new THREE.Box3().setFromObject(root);
-  root.scale.multiplyScalar(cfg.height / (box.max.y - box.min.y));
-  root.position.y = -new THREE.Box3().setFromObject(root).min.y;
+  const size = (): THREE.Vector3 => new THREE.Box3().setFromObject(root).getSize(new THREE.Vector3());
+  let piece: THREE.Object3D = root;
+  if (cfg.length !== undefined) {
+    // Laid along X and flat on Z, then sized end to end. Sizing a sword lying on
+    // a wall by its height sizes it by its thickness, forty times over. The turns
+    // are premultiplied so the second is about the world's axes, not the first's.
+    const turn = (axis: THREE.Vector3): void => {
+      root.quaternion.premultiply(new THREE.Quaternion().setFromAxisAngle(axis, Math.PI / 2));
+      root.updateMatrixWorld(true);
+    };
+    let s = size();
+    if (s.y >= s.x && s.y >= s.z) turn(new THREE.Vector3(0, 0, 1));
+    else if (s.z >= s.x && s.z >= s.y) turn(new THREE.Vector3(0, 1, 0));
+    s = size();
+    if (s.y < s.z) turn(new THREE.Vector3(1, 0, 0));
+    root.scale.multiplyScalar(cfg.length / size().x);
+    root.updateMatrixWorld(true);
+    root.position.sub(new THREE.Box3().setFromObject(root).getCenter(new THREE.Vector3()));
+    // Held in a group so rooms.ts can turn it to face the room without undoing
+    // the turns above.
+    const holder = new THREE.Group();
+    holder.add(root);
+    piece = holder;
+  } else {
+    root.scale.multiplyScalar((cfg.height ?? 1) / size().y);
+    root.position.y = -new THREE.Box3().setFromObject(root).min.y;
+  }
   applyEnvMap(root);
-  furniture[key] = root;
+  furniture[key] = piece;
   return `${key}: loaded (scale x${root.scale.x.toFixed(2)})`;
 }
 

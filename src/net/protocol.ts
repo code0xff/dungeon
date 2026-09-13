@@ -53,7 +53,7 @@
  */
 // Landmark rooms change the seeded floor plan and content placement. Old
 // clients must not share a run even though the message shapes are unchanged.
-export const PROTOCOL_VERSION = 13;
+export const PROTOCOL_VERSION = 14;
 
 /** The port the host listens on for both the game page and the socket. */
 export const COOP_PORT = 5848;
@@ -205,7 +205,9 @@ export type WorldEvent =
    */
   | 'shot'
   /** A ward was set down. `i` is its position, packed by packWard(). */
-  | 'ward';
+  | 'ward'
+  /** A landmark room's shrine was used. `i` is its index in state.shrines. */
+  | 'shrine';
 
 /**
  * A ward's position in a world event's one integer: quarter-metre precision,

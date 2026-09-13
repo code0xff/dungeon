@@ -32,6 +32,8 @@ export const reloadFillEl = firstChild(reloadBarEl);
 export const crosshairEl = el('crosshair');
 export const lockHintEl = el('lockHint');
 export const lootBtn = el('lootBtn');
+export const lootLabelEl = el('lootLabel');
+export const promptTextEl = el('promptText');
 export const wpnBtn = el('wpnBtn');
 export const potBtn = el('potBtn');
 export const lampBtn = el('lampBtn');
@@ -77,6 +79,13 @@ export function updateHUD(): void {
     const s = Math.ceil(state.lanternT);
     items.push(`Lantern ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`);
   }
+  // The rooms' blessings, counted down like the lantern.
+  const clock = (t: number): string => {
+    const s = Math.ceil(t);
+    return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+  };
+  if (state.blessT > 0) items.push(`Warded ${clock(state.blessT)}`);
+  if (state.wrathT > 0) items.push(`Wrath ${clock(state.wrathT)}`);
   if (state.hasMap) items.push('Map');
   if (state.hasKey) items.push('Key');
   if (state.weapon === 'musket') {
@@ -398,6 +407,16 @@ export function endRun(extracted: boolean): void {
  * It shares the loot bar — the two never run together — so this is also what
  * puts that bar away.
  */
+/** Stops a shrine being used — moved, struck, swung — and puts away the bar it shares. */
+export function cancelShrine(why?: string): void {
+  if (state.shrineT < 0) return;
+  state.shrineT = -1;
+  state.shrineAt = null;
+  lootBarEl.style.display = 'none';
+  lootFillEl.style.width = '0%';
+  if (why) showMsg(why);
+}
+
 export function cancelWard(why?: string): void {
   if (state.wardT < 0) return;
   state.wardT = -1;
