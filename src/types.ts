@@ -208,6 +208,22 @@ export interface Monster {
   /** Seconds left of a flinch from an ordinary hit: advance stopped, recoil playing. */
   flinchT: number;
   /**
+   * The model inside `mesh`. The hit recoil moves this, so the body can be seen
+   * driven back while the creature's real position — its reach, its collision,
+   * what the network sends — stays where it was.
+   */
+  body: THREE.Object3D;
+  /** Where `body` sits in `mesh` at rest. */
+  bodyBase: THREE.Vector3;
+  /** Metres of shove from a landed blow still to apply, and the direction. */
+  pushLeft: number;
+  pushX: number;
+  pushZ: number;
+  /** Seconds left of the body's recoil, and the direction it was struck from. */
+  recoilT: number;
+  recoilX: number;
+  recoilZ: number;
+  /**
    * Seconds left of being staggered by a parry: interrupted, rocked back and
    * unable to move or swing. There is no stagger clip — the creatures ship idle,
    * walk, attack and death only — so this drives a root lean and a knockback

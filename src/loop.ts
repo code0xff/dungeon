@@ -15,7 +15,7 @@ import {
   SWAY_DAMP, TYPES,
   LUNGE_HIT_GLOW, LUNGE_HIT_KICK, LUNGE_HIT_LIGHT, LUNGE_HIT_TIME, LUNGE_WINDOW, SWING_IMPACT,
   SWING_SPEED, SWING_WINDUP, TURN_RATE, WALK_TIMESCALE_RANGE, WALL_H,
-  TP_LIGHT_AHEAD, TP_LIGHT_UP, TRAP_SPRING_TIME, WARD_TIME, TITLE_DRIFT, CREATURE_HIT_FREEZE, GEAR_LAG, GEAR_LAG_MAX, GEAR_LAG_SPRING, HIT_KICK_TIME, FLINCH_LEAN_ACTED, COMBO_WINDOW,
+  TP_LIGHT_AHEAD, TP_LIGHT_UP, TRAP_SPRING_TIME, WARD_TIME, TITLE_DRIFT, CREATURE_HIT_FREEZE, GEAR_LAG, GEAR_LAG_MAX, GEAR_LAG_SPRING, HIT_KICK_TIME, FLINCH_LEAN_ACTED, COMBO_WINDOW, HIT_PUSH_RATE, HIT_RECOIL, HIT_RECOIL_TIME,
 } from './config';
 import { playerHurt, releaseQueuedAttack, resolveSwing, springTrap, staggerPush } from './combat';
 import { findPath } from './dungeon';
@@ -73,11 +73,25 @@ function animLoaded(m: Monster, pb: MonsterPlayback, dt: number): void {
   m.moving = false;
   // Held still for the first moments of the hit flash: see CREATURE_HIT_FREEZE.
   if (m.hurtT < CREATURE_HIT_TIME - CREATURE_HIT_FREEZE) pb.mixer.update(dt);
-  hitReaction(m);
+  hitReaction(m, dt);
 }
 
 /** A visual recoil leaves attack clocks and collision positions authoritative. */
-function hitReaction(m: Monster): void {
+function hitReaction(m: Monster, dt: number): void {
+  // ---- The body driven back, then home ----
+  // Out fast in the first quarter and eased back over the rest. It moves the
+  // model inside the creature's group, turned into that group's frame, so the
+  // creature itself — its position, its reach — does not move at all.
+  m.recoilT = Math.max(0, m.recoilT - dt);
+  const e = 1 - m.recoilT / HIT_RECOIL_TIME;
+  const shape = m.recoilT <= 0 ? 0
+    : e < 0.25 ? Math.sin((e / 0.25) * (Math.PI / 2)) : Math.cos(((e - 0.25) / 0.75) * (Math.PI / 2));
+  const amount = HIT_RECOIL * CREATURE_HIT_WEIGHT[m.key] * shape;
+  const c = Math.cos(m.mesh.rotation.y), sn = Math.sin(m.mesh.rotation.y);
+  const wx = m.recoilX * amount, wz = m.recoilZ * amount;
+  m.body.position.x = m.bodyBase.x + (wx * c - wz * sn);
+  m.body.position.z = m.bodyBase.z + (wx * sn + wz * c);
+
   // Parry owns the root lean until its recovery ends; stacking a cut over it
   // would erase the much larger stumble at the moment the counter connects.
   if (m.staggerT > 0) return;
@@ -103,7 +117,7 @@ function animProcedural(m: Monster, rig: CreatureRig, dt: number, now: number): 
   const t = m.type;
   const flash = m.hurtT > 0;
   if (flash) m.hurtT -= dt;
-  hitReaction(m);
+  hitReaction(m, dt);
   for (const mt of rig.mats) mt.emissive.setHex(flash ? 0x7a1a1a : 0x000000);
 
   if (m.attackT > 0) {
@@ -407,6 +421,16 @@ function updateMonsters(dt: number, now: number): number {
     const t = m.type;
     m.atkCd = Math.max(0, m.atkCd - dt);
     m.flinchT = Math.max(0, m.flinchT - dt);
+    // A shove from a landed blow, taken a fraction at a time rather than as a
+    // jump, and per axis like every other creature movement so it cannot cross
+    // a wall. Bounded when it was set — see HIT_PUSH_REACH.
+    if (m.pushLeft > 0) {
+      const push = m.pushLeft < 0.01 ? m.pushLeft : m.pushLeft * Math.min(1, dt * HIT_PUSH_RATE);
+      m.pushLeft -= push;
+      const nx = m.mesh.position.x + m.pushX * push, nz = m.mesh.position.z + m.pushZ * push;
+      if (!collides(nx, m.mesh.position.z, t.clearance)) m.mesh.position.x = nx;
+      if (!collides(m.mesh.position.x, nz, t.clearance)) m.mesh.position.z = nz;
+    }
 
 
     // Who this creature is dealing with: the nearest player, not necessarily
@@ -650,7 +674,7 @@ function animFollowed(m: Monster, pb: MonsterPlayback, dt: number, anim: number 
     setAnim(pb, restClip(m, pb));
   }
   if (m.hurtT < CREATURE_HIT_TIME - CREATURE_HIT_FREEZE) pb.mixer.update(dt);
-  if (anim !== ANIM_STAGGER && anim !== ANIM_STAGGER_START) hitReaction(m);
+  if (anim !== ANIM_STAGGER && anim !== ANIM_STAGGER_START) hitReaction(m, dt);
 }
 
 /**

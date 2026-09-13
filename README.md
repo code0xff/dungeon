@@ -557,11 +557,13 @@ and the trailing.
 What was still missing was the other half of a hit: the thing being hit. A
 struck creature now bleeds, rocks back visibly, and flinches — it stops closing
 for a moment and plays the opening of its stagger clip, a zombie for about a
-fifth of a second and a brute or the Black Knight hardly at all. It is **not**
-knocked back, on purpose. The sword reaches 2.3m and a zombie's arm 1.7m, so a
-push on every hit would walk it out of its own reach while leaving it in yours:
-free damage from a safe distance. A flinching creature already in reach still
-swings, and the parry stays the only thing that moves one or cancels its blow.
+fifth of a second and a brute or the Black Knight hardly at all. Its body is
+driven back and springs home, and one that has closed on you is shoved away —
+but only as far as 90% of its own reach. That limit is the point: the sword
+reaches 2.3m and a zombie's arm 1.7m, so an unbounded push would walk it into
+the gap between the two, where you can hit it and it cannot hit you. A shoved
+creature can always still swing back, and the parry stays the only thing that
+cancels a blow.
 
 Blows answer each other. A swing that follows the last one within a third of a
 second comes from the other side — the first cut runs from upper right to lower

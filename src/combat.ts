@@ -4,7 +4,8 @@ import { impact } from './feedback';
 import { bleed } from './blood';
 import {
   ATTACK_BUFFER, ATTACK_CD, ATTACK_RANGE, CORPSE_LINGER, GUARD_ARC, GUARD_LEAK, GUARD_LEAK_HEAVY,
-  BLOCK_ARC, CREATURE_HIT_TIME, CREATURE_HIT_WEIGHT, FLINCH_CLIP_SPEED, FLINCH_TIME, HIT_KICK, HIT_KICK_TIME, HURT_DIRECTION_TIME, LUNGE_DMG, LUNGE_WINDOW,
+  BLOCK_ARC, CREATURE_HIT_TIME, CREATURE_HIT_WEIGHT, FLINCH_CLIP_SPEED, FLINCH_TIME, HIT_KICK,
+  HIT_PUSH, HIT_PUSH_REACH, HIT_RECOIL_TIME, HIT_KICK_TIME, HURT_DIRECTION_TIME, LUNGE_DMG, LUNGE_WINDOW,
   MUSKET_DMG, MUSKET_RANGE,
   LUNGE_HIT_LIGHT, LUNGE_HIT_TIME, REWARD_SPREAD, STAGGER_PUSH, STAGGER_TIME, staggerSpeed,
   TRAP_ALERT_RADIUS, TRAP_ALERT_TIME, TRAP_DMG,
@@ -55,9 +56,28 @@ function facing(): [fx: number, fz: number] {
  * rather than pushing it back. A swing already under way is left to finish —
  * the flinch is not an interrupt — and a creature mid-parry keeps its stagger.
  */
-export function flinchCreature(m: Monster): void {
+export function flinchCreature(m: Monster, fromX: number, fromZ: number, push: boolean): void {
   if (m.hp <= 0 || m.staggerT > 0) return;
-  m.flinchT = Math.max(m.flinchT, FLINCH_TIME * CREATURE_HIT_WEIGHT[m.key]);
+  const weight = CREATURE_HIT_WEIGHT[m.key];
+  const dx = m.mesh.position.x - fromX, dz = m.mesh.position.z - fromZ;
+  const d = Math.hypot(dx, dz);
+  if (d > 0) {
+    // Seen by everyone who sees the hit: the body is driven back and returns.
+    m.recoilT = HIT_RECOIL_TIME;
+    m.recoilX = dx / d;
+    m.recoilZ = dz / d;
+    // And shoved for real — on the machine simulating it, and never past 90%
+    // of its own reach from whoever struck it. See HIT_PUSH_REACH.
+    if (push) {
+      const amount = Math.min(HIT_PUSH * weight, Math.max(0, m.type.reach * HIT_PUSH_REACH - d));
+      if (amount > m.pushLeft) {
+        m.pushLeft = amount;
+        m.pushX = dx / d;
+        m.pushZ = dz / d;
+      }
+    }
+  }
+  m.flinchT = Math.max(m.flinchT, FLINCH_TIME * weight);
   if (m.attackT > 0 || !m.playback?.clips.stagger) return;
   setAnim(m.playback, 'stagger', { loop: false, force: true, fade: 0.04, speed: FLINCH_CLIP_SPEED });
 }
@@ -73,6 +93,10 @@ export function killMonster(m: Monster, opts: { pay?: boolean; gold?: number } =
   // whole death animation, since the stagger block returns early for the dead.
   m.staggerT = 0;
   m.flinchT = 0;
+  // A corpse must not keep a shove or lie offset where the last recoil left it.
+  m.pushLeft = 0;
+  m.recoilT = 0;
+  m.body.position.copy(m.bodyBase);
   m.mesh.rotation.x = 0;
   // The roll can be handed in rather than made here. In co-op the creature dies
   // on the authority's machine and the amount travels with the announcement, so
@@ -178,7 +202,7 @@ export function fireMusket(): void {
     kickCamera(shielded > 0);
     if (shielded <= 0) {
       bleed(best, state.pos.x, state.pos.z);
-      flinchCreature(best);
+      flinchCreature(best, state.pos.x, state.pos.z, isAuthority());
     }
     if (shielded > 0) showMsg('The shield takes the ball');
     // The flash and the sound are drawn regardless — a shot that looked like it
@@ -365,7 +389,8 @@ export function resolveSwing(): void {
     // After the damage, so a killing blow bleeds but does not flinch a corpse.
     if (shielded <= 0) {
       bleed(m, state.pos.x, state.pos.z);
-      flinchCreature(m);
+      // Shoved only where the creature is simulated; everyone sees the recoil.
+      flinchCreature(m, state.pos.x, state.pos.z, isAuthority());
     }
   }
 

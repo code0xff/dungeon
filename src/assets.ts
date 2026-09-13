@@ -556,7 +556,12 @@ export interface SpawnedCreature {
 export function spawnCreature(key: CreatureKey): SpawnedCreature {
   if (!templates[key]) {
     const { mesh, rig } = MAKERS[key]();
-    return { mesh, playback: null, rig };
+    // Wrapped, as a loaded model is, so every creature is a group holding one
+    // body: the hit recoil moves that body and leaves the group — the creature's
+    // real position — where it is.
+    const wrap = new THREE.Group();
+    wrap.add(mesh);
+    return { mesh: wrap, playback: null, rig };
   }
   return spawnFromTemplate(key);
 }

@@ -962,6 +962,39 @@ export const FLINCH_CLIP_SPEED = 2.2;
 /** Fraction of CREATURE_HIT_LEAN kept under a flinch clip, as STAGGER_LEAN_ACTED does for a parry. */
 export const FLINCH_LEAN_ACTED = 0.5;
 /**
+ * How far a struck creature's body jolts back, in metres at CREATURE_HIT_WEIGHT
+ * 1, before it springs back into place.
+ *
+ * The model moves and the creature does not: its position, its reach and what
+ * the network sends are untouched. So this can be large enough to read as a
+ * blow driving the body back without costing anything the reach rules protect.
+ */
+export const HIT_RECOIL = 0.22;
+/** Seconds the recoil takes: out in the first quarter, eased home in the rest. */
+export const HIT_RECOIL_TIME = 0.26;
+/**
+ * The most a landed blow shoves a creature for real, in metres at weight 1.
+ *
+ * Bounded by HIT_PUSH_REACH, which is what makes it safe to have at all: see
+ * that constant. Spread over a few frames at HIT_PUSH_RATE rather than applied
+ * as a jump, and stopped by walls like any other creature movement.
+ */
+export const HIT_PUSH = 0.35;
+/**
+ * The furthest a shove may carry a creature from whoever struck it, as a
+ * fraction of the creature's own reach.
+ *
+ * The sword reaches 2.3m and a zombie's arm 1.7m. An unbounded push walks the
+ * zombie into the gap between the two — still in your reach, out of its — and
+ * the player can strike from there forever. Stopping at 90% of its own reach
+ * means a shoved creature can always still hit back, so a shove only gets a
+ * creature out of your face, never out of the fight. A creature struck from
+ * beyond that distance is not pushed at all; its body still recoils.
+ */
+export const HIT_PUSH_REACH = 0.9;
+/** How fast the shove is applied, per second of the remaining distance. */
+export const HIT_PUSH_RATE = 16;
+/**
  * The blood a landed blow throws.
  *
  * Unlit points, so they read in the dark without a light of their own — a

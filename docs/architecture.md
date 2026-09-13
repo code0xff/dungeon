@@ -480,9 +480,18 @@ An ordinary hit that the shield did not take calls `flinchCreature()` and
 creature's `stagger` clip at `FLINCH_CLIP_SPEED`; the root lean from
 `hitReaction()` is halved under it, as the parry's is. While `flinchT` runs the
 creature does not close on its target, but `startAttack()` is untouched: one
-already in reach still swings. That is the whole difference from a knockback,
-which on a 2.3m sword against a 1.7m arm would create a zone the player can
-strike from and never be struck in. Followers keep the clip playing too, and the
+already in reach still swings.
+
+A hit also moves things, in two separate ways. The **recoil** moves the body —
+`Monster.body`, the one model inside the creature's group, which is why
+`spawnCreature()` wraps the procedural fallback in a group too — out and back
+over `HIT_RECOIL_TIME`, so everyone who sees the hit sees it land, while the
+creature's position, reach and network state stay put. The **shove** moves the
+creature for real, only on the machine simulating it, and is capped when it is
+set: never further than `HIT_PUSH_REACH` (90%) of the creature's own reach from
+whoever struck it. On a 2.3m sword against a 1.7m arm, an uncapped knockback
+would park the creature in the gap between the two, where it can be struck and
+cannot strike back; capped, it only gets a creature out of your face. Followers keep the clip playing too, and the
 authority applies both for hits reported by allies in `onNetRemoteHit`.
 
 **Swings alternate.** `startSwing()` picks `comboStep`: the other cut when

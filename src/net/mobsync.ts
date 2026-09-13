@@ -158,8 +158,13 @@ onNetRemoteHit((i, d, by) => {
   // The ally drew this on their screen; the authority is where the creature
   // actually stops closing, and its own player should see the blood too.
   if (shielded <= 0) {
-    if (who) bleed(m, who.x, who.z);
-    flinchCreature(m);
+    if (who) {
+      bleed(m, who.x, who.z);
+      flinchCreature(m, who.x, who.z, true);
+    } else {
+      // Nowhere known to have been struck from: no direction to recoil or shove.
+      flinchCreature(m, m.mesh.position.x, m.mesh.position.z, false);
+    }
   }
   if (m.hp <= 0) {
     // Not paid here: the authority is not the one who swung. The roll is made

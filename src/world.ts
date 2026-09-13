@@ -262,6 +262,8 @@ function spawnOne(key: CreatureKey): void {
 export function spawnAt(key: CreatureKey, wx: number, wz: number): Monster {
   const t = stageType(key, runLevel(progress.stage));
   const sp = spawnCreature(key);
+  // Non-null: spawnCreature() always returns a group holding exactly one body.
+  const body = sp.mesh.children[0]!;
   sp.mesh.position.set(wx, 0, wz);
   // Yaw first, so the stagger lean rocks the creature backwards along its own
   // facing rather than along the world X axis — turnToward() writes rotation.y
@@ -311,6 +313,14 @@ export function spawnAt(key: CreatureKey, wx: number, wz: number): Monster {
     pendingHit: null,
     hurtT: 0,
     flinchT: 0,
+    body,
+    bodyBase: body.position.clone(),
+    pushLeft: 0,
+    pushX: 0,
+    pushZ: 0,
+    recoilT: 0,
+    recoilX: 0,
+    recoilZ: 0,
     stepSoundDistance: 0,
     staggerT: 0,
     staggerX: 0,
