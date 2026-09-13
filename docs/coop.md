@@ -130,7 +130,7 @@ Two consequences for the client:
 Because the Pages build and the host can now be different versions of the game,
 `PROTOCOL_VERSION` is doing real work rather than guarding a theoretical case.
 
-Version 14 adds the `shrine` world event (the rooms' statue, estoc and shelves)
+Version 14 adds the `shrine` world event (the rooms' statue, longsword and shelves)
 and raises the host's hit cap for the blade blessing; a version-13 host would
 drop both the event and the blessed lunge.
 

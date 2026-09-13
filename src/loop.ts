@@ -265,16 +265,22 @@ function updatePlayer(dt: number, now: number): boolean {
 // visible path is 5.0 across 1.37 of the screen's width. The pose this
 // replaced managed 0.61 of the width, which is what "the arc is too narrow"
 // was pointing at.
-const SWING_UP = { rot: [0.60, 0.32, 0.4], pos: [0.16, 0.14, 0.13] } as const;
-const SWING_DOWN = { rot: [-0.46, 1.75, -1.72], pos: [-0.30, -0.11, -0.05] } as const;
+//
+// When the rest pose moved for the longsword (tip up and right), every offset
+// below was rebased by the difference, so each raised and cut pose lands where
+// the measured one did rather than being flung by the new rest.
+const SWING_UP = { rot: [0.08, 0.35, 0.3], pos: [0.20, 0.20, 0.13] } as const;
+const SWING_DOWN = { rot: [-0.98, 1.78, -1.82], pos: [-0.26, -0.05, -0.05] } as const;
 // The answering cut, from upper left to lower right, found the same way. It is
 // not a mirror of the first: the sword rests on the right, so cutting toward
 // the right throws the tip off that edge unless the cut turns far less than
 // the first one does. Measured: raise tip at (-0.95, 0.60), cut tip at
 // (0.90, -0.63), 1.82 of the width, nothing out of frame, blade never shorter
 // than 1.14 against 1.99 at rest.
-const SWING_UP_B = { rot: [0.60, 1.60, 0], pos: [-0.10, 0.12, 0.12] } as const;
-const SWING_DOWN_B = { rot: [-0.35, -0.40, 0.4], pos: [0.15, -0.11, -0.05] } as const;
+// The raise also rolls 0.4 further than it was measured at: held that high it
+// showed the longsword's whole flat to the camera.
+const SWING_UP_B = { rot: [0.08, 1.63, 0.3], pos: [-0.06, 0.18, 0.12] } as const;
+const SWING_DOWN_B = { rot: [-0.87, -0.37, 0.3], pos: [0.19, -0.05, -0.05] } as const;
 
 /**
  * The swing curve, mapping t (0..1) to -1 (raised), +1 (cut through) and back to 0.

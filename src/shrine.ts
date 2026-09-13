@@ -8,7 +8,7 @@ import { cancelShrine, lootBarEl, lootFillEl, showMsg, updateHUD } from './ui';
 
 /**
  * The landmark rooms' interactables: pray at the chapel's statue, take up the
- * watch room's estoc, search the store's shelves.
+ * watch room's longsword, search the store's shelves.
  *
  * Used the way a chest is opened — E beside it, standing still on the loot bar
  * — and called off the same way, by moving here and by swinging or being hit

@@ -4,7 +4,7 @@
 //   npm run fetch-assets
 //        |
 //   assets/textures/{wall,floor}/{diffuse,normal,rough}.webp
-//   assets/weapons/{sword,musket}.glb
+//   assets/weapons/{musket,shield}.glb (the sword comes from raw/, see optimize-assets.mjs)
 //   assets/props/{chest,lantern}.glb
 //
 // Unlike the zombie, Poly Haven serves these through a public API with no account,
@@ -34,11 +34,6 @@ const PICKS = {
   // dir is where the GLB lands under assets/; texture is the longest edge to
   // re-bake at; simplify keeps that fraction of the triangles (omit to keep all).
   models: {
-    // Poly Haven's only broad blade. antique_estoc has a far better hilt but its
-    // blade is a thrusting needle, which reads as thinner still in the hand.
-    sword: { id: 'wooden_handle_saber', dir: 'weapons', texture: 512 },
-    // Poly Haven has no musket or flintlock, so a bolt-action rifle stands in.
-    // The name stays `musket` throughout the code (see src/scene.ts).
     musket: { id: 'bolt_action_rifle_7_62', dir: 'weapons', texture: 512 },
     // The lid is its own node, so the open animation still has a hinge to turn.
     // Ten chests are in the dungeon at once and the source is 68k triangles, so
@@ -66,9 +61,6 @@ const PICKS = {
     // The watch room is somewhere people sat: a table and a stool.
     table: { id: 'small_wooden_table_01', dir: 'props', texture: 512, simplify: 0.5 },
     stool: { id: 'wooden_stool_01', dir: 'props', texture: 512, simplify: 0.4 },
-    // Hung on the watch room's wall: what the player takes up for the attack
-    // blessing, so the thing to press is a thing that reads as a weapon.
-    estoc: { id: 'antique_estoc', dir: 'props', texture: 512, simplify: 0.3 },
   },
 };
 

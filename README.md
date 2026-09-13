@@ -27,7 +27,7 @@ key chest and no supplies; the landmarks and their sentries remain.
 Each landmark has one thing to use, once per floor — stand beside it, press
 **E** (or **Open** on touch) and hold still; it makes the same noise a chest
 does, and glows faintly until it is spent. Pray at the chapel's **statue** to take 35% less damage for 45 seconds;
-take up the **estoc** crossed over a shield on the watch room's wall for 40% more sword damage for 45
+take up the **longsword** crossed over a shield on the watch room's wall for 40% more sword damage for 45
 seconds; search the store's **shelves** for one random potion, lantern oil,
 whetstone or ward (not in hard mode). In co-op a blessing covers the whole party.
 
@@ -608,6 +608,14 @@ is git-ignored and only the baked `assets/creatures/**/*.glb` is committed.
 
 Poly Haven assets — wall and floor textures, weapon models — are **CC0**: no
 attribution, redistribution and commercial use allowed.
+
+The sword, held and hung in the watch room, is **"Medieval Longsword — Realistic
+Game-Ready Asset"** by **mbvisuals1**
+([Sketchfab](https://sketchfab.com/3d-models/medieval-longsword-realistic-game-ready-asset-e249d41c42e7488fb50b4fbce608870a)),
+licensed **CC BY 4.0**: free to redistribute and use commercially with this
+credit. Its textures were downscaled to 512px webp. The download needs a
+Sketchfab account, so put the GLB at `raw/longsword.glb` and run
+`node scripts/optimize-assets.mjs --props` to bake it.
 
 Cinzel and EB Garamond are **SIL Open Font License 1.1**, which permits bundling
 and redistribution provided the licence travels with the font. Both licences are

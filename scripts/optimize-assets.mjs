@@ -103,6 +103,29 @@ async function convert(key, clip) {
   return { clip, before: +mb(src), after: +mb(out) };
 }
 
+/**
+ * Downloaded GLB props, baked the way fetch-assets bakes Poly Haven's: textures
+ * shrunk to webp. Sources are not always free to redistribute raw, so they wait
+ * in raw/ like the FBX. Each is optional; a missing source is skipped.
+ *
+ * longsword: "Medieval Longsword — Realistic Game-Ready Asset" by mbvisuals1 on
+ * Sketchfab, CC BY 4.0 — credited in the README. It is both the held sword and
+ * the watch room's blade, one file.
+ */
+const PROPS = [
+  { src: 'longsword.glb', dst: 'weapons/longsword.glb', texture: 512 },
+];
+for (const { src, dst, texture } of PROPS) {
+  const from = join(ROOT, 'raw', src);
+  if (!existsSync(from)) { console.log(`[prop] ${src} missing, skipped`); continue; }
+  const doc = await io.read(from);
+  await doc.transform(textureCompress({ encoder: sharp, targetFormat: 'webp', resize: [texture, texture] }), dedup(), prune());
+  const to = join(ROOT, 'assets', dst);
+  await io.write(to, doc);
+  console.log(`[prop] ${src} ${mb(from)} MB → ${dst} ${Math.round(statSync(to).size / 1024)} KB`);
+}
+if (process.argv.includes('--props')) process.exit(0);
+
 const keys = existsSync(RAW) ? readdirSync(RAW).filter((d) => statSync(join(RAW, d)).isDirectory()) : [];
 if (!keys.length) {
   console.error(`no sources found: ${RAW}`);

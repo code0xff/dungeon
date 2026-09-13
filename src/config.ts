@@ -303,11 +303,12 @@ export const PROP_ASSETS = {
  * The muzzle is read off the normalised bounds, so it needs no entry here.
  */
 export const WEAPON_ASSETS: Record<WeaponKind, WeaponAsset> = {
-  // wooden_handle_saber: tip along +Y, grip near the origin.
-  // Longer than it was: at 1.05 the blade read as a stick in the corner of the
-  // screen. The model is fine — held square on it is a broad falchion — it was
-  // simply small and edge-on. See SWORD_REST for the other half of that.
-  sword: { url: 'weapons/sword.glb', rot: [-Math.PI / 2, 0, 0], length: 1.24, back: 0.14 },
+  // Sketchfab "Medieval Longsword" (CC BY 4.0, see optimize-assets.mjs): tip
+  // along +X, blade width along Z, pommel near the origin. Replaced Poly Haven's
+  // saber, whose blade read thin and cheap however it was held. The roll matters
+  // as much as the aim: [0, PI/2, 0] points it forward too, but lays the flat
+  // face-up, a paddle; this one stands the edge down as the saber held it.
+  sword: { url: 'weapons/longsword.glb', rot: [-Math.PI / 2, 0.6, Math.PI / 2], length: 1.24, back: 0.14 },
   // bolt_action_rifle_7_62: muzzle along +X
   musket: { url: 'weapons/musket.glb', rot: [0, Math.PI / 2, 0], length: 1.3, back: 0.3 },
 };
@@ -632,7 +633,9 @@ export const ROOM_INLAY_HEIGHT = 0.012;
  * `flat` pieces hang on a wall: turned so their thinnest side faces out of it,
  * then sized by `length` along the wall or by `height` up it.
  */
-export const FURNITURE_ASSETS: Record<FurnitureKey, { url: string; height?: number; length?: number; flat?: boolean }> = {
+export const FURNITURE_ASSETS: Record<FurnitureKey, {
+  url: string; height?: number; length?: number; flat?: boolean;
+}> = {
   statue: { url: 'props/statue.glb', height: 2.1 },
   candlestick: { url: 'props/candlestick.glb', height: 1.15 },
   shelf: { url: 'props/shelf.glb', height: 1.9 },
@@ -642,9 +645,12 @@ export const FURNITURE_ASSETS: Record<FurnitureKey, { url: string; height?: numb
   stool: { url: 'props/stool.glb', height: 0.46 },
   // Sized by `length`, not height: it hangs on a wall lying along it, and its
   // height there is its thickness. See loadFurniture().
-  // 1.6m, longer than any real estoc: at 1.1 it was a thread on the stones from
-  // across the room. It crosses the shield below, the shield carrying the size.
-  estoc: { url: 'props/estoc.glb', length: 1.6, flat: true },
+  // The player's own longsword, crossed over the shield below. Poly Haven's
+  // estoc hung here first and was a thread on the stones from across the room.
+  // Laid by its thinnest side the blade shows its flat, 6cm across at this
+  // length, and the crossguard stands out of the wall. Hung the historical way,
+  // guard flat, the blade is edge-on: a hairline from across the room.
+  blade: { url: 'weapons/longsword.glb', length: 1.6, flat: true },
   // The player's own shield model, reused as the watch room's trophy: no bytes added.
   shield: { url: 'weapons/shield.glb', height: 1.3, flat: true },
 };
@@ -1007,7 +1013,7 @@ export const HIT_PUSH_REACH = 0.9;
 export const HIT_PUSH_RATE = 16;
 /**
  * The landmark rooms' interactables: the chapel's statue, the watch room's
- * estoc on its wall, and the store's shelves.
+ * longsword on its wall, and the store's shelves.
  *
  * Each is used once per dungeon, standing still, the way a chest is opened:
  * moving, swinging or being struck calls it off, and starting makes the same

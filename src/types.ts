@@ -23,7 +23,7 @@ export interface Settings {
 }
 export type ImpactKind = 'hit' | 'blocked' | 'kill';
 /** Furniture standing in the landmark rooms. See FURNITURE_ASSETS. */
-export type FurnitureKey = 'statue' | 'candlestick' | 'shelf' | 'crate' | 'barrel' | 'table' | 'stool' | 'estoc' | 'shield';
+export type FurnitureKey = 'statue' | 'candlestick' | 'shelf' | 'crate' | 'barrel' | 'table' | 'stool' | 'blade' | 'shield';
 /** What a landmark room's interactable does. See shrine.ts. */
 export type ShrineKind = 'bless' | 'wrath' | 'search';
 export interface Shrine {

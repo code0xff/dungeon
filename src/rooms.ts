@@ -132,7 +132,7 @@ const FURNISHING: Record<RoomKind, readonly Piece[]> = {
     { key: 'crate', wall: [-1, 0], along: -3.6 },
     // Across from the stores, at hand height, where it is taken up.
     { key: 'shield', wall: [1, 0], along: 0, hang: 1.55 },
-    { key: 'estoc', wall: [1, 0], along: 0, hang: 1.5, onPrevious: 0.09, roll: -0.55, shrine: 'wrath' },
+    { key: 'blade', wall: [1, 0], along: 0, hang: 1.5, onPrevious: 0.2, roll: -0.55, shrine: 'wrath' },
   ],
 };
 
@@ -145,7 +145,7 @@ const STAND_IN: Record<FurnitureKey, { w: number; h: number; d: number; colour: 
   barrel: { w: 0.7, h: 0.86, d: 0.7, colour: D.woodColour },
   table: { w: 1.2, h: 0.74, d: 0.7, colour: D.woodColour },
   stool: { w: 0.42, h: 0.46, d: 0.42, colour: D.woodColour },
-  estoc: { w: 1.6, h: 0.12, d: 0.06, colour: D.ironColour },
+  blade: { w: 1.6, h: 0.12, d: 0.06, colour: D.ironColour },
   shield: { w: 0.8, h: 1.3, d: 0.08, colour: D.woodColour },
 };
 

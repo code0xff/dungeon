@@ -166,13 +166,13 @@ sword.add(swordFallback);
 /**
  * Resting pose of the sword. Every swing returns here.
  *
- * The yaw is the important number. After normalisation the blade's length runs
- * down -Z and its thickness along X, so a sword pointed straight ahead is seen
- * exactly edge-on — a brown line in the corner, whatever the model. Swinging it
- * across the view turns some of the flat toward the camera; -0.55 is as far as
- * it goes before the tip leaves the frame on a wide window.
+ * Held the way a swordsman carries one: upright, tip barely right, turned
+ * just enough that a sliver of the flat catches the light. The yaw leans the
+ * tip right (more negative, further right); the roll (z) turns the flat toward
+ * the camera — positive turns it edge-on, a black line. Pointed straight ahead
+ * with no roll the blade is exactly edge-on, whatever the model.
  */
-export const SWORD_REST = { pos: new THREE.Vector3(0.26, -0.26, -0.30), rot: new THREE.Euler(0.20, -0.55, 0.30) };
+export const SWORD_REST = { pos: new THREE.Vector3(0.22, -0.32, -0.30), rot: new THREE.Euler(0.72, -0.58, 0.35) };
 sword.position.copy(SWORD_REST.pos);
 sword.rotation.copy(SWORD_REST.rot);
 gearBob.add(sword);
