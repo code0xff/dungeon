@@ -922,8 +922,46 @@ export const SWING_IMPACT = 0.5;
  * 60fps, short enough that the recovery still finishes inside ATTACK_CD.
  */
 export const SWING_CONTACT_HOLD = 0.11;
-/** Small cosmetic recoil: regular cuts must not grant the parry's interruption. */
-export const CREATURE_HIT_LEAN = 0.085;
+/**
+ * How far an ordinary hit rocks a creature back, in radians, before
+ * CREATURE_HIT_WEIGHT scales it down for the heavy ones.
+ *
+ * It was 0.085 — five degrees, on a dark body two metres off in torchlight —
+ * which is to say nothing moved when a sword went into something, and the blow
+ * read as passing through. 0.21 is a visible jolt. Still cosmetic: only a parry
+ * interrupts an attack or moves a creature.
+ */
+export const CREATURE_HIT_LEAN = 0.21;
+/**
+ * Seconds a struck creature flinches, at CREATURE_HIT_WEIGHT 1: its advance
+ * stops and the opening of its stagger clip plays.
+ *
+ * It does not push the creature back, and that is the point of it. The sword
+ * reaches 2.3m and a zombie's arm 1.7m, so a knockback on every hit walks the
+ * zombie out of its own reach while leaving it inside yours — a safe zone and
+ * free damage. A flinch only stops it closing: a creature already in reach
+ * still starts its swing, and the parry stays the one thing that moves a
+ * creature or cancels a blow. Weighted, so a brute or the Black Knight barely
+ * breaks stride and a zombie visibly does.
+ */
+export const FLINCH_TIME = 0.22;
+/** Playback rate of the stagger clip's opening while flinching — the recoil, not the stumble. */
+export const FLINCH_CLIP_SPEED = 2.2;
+/** Fraction of CREATURE_HIT_LEAN kept under a flinch clip, as STAGGER_LEAN_ACTED does for a parry. */
+export const FLINCH_LEAN_ACTED = 0.5;
+/**
+ * The blood a landed blow throws.
+ *
+ * Unlit points, so they read in the dark without a light of their own — a
+ * light added per hit would recompile every lit shader (see ward.ts). Sprayed
+ * from the struck side back toward the attacker and up, so it lands in front
+ * of the body instead of disappearing into it. Pooled: `count` points exist
+ * once, and a hit takes the oldest.
+ */
+export const BLOOD = {
+  count: 180, perHit: 16, life: 0.45, speed: 2.6, gravity: 9.5,
+  size: 0.06, colour: 0x8a1414, height: 1.2,
+} as const;
 /** Reuse the hit flash window so a reaction also works on network-reported hits. */
 export const CREATURE_HIT_TIME = 0.18;
 /** Heavy bodies move less on impact, making their mass visible without changing HP. */

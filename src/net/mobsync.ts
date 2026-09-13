@@ -1,5 +1,6 @@
 import { FALLBACK_ATTACK_TIME, MOB_LERP, MOB_STALE, TYPES, WALK_REPORT_SPEED } from '../config';
-import { killMonster, playerHurt, shieldedFraction, staggerCreature } from '../combat';
+import { flinchCreature, killMonster, playerHurt, shieldedFraction, staggerCreature } from '../combat';
+import { bleed } from '../blood';
 import { scene } from '../scene';
 import { state } from '../state';
 import { showMsg } from '../ui';
@@ -154,6 +155,12 @@ onNetRemoteHit((i, d, by) => {
   const shielded = who ? shieldedFraction(m, who.x, who.z) : 0;
   m.hp -= d * (1 - shielded);
   m.hurtT = 0.18;
+  // The ally drew this on their screen; the authority is where the creature
+  // actually stops closing, and its own player should see the blood too.
+  if (shielded <= 0) {
+    if (who) bleed(m, who.x, who.z);
+    flinchCreature(m);
+  }
   if (m.hp <= 0) {
     // Not paid here: the authority is not the one who swung. The roll is made
     // once and travels with the announcement.

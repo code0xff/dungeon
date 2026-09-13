@@ -1,9 +1,10 @@
 import { clipDuration, setAnim } from './assets';
 import { sfxBlock, sfxHit, sfxLunge, sfxParry, sfxShot, sfxSwing, sfxTrap } from './audio';
 import { impact } from './feedback';
+import { bleed } from './blood';
 import {
   ATTACK_BUFFER, ATTACK_CD, ATTACK_RANGE, CORPSE_LINGER, GUARD_ARC, GUARD_LEAK, GUARD_LEAK_HEAVY,
-  BLOCK_ARC, CREATURE_HIT_TIME, HIT_KICK, HIT_KICK_TIME, HURT_DIRECTION_TIME, LUNGE_DMG, LUNGE_WINDOW,
+  BLOCK_ARC, CREATURE_HIT_TIME, CREATURE_HIT_WEIGHT, FLINCH_CLIP_SPEED, FLINCH_TIME, HIT_KICK, HIT_KICK_TIME, HURT_DIRECTION_TIME, LUNGE_DMG, LUNGE_WINDOW,
   MUSKET_DMG, MUSKET_RANGE,
   LUNGE_HIT_LIGHT, LUNGE_HIT_TIME, REWARD_SPREAD, STAGGER_PUSH, STAGGER_TIME, staggerSpeed,
   TRAP_ALERT_RADIUS, TRAP_ALERT_TIME, TRAP_DMG,
@@ -48,6 +49,19 @@ function facing(): [fx: number, fz: number] {
  * frame loop because only combat knows whether anything was actually struck —
  * a swing through empty air must not shake the screen.
  */
+/**
+ * An ordinary blow landing: the creature stops closing for a moment and plays
+ * the opening of its stagger clip. See FLINCH_TIME for why this stops it
+ * rather than pushing it back. A swing already under way is left to finish —
+ * the flinch is not an interrupt — and a creature mid-parry keeps its stagger.
+ */
+export function flinchCreature(m: Monster): void {
+  if (m.hp <= 0 || m.staggerT > 0) return;
+  m.flinchT = Math.max(m.flinchT, FLINCH_TIME * CREATURE_HIT_WEIGHT[m.key]);
+  if (m.attackT > 0 || !m.playback?.clips.stagger) return;
+  setAnim(m.playback, 'stagger', { loop: false, force: true, fade: 0.04, speed: FLINCH_CLIP_SPEED });
+}
+
 function kickCamera(shielded: boolean): void {
   state.hitKick = HIT_KICK * (shielded ? 0.5 : 1);
   state.hitKickT = HIT_KICK_TIME;
@@ -58,6 +72,7 @@ export function killMonster(m: Monster, opts: { pay?: boolean; gold?: number } =
   // A creature killed mid-stagger would otherwise keep its lean through the
   // whole death animation, since the stagger block returns early for the dead.
   m.staggerT = 0;
+  m.flinchT = 0;
   m.mesh.rotation.x = 0;
   // The roll can be handed in rather than made here. In co-op the creature dies
   // on the authority's machine and the amount travels with the announcement, so
@@ -161,6 +176,10 @@ export function fireMusket(): void {
     else sfxHit(false);
     impact(shielded > 0 ? 'blocked' : 'hit');
     kickCamera(shielded > 0);
+    if (shielded <= 0) {
+      bleed(best, state.pos.x, state.pos.z);
+      flinchCreature(best);
+    }
     if (shielded > 0) showMsg('The shield takes the ball');
     // The flash and the sound are drawn regardless — a shot that looked like it
     // missed while the ball was in flight to the authority would feel broken.
@@ -338,6 +357,11 @@ export function resolveSwing(): void {
       // a creature the authority disagrees about never dies twice or pays twice.
       // The authority applies the shield itself, from the reporter's pose.
       reportHit(state.monsters.indexOf(m), dmg);
+    }
+    // After the damage, so a killing blow bleeds but does not flinch a corpse.
+    if (shielded <= 0) {
+      bleed(m, state.pos.x, state.pos.z);
+      flinchCreature(m);
     }
   }
 

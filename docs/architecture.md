@@ -472,6 +472,24 @@ accident is a bug that only shows up on the second run. If you add one to
 defensively: `merge()` type-checks every stored field so a corrupt save
 degrades to the default instead of poisoning a run with NaN.
 
+## Hit reactions
+
+An ordinary hit that the shield did not take calls `flinchCreature()` and
+`bleed()`. The flinch sets `flinchT` — `FLINCH_TIME` scaled by
+`CREATURE_HIT_WEIGHT`, so heavies barely react — and plays the opening of the
+creature's `stagger` clip at `FLINCH_CLIP_SPEED`; the root lean from
+`hitReaction()` is halved under it, as the parry's is. While `flinchT` runs the
+creature does not close on its target, but `startAttack()` is untouched: one
+already in reach still swings. That is the whole difference from a knockback,
+which on a 2.3m sword against a 1.7m arm would create a zone the player can
+strike from and never be struck in. Followers keep the clip playing too, and the
+authority applies both for hits reported by allies in `onNetRemoteHit`.
+
+`src/blood.ts` is a pool of `BLOOD.count` unlit points, reused oldest-first,
+sprayed from the struck side back toward the attacker so it hangs in front of
+the body. Unlit because a light per hit would recompile every lit shader, the
+same reason a ward has none.
+
 ## Offline and install
 
 The game is a PWA. `assets/manifest.webmanifest` and `assets/sw.js` sit in

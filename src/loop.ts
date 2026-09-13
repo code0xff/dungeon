@@ -15,7 +15,7 @@ import {
   SWAY_DAMP, TYPES,
   LUNGE_HIT_GLOW, LUNGE_HIT_KICK, LUNGE_HIT_LIGHT, LUNGE_HIT_TIME, LUNGE_WINDOW, SWING_IMPACT,
   SWING_SPEED, SWING_WINDUP, TURN_RATE, WALK_TIMESCALE_RANGE, WALL_H,
-  TP_LIGHT_AHEAD, TP_LIGHT_UP, TRAP_SPRING_TIME, WARD_TIME, TITLE_DRIFT, CREATURE_HIT_FREEZE, GEAR_LAG, GEAR_LAG_MAX, GEAR_LAG_SPRING, HIT_KICK_TIME,
+  TP_LIGHT_AHEAD, TP_LIGHT_UP, TRAP_SPRING_TIME, WARD_TIME, TITLE_DRIFT, CREATURE_HIT_FREEZE, GEAR_LAG, GEAR_LAG_MAX, GEAR_LAG_SPRING, HIT_KICK_TIME, FLINCH_LEAN_ACTED,
 } from './config';
 import { playerHurt, releaseQueuedAttack, resolveSwing, springTrap, staggerPush } from './combat';
 import { findPath } from './dungeon';
@@ -29,6 +29,7 @@ import { isAuthority } from './net/client';
 import { thirdPersonActive, updateView } from './view';
 import { endTutorial, updateTutorial } from './tutorial';
 import { animateWards } from './ward';
+import { updateBlood } from './blood';
 import { coop } from './net/session';
 import { mayOpen, tellTrapSprung } from './net/worldsync';
 import {
@@ -57,6 +58,8 @@ function animLoaded(m: Monster, pb: MonsterPlayback, dt: number): void {
 
   if (m.attackT > 0) {
     // startAttack already began the attack clip. Leave it alone until it finishes.
+  } else if (m.flinchT > 0 && pb.clips.stagger) {
+    // flinchCreature() started the stagger clip's recoil; let it play out.
   } else if (m.moving) {
     // Match playback rate to actual ground speed so the feet stop sliding, and
     // break into a run above RUN_AT for the one creature that has the clip.
@@ -79,7 +82,11 @@ function hitReaction(m: Monster): void {
   // would erase the much larger stumble at the moment the counter connects.
   if (m.staggerT > 0) return;
   const k = Math.max(0, Math.min(1, m.hurtT / CREATURE_HIT_TIME));
-  m.mesh.rotation.x = -CREATURE_HIT_LEAN * CREATURE_HIT_WEIGHT[m.key] * Math.sin(k * Math.PI);
+  // Half the lean under a flinch clip: the clip is already rocking the body,
+  // and the full lean on top folds it in half. See FLINCH_LEAN_ACTED.
+  const acted = m.flinchT > 0 && !!m.playback?.clips.stagger;
+  m.mesh.rotation.x = -CREATURE_HIT_LEAN * CREATURE_HIT_WEIGHT[m.key]
+    * (acted ? FLINCH_LEAN_ACTED : 1) * Math.sin(k * Math.PI);
 }
 
 /**
@@ -387,6 +394,7 @@ function updateMonsters(dt: number, now: number): number {
 
     const t = m.type;
     m.atkCd = Math.max(0, m.atkCd - dt);
+    m.flinchT = Math.max(0, m.flinchT - dt);
 
 
     // Who this creature is dealing with: the nearest player, not necessarily
@@ -474,8 +482,10 @@ function updateMonsters(dt: number, now: number): number {
 
     let moved = 0;
     if (aggroed) {
-      // While attacking it stands still and finishes the animation.
-      if (!attacking) {
+      // While attacking it stands still and finishes the animation, and while
+      // flinching it stops closing — but only closing: the attack check below
+      // is untouched, so a creature already in reach still swings.
+      if (!attacking && m.flinchT <= 0) {
         // Close in, walk straight at the player; further out, follow the first BFS step.
         let tx: number, tz: number;
         if (dist < CELL * 1.4) {
@@ -586,6 +596,8 @@ function animFollowed(m: Monster, pb: MonsterPlayback, dt: number, anim: number 
   if (flash) m.hurtT -= dt;
   flashLoadedMesh(m.mesh, flash);
 
+  m.flinchT = Math.max(0, m.flinchT - dt);
+
   if (anim === ANIM_STAGGER || anim === ANIM_STAGGER_START) {
     // Started once, on the edge, then left to play out — the same rule as the
     // swing. A body with no clip leans instead, the way the authority's does.
@@ -614,6 +626,9 @@ function animFollowed(m: Monster, pb: MonsterPlayback, dt: number, anim: number 
     setAnim(pb, 'attack', {
       loop: false, fade: 0.08, speed: m.type.attackSpeed, force: anim === ANIM_ATTACK_START,
     });
+  } else if (m.flinchT > 0 && pb.clips.stagger) {
+    // A blow this client landed: flinchCreature() is playing the recoil, and
+    // the wire's walk would cut it off on the next frame.
   } else if (anim === ANIM_WALK) {
     const g = gait(pb, m.groundSpeed, WALK_TIMESCALE_RANGE[1]);
     setAnim(pb, g.clip);
@@ -1118,6 +1133,7 @@ export function animate(): void {
   camera.rotation.set(state.pitch + kick * settings.motion, state.yaw + Math.PI,
     state.dashSide * DASH_ROLL * dashK * settings.motion, 'YXZ');
   animateWards(dt, now);
+  if (!state.paused) updateBlood(dt);
   updateAmbience(dt, now);
   updateFeedback(dt);
   if (!state.paused && (!state.gameOver || coop.watching)) updateCreatureAudio(dt);

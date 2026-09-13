@@ -29,6 +29,7 @@ import { pointerLock } from './input';
 import { lockHintEl } from './ui';
 import { setWeapon } from './weapons';
 import { clearWards } from './ward';
+import { clearBlood } from './blood';
 
 /**
  * Whether a circle of radius r overlaps a wall cell. Only the surrounding 3x3 is checked.
@@ -119,6 +120,7 @@ function clearWorld(): void {
   state.sconces.forEach((s) => scene.remove(s.group));
   state.traps.forEach((t) => scene.remove(t.mesh));
   clearWards();
+  clearBlood();
   state.monsters = [];
   state.chests = [];
   state.props = [];
@@ -308,6 +310,7 @@ export function spawnAt(key: CreatureKey, wx: number, wz: number): Monster {
     swingSeq: 0,
     pendingHit: null,
     hurtT: 0,
+    flinchT: 0,
     stepSoundDistance: 0,
     staggerT: 0,
     staggerX: 0,

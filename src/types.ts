@@ -205,6 +205,8 @@ export interface Monster {
   pendingHit: number | null;
   /** Seconds of hit flash left. */
   hurtT: number;
+  /** Seconds left of a flinch from an ordinary hit: advance stopped, recoil playing. */
+  flinchT: number;
   /**
    * Seconds left of being staggered by a parry: interrupted, rocked back and
    * unable to move or swing. There is no stagger clip — the creatures ship idle,

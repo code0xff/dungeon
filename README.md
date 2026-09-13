@@ -552,7 +552,16 @@ arc is wider than it was; the blade dwells where it hit
 quarter of what a lunge does; and the held weapon trails a turn and catches up
 (`GEAR_LAG`) instead of being welded to the camera. The hit itself has a low
 body under the crack now. Camera motion at zero in Settings removes the punch
-and the trailing. Ordinary hits give creatures a
+and the trailing.
+
+What was still missing was the other half of a hit: the thing being hit. A
+struck creature now bleeds, rocks back visibly, and flinches — it stops closing
+for a moment and plays the opening of its stagger clip, a zombie for about a
+fifth of a second and a brute or the Black Knight hardly at all. It is **not**
+knocked back, on purpose. The sword reaches 2.3m and a zombie's arm 1.7m, so a
+push on every hit would walk it out of its own reach while leaving it in yours:
+free damage from a safe distance. A flinching creature already in reach still
+swings, and the parry stays the only thing that moves one or cancels its blow. Ordinary hits give creatures a
 small cosmetic recoil, reduced on heavier bodies, while only a parry interrupts
 their attack. Creature groans pan left and right relative to the listener.
 Footsteps follow distance travelled, and both sounds track the listener as they
