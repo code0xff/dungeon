@@ -175,8 +175,9 @@ rules, with the detail in [docs/](docs/). `CLAUDE.md` is a symlink to it.
 | Parry | raise the guard *as the blow lands* |
 | Open chest | `E` |
 | Swap weapon | `Q` |
-| Drink potion / light lantern / sharpen sword | `3` / `4` / `5` — a potion takes a moment to go down, and slows you while it does |
-| Set a ward | `6` — a green gem on the floor where you stand; wards show on the map |
+| Drink potion / light lantern | `3` / `4` — a potion takes a moment to go down, and slows you while it does |
+| Set a ward | `5` — a green gem on the floor where you stand; wards show on the map |
+| Sharpen sword | `6` |
 | Menu | `H` — Resume, Controls, Quit to the title. Pauses while it is open, except in multiplayer |
 | Sound on / off | `M` — remembered between runs |
 | First / third person | `V`, or the eye button at the top — sword only; the musket always aims first-person. Remembered between runs |
@@ -221,10 +222,10 @@ spent at the first sip and the health arrives 0.9s later, so the question become
 edge, and damage falls with it — a fresh blade kills a zombie in five swings, a
 ruined one in nine. It never stops working entirely, because a weapon that does
 would strand you with no way back to the exit. A **whetstone** from a chest or
-the shop grinds 45 points back, spent with `5` — the only repair available while
+the shop grinds 45 points back, spent with `6` — the only repair available while
 you are still down there.
 
-**Wards** mark where you have been. Press `6`, hold still for 0.8s — move,
+**Wards** mark where you have been. Press `5`, hold still for 0.8s — move,
 swing or get hit and it is not set, and not spent — and a green gem is set on the
 floor where you stand, glowing far enough down a corridor to say *turn back*
 before you walk the same loop twice. Every dungeon has one in a chest, the

@@ -374,7 +374,7 @@
              background:radial-gradient(circle at 50% 32%, rgba(150,118,44,.55), rgba(64,50,18,.5) 72%);
              box-shadow:0 6px 22px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,230,160,.16); }
   /* A row rather than a column, reading left to right in the order the keys
-     are numbered — potion 3, lantern 4, whetstone 5, ward 6 — with the unnumbered swap
+     are numbered — potion 3, lantern 4, ward 5, whetstone 6 — with the unnumbered swap
      last, nearest the thumb. It used to run the other way, fastest reach on the
      right, and the row then read backwards against the numbers in the HUD.
      Nothing here is needed in a hurry, which is what lets it sit inboard of the
@@ -392,8 +392,8 @@
   /* 50px apart — 4px between buttons — since the ward made it five. At the old
      54 the potion would have landed 362px from the right, off a 360px phone. */
   #wpnBtn { right:calc(100px + env(safe-area-inset-right)); }
-  #wardBtn { right:calc(150px + env(safe-area-inset-right)); }
-  #whetBtn { right:calc(200px + env(safe-area-inset-right)); }
+  #whetBtn { right:calc(150px + env(safe-area-inset-right)); }
+  #wardBtn { right:calc(200px + env(safe-area-inset-right)); }
   #lampBtn { right:calc(250px + env(safe-area-inset-right)); }
   /* Furthest out, at 300px + 46px = 346px from the right edge. On the narrowest
      phone this targets that is still 14px in from the left, and it clears the
@@ -705,8 +705,8 @@
 <div id="wpnBtn" class="tbtn"><svg class="ico"><use href="#i-swap"/></svg><span>Swap</span></div>
 <div id="potBtn" class="tbtn"><svg class="ico"><use href="#i-potion"/></svg><span class="count">0</span></div>
 <div id="lampBtn" class="tbtn"><svg class="ico"><use href="#i-lamp"/></svg><span class="count">0</span></div>
-<div id="whetBtn" class="tbtn"><svg class="ico"><use href="#i-whet"/></svg><span class="count">0</span></div>
 <div id="wardBtn" class="tbtn"><svg class="ico"><use href="#i-ward"/></svg><span class="count">0</span></div>
+<div id="whetBtn" class="tbtn"><svg class="ico"><use href="#i-whet"/></svg><span class="count">0</span></div>
 <div id="dashBtn" class="tbtn"><svg class="ico"><use href="#i-dash"/></svg><span>Dodge</span></div>
 <div id="guardBtn" class="tbtn"><svg class="ico"><use href="#i-guard"/></svg><span>Guard</span></div>
 

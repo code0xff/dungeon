@@ -102,8 +102,8 @@ export function updateHUD(): void {
   slotsEl.replaceChildren(
     slot(POTION_KEY, 'Potion', state.potions),
     slot(LANTERN_KEY, 'Lantern', state.lanterns),
-    slot(WHETSTONE_KEY, 'Whetstone', state.whetstones),
     slot(WARD_KEY, 'Ward', state.wards),
+    slot(WHETSTONE_KEY, 'Whetstone', state.whetstones),
   );
   atkLabel.textContent = attackLabel();
   dashBtn.classList.add('show');

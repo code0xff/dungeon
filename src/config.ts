@@ -548,8 +548,8 @@ export const CHEST_SAFE_ITEMS: readonly ItemKind[] = ['key', 'map'];
  */
 export const POTION_KEY = '3';
 export const LANTERN_KEY = '4';
-export const WHETSTONE_KEY = '5';
-export const WARD_KEY = '6';
+export const WARD_KEY = '5';
+export const WHETSTONE_KEY = '6';
 
 // ---- Wards ----
 /**
