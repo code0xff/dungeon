@@ -529,9 +529,18 @@ neighbouring app's offline copy. The localStorage key is namespaced for the same
 reason.
 
 Its caching strategy and the reasoning are documented at the top of `sw.js`.
-The short version: navigations are network-first so a deploy is picked up, and
-everything else is stale-while-revalidate so the ~8.5MB of assets loads instantly
-on a second visit.
+The short version: install precaches every file in `dist/precache.json` (written
+by a plugin in `vite.config.ts`, with the `?v=` the page will request), so one
+online visit is enough to play offline. Navigations are network-first with a 3s
+timeout so a deploy is picked up without a dead connection holding the loading
+screen; everything else is stale-while-revalidate. An old asset version is
+pruned only once its replacement is cached, or once the build no longer lists
+it. Every lookup ignores `Vary`: `vite preview` sends `Vary: Origin`, and the
+module script — which sends Origin — never matched its precached copy.
+
+To test offline: `npm run build`, `npx vite preview --port 4173`, load once and
+wait for the worker, then stop the server and reload. The `[assets]` log should
+show every model loaded, not a stand-in.
 
 **Assets carry a version on their URL, and it is load-bearing.** Vite
 content-hashes the bundle filenames, so code changes reach everyone by

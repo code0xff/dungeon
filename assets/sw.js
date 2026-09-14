@@ -4,16 +4,22 @@
 //
 // Strategy, and why:
 //
-//   navigation  network first, cache fallback
+//   install     precache everything
+//               precache.json, written by the build, lists every file the game
+//               can request. All of it is fetched before the worker takes over,
+//               so one online visit is enough to play offline — not only the
+//               models one session happened to load.
+//
+//   navigation  network first, with a timeout, cache fallback
 //               A new deploy has to be picked up. Serving a cached index.html
-//               first would pin players to an old bundle until the cache expired.
+//               first would pin players to an old bundle. But a connection that
+//               is up and not answering would hold the loading screen forever,
+//               so after NAV_TIMEOUT the cached page is served and the network
+//               copy still lands in the cache when it arrives.
 //
 //   everything  stale-while-revalidate
-//   else        Serve from cache instantly, refresh in the background. This is
-//               what makes the ~6MB of models and textures load like a local
-//               game on a second visit, and it self-heals: nothing here has to
-//               be version-bumped by hand when an asset is regenerated.
-//
+//   else        Serve from cache instantly, refresh in the background.
+
 // The bundle filenames are content-hashed by vite, so a stale entry for those
 // simply stops being requested. The GLB and webp files are not, so they carry a
 // ?v= built from a hash of assets/ instead — same effect, one hash for the whole
@@ -25,6 +31,15 @@
 // prefixed and the activate sweep only ever touches this prefix — deleting by
 // "not the current cache" would wipe a neighbouring app's offline copy.
 const PREFIX = 'dungeon-';
+
+/**
+ * Every cache lookup ignores Vary. A server that sends Vary: Origin (vite
+ * preview does) stores each response keyed to the precache's Origin-less
+ * request, and the page's module script, which sends Origin, then never
+ * matched it: offline, the bundle failed to load and the game sat on its
+ * loading screen. Nothing here varies by header in a way that matters.
+ */
+const MATCH = { ignoreVary: true };
 const CACHE = `${PREFIX}v1`;
 
 /**
@@ -43,27 +58,76 @@ const ASSET_VERSION = new URL(self.location.href).searchParams.get('v') || 'dev'
 /** Enough to open the game offline after one visit. The rest arrives by use. */
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icons/icon-192.png'];
 
+/** Milliseconds a navigation waits on the network before the cached page is served. */
+const NAV_TIMEOUT = 3000;
+
+/** Files fetched at once during precache: all fourteen megabytes in parallel stalls a phone. */
+const PRECACHE_CONCURRENCY = 6;
+
+/**
+ * Fetches everything in precache.json that is not already cached. Failures are
+ * per URL — addAll rejects the whole batch if one entry 404s — and a failed
+ * file is simply cached later, on first use, as before.
+ */
+async function precache() {
+  const cache = await caches.open(CACHE);
+  await Promise.all(SHELL.map((u) => cache.add(u).catch(() => {})));
+  let urls = [];
+  try {
+    const res = await fetch('./precache.json', { cache: 'no-store' });
+    if (res.ok) {
+      urls = (await res.json()).urls || [];
+      // Kept for pruneOldAssets, which has to know what the game still uses.
+      await cache.put('./precache.json', new Response(JSON.stringify({ urls })));
+    }
+  } catch {
+    return; // Offline at install, or a dev build with no list: use-driven caching only.
+  }
+  const todo = [];
+  for (const u of urls) if (!(await cache.match(u, MATCH))) todo.push(u);
+  const worker = async () => {
+    for (let u = todo.pop(); u !== undefined; u = todo.pop()) await cache.add(u).catch(() => {});
+  };
+  await Promise.all(Array.from({ length: PRECACHE_CONCURRENCY }, worker));
+}
+
 self.addEventListener('install', (e) => {
-  // addAll rejects the whole batch if one entry 404s, so failures are per-URL.
-  e.waitUntil(
-    caches.open(CACHE)
-      .then((c) => Promise.all(SHELL.map((u) => c.add(u).catch(() => {}))))
-      .then(() => self.skipWaiting()),
-  );
+  e.waitUntil(precache().then(() => self.skipWaiting()));
 });
 
 /**
  * Drops asset entries left over from an older version.
  *
- * Only entries carrying a ?v= are touched, so the shell and the content-hashed
- * bundles are left alone — they are already self-versioning, and deleting them
- * here is what would cost the game its offline copy.
+ * The shell is never touched. A content-hashed bundle goes only when the
+ * current precache list is known and no longer names it; deleting bundles
+ * without that list is what once cost the game its offline copy.
+ *
+ * And an old copy goes only once the current one is in the cache. Pruning by
+ * version alone deleted every old model at activate, and a player who lost the
+ * connection before the new ones arrived was left with primitive stand-ins;
+ * now the old model stays the offline fallback until its replacement lands.
+ * A file the current build no longer lists at all (a model that was removed)
+ * has no replacement coming, so it goes too.
  */
 async function pruneOldAssets() {
   const cache = await caches.open(CACHE);
-  const stale = (await cache.keys()).filter((req) => {
-    const v = new URL(req.url).searchParams.get('v');
-    return v !== null && v !== ASSET_VERSION;
+  const keys = await cache.keys();
+  const current = new Set(keys
+    .filter((req) => new URL(req.url).searchParams.get('v') === ASSET_VERSION)
+    .map((req) => new URL(req.url).pathname));
+  const listed = await cache.match('./precache.json', MATCH);
+  const wanted = listed
+    ? new Set(((await listed.json()).urls || []).map((u) => new URL(u, self.location.href).pathname))
+    : null;
+  const shell = new Set([...SHELL, './precache.json'].map((u) => new URL(u, self.location.href).pathname));
+  const stale = keys.filter((req) => {
+    const url = new URL(req.url);
+    const v = url.searchParams.get('v');
+    // Unversioned: the shell, and bundles whose names vite hashed. An old bundle
+    // is never asked for again, so once the list is known it is just weight.
+    if (v === null) return wanted !== null && !wanted.has(url.pathname) && !shell.has(url.pathname);
+    if (v === ASSET_VERSION) return false;
+    return current.has(url.pathname) || (wanted !== null && !wanted.has(url.pathname));
   });
   await Promise.all(stale.map((req) => cache.delete(req)));
 }
@@ -79,29 +143,36 @@ self.addEventListener('activate', (e) => {
   );
 });
 
-async function networkFirst(request) {
+async function networkFirst(request, network) {
   const cache = await caches.open(CACHE);
+  const cached = async () => (await cache.match(request, MATCH)) || (await cache.match('./index.html', MATCH));
+  const timeout = new Promise((resolve) => setTimeout(resolve, NAV_TIMEOUT, 'timeout'));
   try {
-    const res = await fetch(request);
-    if (res.ok) cache.put(request, res.clone());
-    return res;
+    const first = await Promise.race([network, timeout]);
+    if (first !== 'timeout') return first;
+    // Slow, not down: the cached page if there is one, else keep waiting.
+    return (await cached()) || (await network);
   } catch {
     // Offline: the last good copy, or the shell for a deep link.
-    return (await cache.match(request)) || (await cache.match('./index.html')) || Response.error();
+    return (await cached()) || Response.error();
   }
 }
 
 async function staleWhileRevalidate(request) {
   const cache = await caches.open(CACHE);
-  const hit = await cache.match(request);
+  const hit = await cache.match(request, MATCH);
   const fetching = fetch(request)
     .then((res) => {
       if (res.ok) cache.put(request, res.clone());
       return res;
     })
     .catch(() => null);
-  // A cache hit answers immediately; the refresh continues without blocking it.
-  return hit || (await fetching) || Response.error();
+  if (hit) return hit;
+  const res = await fetching;
+  if (res) return res;
+  // Offline, and this exact version was never cached: any version beats a
+  // primitive stand-in. Only reached when the network has already failed.
+  return (await cache.match(request, { ...MATCH, ignoreSearch: true })) || Response.error();
 }
 
 self.addEventListener('fetch', (e) => {
@@ -110,5 +181,20 @@ self.addEventListener('fetch', (e) => {
   if (request.method !== 'GET') return;
   if (new URL(request.url).origin !== self.location.origin) return;
 
-  e.respondWith(request.mode === 'navigate' ? networkFirst(request) : staleWhileRevalidate(request));
+  if (request.mode === 'navigate') {
+    const network = fetch(request).then((res) => {
+      if (res.ok) {
+        const copy = res.clone();
+        caches.open(CACHE).then((c) => c.put(request, copy));
+      }
+      return res;
+    });
+    // Keeps the worker alive to finish caching a response that lost the race.
+    // waitUntil has to be called during dispatch: after an await it throws,
+    // and the navigation fails with it.
+    e.waitUntil(network.catch(() => {}));
+    e.respondWith(networkFirst(request, network));
+    return;
+  }
+  e.respondWith(staleWhileRevalidate(request));
 });

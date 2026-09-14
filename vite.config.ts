@@ -1,7 +1,8 @@
 import { createHash } from 'node:crypto';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
-import { defineConfig } from 'vite';
+import { writeFileSync } from 'node:fs';
+import { defineConfig, type Plugin } from 'vite';
 
 /**
  * A short hash of everything under assets/.
@@ -33,8 +34,44 @@ function hashAssets(dir: string): string {
   return h.digest('hex').slice(0, 8);
 }
 
+/** Folders whose files the game requests through versioned() in src/assets.ts. */
+const VERSIONED = ['creatures/', 'props/', 'weapons/', 'textures/'];
+
+/**
+ * Writes dist/precache.json: every file the built game can ask for, with the
+ * ?v= the page will actually put on it, so the service worker can fetch the
+ * lot at install rather than only what one session happened to load. A file
+ * missing from this list is not an error — it is still cached on first use.
+ */
+function precacheList(version: string): Plugin {
+  return {
+    name: 'precache-list',
+    apply: 'build',
+    closeBundle() {
+      const files: string[] = [];
+      const walk = (d: string, rel: string): void => {
+        for (const name of readdirSync(d).sort()) {
+          if (name.startsWith('.')) continue;
+          const p = join(d, name);
+          if (statSync(p).isDirectory()) walk(p, `${rel}${name}/`);
+          else files.push(`${rel}${name}`);
+        }
+      };
+      walk('dist', '');
+      const urls = files
+        // The worker never caches itself, and the list is fetched fresh each install.
+        .filter((f) => f !== 'sw.js' && f !== 'precache.json')
+        .map((f) => `./${f}${VERSIONED.some((v) => f.startsWith(v)) ? `?v=${version}` : ''}`);
+      writeFileSync(join('dist', 'precache.json'), JSON.stringify({ version, urls }));
+    },
+  };
+}
+
+const ASSET_VERSION = hashAssets('assets');
+
 export default defineConfig({
-  define: { __ASSET_VERSION__: JSON.stringify(hashAssets('assets')) },
+  plugins: [precacheList(ASSET_VERSION)],
+  define: { __ASSET_VERSION__: JSON.stringify(ASSET_VERSION) },
   // Build with relative paths so dist/ can be served from any sub-path,
   // which is what makes the GitHub Pages project URL work unchanged.
   base: './',
