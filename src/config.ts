@@ -1062,7 +1062,16 @@ export const WRATH_ATTACK = 0.4;
  * long enough for the fight it was taken for, too short to wear into the next.
  */
 export const BLESS_TIME = 45;
-/** What the store's shelves can turn up, one at random. Never in hard mode. */
+/**
+ * What the store's shelves turn up, in order: the map first, and only once it is
+ * already found does the search fall back to a random one of these.
+ *
+ * The map used to be one draw in four, which made the room a lottery. It is the
+ * one item whose worth does not depend on the fight — it turns the floor from a
+ * guess into a route — and a store whose shelves hold the plans of the place
+ * reads right. The key is still in a chest, so the way out is not given away
+ * with it. Never in hard mode, which promises no supplies.
+ */
 export const SEARCH_ITEMS: readonly ItemKind[] = ['potion', 'lantern', 'whetstone', 'ward'];
 /**
  * The blood a landed blow throws.
@@ -1172,8 +1181,19 @@ export const LIGHT_LIT = { distance: 19, intensity: 2.7, fog: FOG_TORCH } as con
 export const EYE_H = 1.55;
 
 // ---- Musket ----
-/** Kept at or above the light creatures' hp, so a ball is always a kill on one. */
-export const MUSKET_DMG = 4;
+/**
+ * A ball kills anything with 7hp or less outright — every light creature, and
+ * the guards of the early floors — and takes two into a brute or an orc, three
+ * into the Black Knight.
+ *
+ * It was 4: a kill on the light creatures and nothing else, which made the
+ * musket worth less than a lunge (LUNGE_DMG) while costing one of a run's seven
+ * rounds, MUSKET_RELOAD seconds, and a shot heard SHOT_ALERT_RADIUS away. The
+ * sword is the weapon always in hand; the musket is the few answers to the
+ * thing that cannot be met with it, and a round is worth more than a swing that
+ * could have been taken for free.
+ */
+export const MUSKET_DMG = 7;
 export const MUSKET_RELOAD = 3.0;
 
 // ---- Ammo ----

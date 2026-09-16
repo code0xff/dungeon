@@ -17,6 +17,7 @@ export const goldEl = el('gold');
 export const bankEl = el('bank');
 const stageEl = el('stage');
 export const itemsEl = el('items');
+export const timersEl = el('timers');
 const slotsEl = el('slots');
 export const msgEl = el('msg');
 export const vignetteEl = el('vignette');
@@ -74,18 +75,24 @@ export function updateHUD(): void {
     bankEl.textContent = `Bank: ${progress.bankGold} G`;
   }
 
-  const items: string[] = [];
-  if (state.lanternT > 0) {
-    const s = Math.ceil(state.lanternT);
-    items.push(`Lantern ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`);
-  }
-  // The rooms' blessings, counted down like the lantern.
+  // Anything on a clock — the lantern and the rooms' blessings — has its own
+  // panel under the HUD, so a line ticking every second is not mixed in with
+  // gear that does not change.
   const clock = (t: number): string => {
     const s = Math.ceil(t);
     return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
   };
-  if (state.blessT > 0) items.push(`Warded ${clock(state.blessT)}`);
-  if (state.wrathT > 0) items.push(`Wrath ${clock(state.wrathT)}`);
+  const timers: string[] = [];
+  if (state.lanternT > 0) timers.push(`<b>Lantern</b><span class="clock">${clock(state.lanternT)}</span>`);
+  if (state.blessT > 0) timers.push(`<b>Warded</b><span class="clock">${clock(state.blessT)}</span>`);
+  if (state.wrathT > 0) timers.push(`<b>Wrath</b><span class="clock">${clock(state.wrathT)}</span>`);
+  // Markup rather than text, so the label and the number are styled apart. The
+  // only inputs are our own labels and two formatted clocks — nothing here comes
+  // from a player, an ally's name included.
+  timersEl.innerHTML = timers.join('<br>');
+  timersEl.classList.toggle('show', timers.length > 0);
+
+  const items: string[] = [];
   if (state.hasMap) items.push('Map');
   if (state.hasKey) items.push('Key');
   if (state.weapon === 'musket') {

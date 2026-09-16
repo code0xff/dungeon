@@ -28,8 +28,8 @@ Each landmark has one thing to use, once per floor — stand beside it, press
 **E** (or **Open** on touch) and hold still; it makes the same noise a chest
 does, and glows faintly until it is spent. Pray at the chapel's **statue** to take 35% less damage for 45 seconds;
 take up the **longsword** crossed over a shield on the watch room's wall for 40% more sword damage for 45
-seconds; search the store's **shelves** for one random potion, lantern oil,
-whetstone or ward (not in hard mode). In co-op a blessing covers the whole party.
+seconds; search the store's **shelves** for the floor's **map** — or, once you
+already hold it, a random potion, lantern oil, whetstone or ward (not in hard mode). In co-op a blessing covers the whole party.
 
 Open **Settings** from the title or pause menu to adjust mouse and touch
 sensitivity, camera motion, effects and ambience volume, brightness, render scale
@@ -269,7 +269,7 @@ place in the game is also the only place the sword hits hard.
 
 **Traps cost you the room, not your health.** A sprung trap takes 10 HP — a third
 of a potion — and is heard 24m away for 12 seconds, which is further than a
-musket shot. That is the point: a shot at least kills something. Some chests are
+musket shot. That is the point: a shot kills most things outright. Some chests are
 trapped too, and those fire when the lid comes open, so backing out still avoids
 it.
 

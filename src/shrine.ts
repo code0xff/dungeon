@@ -4,7 +4,7 @@ import { sendEvent } from './net/client';
 import { coop } from './net/session';
 import { state } from './state';
 import type { ItemKind, Shrine, ShrineKind } from './types';
-import { cancelShrine, lootBarEl, lootFillEl, showMsg, updateHUD } from './ui';
+import { cancelShrine, lootBarEl, lootFillEl, minimapEl, objectiveEl, showMsg, updateHUD } from './ui';
 
 /**
  * The landmark rooms' interactables: pray at the chapel's statue, take up the
@@ -117,6 +117,12 @@ function apply(s: Shrine, by: string | null): void {
     showMsg(by ? `${by} took up the blade — the party's blades strike harder` : 'Wrath — your blade strikes harder');
   } else if (by) {
     showMsg(`${by} searched the shelves`);
+  } else if (!state.hasMap) {
+    // The plans of the floor, always — see SEARCH_ITEMS.
+    state.hasMap = true;
+    minimapEl.style.display = 'block';
+    objectiveEl.style.opacity = '0';
+    showMsg('The floor plans — the dungeon is laid out');
   } else {
     const item = SEARCH_ITEMS[Math.floor(Math.random() * SEARCH_ITEMS.length)] ?? 'potion';
     if (item === 'potion') state.potions++;

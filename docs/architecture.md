@@ -465,7 +465,9 @@ should persist but lives in `state` is silently wiped every run.
 banks at the end of the old run rather than at the start of the next one.
 
 There is no reactivity. Systems read and write `state` directly, and `ui.ts`
-pushes to the DOM when something calls `updateHUD()`. If you add a field to
+pushes to the DOM when something calls `updateHUD()`. The HUD is two panels in
+one `#hudCol` column: the gear line, and `#timers` under it for anything counting
+down — the lantern and the rooms' blessings — hidden when there is none. If you add a field to
 `state`, reset it in `buildWorld()` — a field that persists across runs by
 accident is a bug that only shows up on the second run. If you add one to
 `progress`, handle it in both `bankRun()` and `loseRun()`, and read it back

@@ -144,7 +144,8 @@ extracted, not the code that shipped.
 
 ## Landmark and settings checks
 
-- Shrines: three registered in normal mode, two in hard (no shelves). Stand in
+- Shrines: three registered in normal mode, two in hard (no shelves). The
+  shelves give the map, and fall back to a consumable only once it is held. Stand in
   reach, press E, hold still for the time in `SHRINE`: the timer shows in the
   HUD and the shrine is spent. Moving or swinging cancels. A hit of 20 under the
   chapel blessing takes 13. Look at the longsword: it lies flat on its wall.
