@@ -362,8 +362,8 @@ function spawnChests(scale: number): void {
   const count = Math.max(CHEST_ITEMS.length, Math.round(CHEST_COUNT * scale));
   // Which chest holds which item is settled *before* the chests are built,
   // because a chest is trapped at construction — the tell goes on the lid then
-  // — and one that will hold the key or the map has to be built untrapped. See
-  // CHEST_SAFE_ITEMS for why those two and not the rest.
+  // — and the one that will hold the key has to be built untrapped. See
+  // CHEST_SAFE_ITEMS for why that one and not the rest.
   const order = shuffle(Array.from({ length: count }, (_, i) => i));
   const itemAt = new Map<number, ItemKind>();
   CHEST_ITEMS.forEach((it, i) => itemAt.set(order[i], it));

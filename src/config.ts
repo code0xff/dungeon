@@ -523,23 +523,25 @@ export const CHEST_COUNT = 14;
  *
  * The key is what makes this list the run rather than a bonus: without it the
  * portal will not open, so the dungeon has to be searched instead of crossed.
- * Exactly one is placed. The map is worth far more now that it marks where the
- * unopened chests are.
+ * Exactly one is placed.
+ *
+ * The map is not here. It is the store's shelves and nothing else — one place
+ * on the floor that always has it — and leaving a copy in the chests meant
+ * finding it twice, the second one worth nothing.
  */
 export const CHEST_ITEMS: readonly ItemKind[] = [
-  'key', 'lantern', 'map', 'ammo', 'ammo', 'potion', 'potion', 'whetstone', 'ward',
+  'key', 'lantern', 'ammo', 'ammo', 'potion', 'potion', 'whetstone', 'ward',
 ];
 /**
  * Items that are never put in a trapped chest.
  *
  * A trapped chest is a bet: the tell on the lid says "this one costs", and the
  * player decides whether the contents are worth it. The key is not a bet — the
- * run cannot end without it, so a trap on it is not a choice, it is a toll. The
- * map is on the list for the same reason at lower stakes: it is the thing that
- * makes the rest of the chests findable. Everything else stays fair game;
- * gambling a potion is the whole point of the tell.
+ * run cannot end without it, so a trap on it is not a choice, it is a toll.
+ * Everything else stays fair game; gambling a potion is the whole point of the
+ * tell. The map was the other entry here, until it left the chests entirely.
  */
-export const CHEST_SAFE_ITEMS: readonly ItemKind[] = ['key', 'map'];
+export const CHEST_SAFE_ITEMS: readonly ItemKind[] = ['key'];
 
 /**
  * Number keys for the consumable slots. 1 and 2 are the weapons, so the pack

@@ -7,7 +7,7 @@ import {
 import { setLampLit, setPortalOpen } from '../scene';
 import { el } from '../dom';
 import { state } from '../state';
-import { cancelLoot, minimapEl, objectiveEl, overlayEl, showMsg, updateHUD } from '../ui';
+import { cancelLoot, overlayEl, showMsg, updateHUD } from '../ui';
 import { isAuthority, net, onNetClaim, onNetEvent, onNetParty, sendClaim, sendEvent } from './client';
 import { remotePosition } from './remote';
 import { packWard, unpackWard } from './protocol';
@@ -258,11 +258,6 @@ onNetEvent((k, i, by) => {
     state.hasKey = true;
     setPortalOpen(true);
     showMsg(`${who} found the key — the portal will open`);
-  } else if (c.item === 'map') {
-    state.hasMap = true;
-    minimapEl.style.display = 'block';
-    objectiveEl.style.opacity = '0';
-    showMsg(`${who} found the map`);
   }
   updateHUD();
 });

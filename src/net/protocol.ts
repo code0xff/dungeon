@@ -53,7 +53,7 @@
  */
 // Landmark rooms change the seeded floor plan and content placement. Old
 // clients must not share a run even though the message shapes are unchanged.
-export const PROTOCOL_VERSION = 14;
+export const PROTOCOL_VERSION = 15;
 
 /** The port the host listens on for both the game page and the socket. */
 export const COOP_PORT = 5848;

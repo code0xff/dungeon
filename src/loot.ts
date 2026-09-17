@@ -10,7 +10,7 @@ import { setLampLit, setPortalOpen } from './scene';
 import { state } from './state';
 import type { Chest } from './types';
 import {
-  cancelWard, drinkBarEl, drinkFillEl, lootBarEl, lootFillEl, minimapEl, objectiveEl, showMsg, updateHUD, wpnBtn,
+  cancelWard, drinkBarEl, drinkFillEl, lootBarEl, lootFillEl, showMsg, updateHUD, wpnBtn,
 } from './ui';
 import { setWeapon, startReload } from './weapons';
 import { STEP, taught } from './lesson';
@@ -89,12 +89,6 @@ export function openChest(c: Chest): void {
       // costs nothing to carry and everything to waste.
       state.lanterns++;
       msg += `\nLantern — press ${LANTERN_KEY} to light it`;
-      break;
-    case 'map':
-      state.hasMap = true;
-      minimapEl.style.display = 'block';
-      objectiveEl.style.opacity = '0';
-      msg += '\nMap — the dungeon layout is revealed';
       break;
     case 'potion':
       state.potions++;

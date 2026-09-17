@@ -278,7 +278,8 @@ export interface Monster {
 }
 
 // ================= Chests and props =================
-export type ItemKind = 'key' | 'lantern' | 'map' | 'ammo' | 'potion' | 'musket' | 'whetstone' | 'ward';
+/** No 'map': the floor plan comes from the store's shelves, never from a chest. */
+export type ItemKind = 'key' | 'lantern' | 'ammo' | 'potion' | 'musket' | 'whetstone' | 'ward';
 
 export interface Chest {
   mesh: THREE.Group;
