@@ -1585,6 +1585,16 @@ export const SPAWN_PEAK_STAGE = 12;
  */
 export const FINAL_STAGE = 12;
 
+/**
+ * The purse a training run is handed, refilled every time its counter opens.
+ *
+ * Far past what anything in the shop costs at the deepest stage, on purpose:
+ * training is for practising a fight, not for practising a budget. It is not
+ * infinite only because a number on the screen reads better than a symbol, and
+ * because the prices still show what the same kit would cost in a real run.
+ */
+export const TRAINING_GOLD = 9999;
+
 // ---- Tutorial ----
 /**
  * The practice room's grid size, walls included, so the floor is two less a

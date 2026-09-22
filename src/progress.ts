@@ -69,6 +69,41 @@ function fresh(): Progress {
 export const progress: Progress = fresh();
 
 /**
+ * The save, put aside while a training run borrows `progress`.
+ *
+ * Training is the ordinary game at a chosen stage with a full purse, and every
+ * system in it — the dungeon size, the spawn curve, the shop's prices, the HUD
+ * — already reads `progress`. Handing them a second run object would mean
+ * threading it through all of them and finding the one place that was missed.
+ * So the save is copied out, `progress` is overwritten for the duration, and
+ * it is copied back on the way out. Nothing is written to localStorage while
+ * this is set: saveProgress() returns early, which is what keeps a practice
+ * run from ever touching the real one.
+ */
+let shelved: Progress | null = null;
+
+/** Whether a training run is borrowing `progress`. */
+export const inTraining = (): boolean => shelved !== null;
+
+/** Starts, or re-equips, a training run at `stage` with `gold` to spend. */
+export function enterTraining(stage: number, hard: boolean, gold: number): void {
+  if (!shelved) shelved = { ...progress };
+  Object.assign(progress, fresh(), {
+    stage, hard, bankGold: gold, started: true,
+    // Its own dungeon each time it is entered, so the same stage practised
+    // twice is not the same maze twice.
+    seed: randomSeed(),
+  });
+}
+
+/** Puts the save back. Safe to call when no training run is up. */
+export function leaveTraining(): void {
+  if (!shelved) return;
+  Object.assign(progress, shelved);
+  shelved = null;
+}
+
+/**
  * Reading a stored field only when it has the right type means a corrupt or
  * half-written save degrades to the default rather than poisoning the run with
  * NaN gold or an undefined ammo count.
@@ -145,6 +180,8 @@ export function setHard(hard: boolean): void {
 }
 
 export function saveProgress(): void {
+  // A training run is not a save. See `shelved` above.
+  if (shelved) return;
   try {
     localStorage.setItem(KEY, JSON.stringify(progress));
   } catch {

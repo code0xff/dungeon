@@ -68,6 +68,7 @@ dungeon/
 │  ├─ mode.ts        normal or hard, asked on a new game
 │  ├─ guide.ts       the controls screen
 │  ├─ tutorial.ts    the practice room and its lessons
+│  ├─ training.ts    pick a stage, outfit freely, keep nothing
 │  ├─ lesson.ts      what the tutorial has unlocked so far
 │  ├─ weapons.ts     weapon swap and reload
 │  ├─ combat.ts      sword, musket, guard and parry, taking damage
@@ -183,13 +184,20 @@ rules, with the detail in [docs/](docs/). `CLAUDE.md` is a symlink to it.
 | First / third person | `V`, or the eye button at the top — sword only; the musket always aims first-person. Remembered between runs |
 
 **The game opens on a title screen** over the dungeon itself: Continue (or
-Play, the first time), New game, Tutorial, Multiplayer and Controls, and the
-rules in four lines. The tutorial is one room, one lesson at a time — move,
+Play, the first time), New game, Tutorial, Multiplayer, Training and Controls,
+and the rules in four lines. The tutorial is one room, one lesson at a time — move,
 the sword, the musket, the dodge, the lunge, the parry, the potion, the
 lantern, a chest with the key in it — each on a real zombie or a real chest,
 and the portal at the end leads to stage 1. The zombies in there are rooted:
 they swing if you stand close, but never come to you. Skip is always on
 screen. Nothing done in the room counts, and nothing in it can kill you.
+
+**Training** is any stage on demand. Pick one from the title — past stage 12 too, where everything keeps growing — turn hard rules on or off, and outfit
+at the shop with a purse that is refilled every time it opens: take whatever you
+want to practise with. Nothing is banked, nothing is saved, and the real save is
+set aside untouched for the duration. Dying puts you back at the counter for the
+same stage; walking out offers the next one down. Quit from the pause menu ends
+it and hands the save back.
 
 **Then a choice: normal or hard.** Asked on New game — or after a first
 tutorial — and kept for the life of the save, deaths included. Hard is the same dungeon with

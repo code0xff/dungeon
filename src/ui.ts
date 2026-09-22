@@ -3,11 +3,12 @@ import {
   WHETSTONE_KEY,
 } from './config';
 import { context2d, el, firstChild, queryChild } from './dom';
-import { bankRun, loseRun, progress } from './progress';
+import { bankRun, inTraining, loseRun, progress } from './progress';
 import { flashLight } from './scene';
 import { closeShop, openShop } from './shop';
 import { leftRun, net } from './net/client';
 import { coop } from './net/session';
+import { trainingEnded } from './training';
 import { state } from './state';
 import { finishDrink } from './loot';
 
@@ -70,6 +71,9 @@ export function updateHUD(): void {
   } else if (coop.active) {
     stageEl.textContent = coop.hard ? `Level ${coop.level} · Hard` : `Level ${coop.level}`;
     bankEl.textContent = coop.carry ? `Purse: ${coop.carry.bankGold} G` : 'Multiplayer';
+  } else if (inTraining()) {
+    stageEl.textContent = progress.hard ? `Training · Stage ${progress.stage} · Hard` : `Training · Stage ${progress.stage}`;
+    bankEl.textContent = 'Nothing here counts';
   } else {
     stageEl.textContent = progress.hard ? `Stage ${progress.stage} · Hard` : `Stage ${progress.stage}`;
     bankEl.textContent = `Bank: ${progress.bankGold} G`;
@@ -348,6 +352,15 @@ export function endRun(extracted: boolean): void {
     else closeShop();
     el('ovCredit').style.display = 'none';
     overlayEl.style.display = 'flex';
+    updateHUD();
+    return;
+  }
+
+  // A training run banks nothing and loses nothing: the save is not even in
+  // `progress` while it runs (see progress.ts). All that is left is to say what
+  // happened and offer the counter again.
+  if (inTraining()) {
+    trainingEnded(extracted);
     updateHUD();
     return;
   }

@@ -252,8 +252,18 @@
                 font-size:14px; line-height:1.55; opacity:.62; text-align:left; }
   .titleRules li { margin:7px 0; padding-left:16px; position:relative; }
   .titleRules li::before { content:'—'; position:absolute; left:0; opacity:.6; }
-  #modePick { position:fixed; inset:0; z-index:25; display:none; align-items:center; justify-content:center;
-              background:rgba(2,3,4,.94); padding:20px; color:var(--ink); }
+  #modePick, #trainPick { position:fixed; inset:0; z-index:25; display:none; align-items:center;
+              justify-content:center; background:rgba(2,3,4,.94); padding:20px; color:var(--ink); }
+  /* The stepper: two buttons either side of the number, sized for a thumb. */
+  .trainRow { display:flex; align-items:center; justify-content:center; gap:18px; margin:14px 0 4px; }
+  .trainStep { width:46px; height:46px; font-size:22px; line-height:1; cursor:pointer;
+               color:var(--ink); background:rgba(190,180,160,.06);
+               border:1px solid rgba(190,180,160,.22); }
+  .trainStep:hover { background:rgba(190,180,160,.13); }
+  .trainStage { min-width:96px; text-align:center; }
+  .trainStage b { display:block; font-family:var(--display); font-size:30px; color:var(--ink-bright);
+                  line-height:1.1; font-variant-numeric:tabular-nums; }
+  .trainLabel { font-family:var(--display); font-size:10px; letter-spacing:2.2px; opacity:.45; }
   .modeNote { font-size:13px; opacity:.6; line-height:1.5; margin:6px 2px 14px; }
   #guide, #coop, #settings { position:fixed; inset:0; z-index:24; display:none; align-items:center;
            justify-content:flex-start; flex-direction:column;
@@ -617,6 +627,7 @@
       <button class="menuItem" id="titleNew">New game</button>
       <button class="menuItem" id="titleTutorial">Tutorial</button>
       <button class="menuItem" id="titleCoop">Multiplayer</button>
+      <button class="menuItem" id="titleTraining">Training</button>
       <button class="menuItem" id="titleGuide">Controls</button>
       <button class="menuItem" id="titleSettings">Settings</button>
     </div>
@@ -632,6 +643,25 @@
 <!-- Asked once, before stage 1. It sits above the menu because it is not
      something the menu can be opened over: the answer is needed before there
      is a game to pause. -->
+<!-- Training: pick a stage, then the ordinary outfitting screen with a full
+     purse. Nothing here is banked and nothing is saved. -->
+<div id="trainPick">
+  <div class="guidePanel">
+    <div class="guideHead">Training</div>
+    <p class="modeNote">Start at any stage with anything you want to carry. Nothing is banked, nothing is saved, and your real run is untouched.</p>
+    <div class="trainRow">
+      <button class="trainStep" id="trainDown">&minus;</button>
+      <div class="trainStage"><span class="trainLabel">Stage</span><b id="trainStage">1</b></div>
+      <button class="trainStep" id="trainUp">+</button>
+    </div>
+    <p class="modeNote" id="trainNote"></p>
+    <button class="menuItem" id="trainHard">Hard rules: off</button>
+    <p class="modeNote">Hard rules change the dungeon itself: one chest with the key in it, and no supplies to find.</p>
+    <button class="menuItem" id="trainStart">To the counter</button>
+    <button class="menuItem" id="trainBack">Back</button>
+  </div>
+</div>
+
 <div id="modePick">
   <div class="guidePanel">
     <div class="guideHead">Choose your run</div>

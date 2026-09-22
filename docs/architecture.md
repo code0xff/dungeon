@@ -511,6 +511,24 @@ sprayed from the struck side back toward the attacker so it hangs in front of
 the body. Unlit because a light per hit would recompile every lit shader, the
 same reason a ward has none.
 
+## Training
+
+Training is the ordinary game with the stage chosen and the purse full. Rather
+than threading a second run object through the dungeon size, the spawn curve,
+the shop's prices and the HUD — all of which read `progress` — `progress.ts`
+shelves the save, overwrites `progress` for the duration, and puts it back on
+the way out (`enterTraining` / `leaveTraining` / `inTraining`). `saveProgress()`
+returns early while it is shelved, which is what keeps a practice run from
+touching localStorage; `endRun()` returns before `bankRun()` and `loseRun()` for
+the same reason. Quitting to the title restores the save **before** rebuilding
+the world, or Continue would open the practice dungeon still standing behind it.
+
+`training.ts` imports neither `ui.ts` nor `input.ts`: `ui.ts` imports it for
+`trainingEnded()`, and an import back puts `input.ts` in that cycle, where its
+module-level reads of `ui.ts`'s buttons run before `ui.ts` has defined them —
+the failure described under Module layers. The overlay comes from `dom.ts` and
+the audio-and-pointer-lock gesture is handed in by `menu.ts`.
+
 ## Offline and install
 
 The game is a PWA. `assets/manifest.webmanifest` and `assets/sw.js` sit in

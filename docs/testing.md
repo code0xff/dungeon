@@ -142,6 +142,15 @@ Then confirm in the real game — 30 rebuilds through the restart button, checki
 for duplicate grid cells — because the simulation only proves the model you
 extracted, not the code that shipped.
 
+## Training mode
+
+- From the title: pick a stage, outfit, descend. The HUD says Training, the
+  dungeon is the chosen stage's, and what was bought is in the pack.
+- `localStorage` must not change at any point: check the stored stage and gold
+  before entering and after dying, extracting and quitting.
+- Die: the counter reopens on the same stage. Extract: on the next one down.
+  Quit from the pause menu: the save is back and the title offers its own stage.
+
 ## Landmark and settings checks
 
 - Shrines: three registered in normal mode, two in hard (no shelves). The

@@ -2,11 +2,12 @@ import { FINAL_STAGE, GUIDE_KEY } from './config';
 import { initAudio } from './audio';
 import { el } from './dom';
 import { closeGuidePanel, openGuidePanel } from './guide';
-import { progress, resetProgress } from './progress';
+import { inTraining, progress, resetProgress } from './progress';
 import { closeLobbyPanel, leaveLobby, openLobbyPanel } from './net/lobby';
 import { coop } from './net/session';
 import { closeShop } from './shop';
 import { state } from './state';
+import { endTraining, openTraining } from './training';
 import { leaveTutorial, startTutorial } from './tutorial';
 import { lockFromClick } from './input';
 import { guideBtn, guideCloseBtn, lockHintEl, objectiveEl } from './ui';
@@ -259,6 +260,21 @@ titleTutorial.addEventListener('click', () => {
   startTutorial(progress.started ? buildWorld : () => pickMode(buildWorld));
 });
 
+el('titleTraining').addEventListener('click', () => {
+  fromTitle = true;
+  titleEl.style.display = 'none';
+  // The picker is its own panel over the world, like the mode question: the
+  // title goes away and comes back if Back is pressed.
+  openTraining(() => {
+    titleEl.style.display = 'flex';
+    syncUi();
+  }, () => {
+    initAudio();
+    lockFromClick();
+  });
+  syncUi();
+});
+
 el('titleCoop').addEventListener('click', () => {
   fromTitle = true;
   titleEl.style.display = 'none';
@@ -311,7 +327,9 @@ quitBtn.addEventListener('click', () => {
   if (!armed) {
     armed = true;
     quitBtn.classList.add('arm');
-    quitBtn.textContent = inParty ? 'Leave the party?' : state.tutorial ? 'Leave the lesson?' : 'Quit to the title?';
+    quitBtn.textContent = inParty ? 'Leave the party?'
+      : state.tutorial ? 'Leave the lesson?'
+        : inTraining() ? 'Leave training?' : 'Quit to the title?';
     return;
   }
   closeMenu();
@@ -322,6 +340,11 @@ quitBtn.addEventListener('click', () => {
     leaveLobby();
   } else if (state.tutorial) {
     leaveTutorial();
+    buildWorld();
+  } else if (inTraining()) {
+    // The save comes back before the world does, or the title would offer
+    // Continue into the practice dungeon standing behind it.
+    endTraining();
     buildWorld();
   } else if (state.gameOver) {
     // The run is already settled — banked or lost — so what Continue should
