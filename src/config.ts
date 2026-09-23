@@ -749,6 +749,21 @@ export const SWING_SLOW = 0.35;
  * running away is not a cost at all.
  */
 export const DRINK_SLOW = SWING_SLOW;
+/**
+ * Seconds to grind the blade back with a whetstone, and the movement speed
+ * while it goes on, as a fraction of SPEED.
+ *
+ * Longer than POTION_DRINK because it is a bigger thing to be caught doing: a
+ * potion is a swallow in the middle of a fight, a whetstone is work, and the
+ * repair it gives (WHETSTONE_REPAIR) is worth far more than one potion's
+ * health. Sharpening used to be instant, which made the only question whether
+ * the blade was worn — never where you were standing, or what was coming.
+ *
+ * Spent up front and uninterruptible, exactly like the potion: dying with the
+ * stone on the blade loses it, and there is no cancel rule to learn.
+ */
+export const GRIND_TIME = 1.6;
+export const GRIND_SLOW = DRINK_SLOW;
 /** How fast the shield comes up and down, in units of 1/second. */
 export const GUARD_RAISE = 11;
 /** Fraction of a blocked hit that still gets through, by creature weight. */

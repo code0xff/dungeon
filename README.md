@@ -231,7 +231,10 @@ edge, and damage falls with it — a fresh blade kills a zombie in five swings, 
 ruined one in nine. It never stops working entirely, because a weapon that does
 would strand you with no way back to the exit. A **whetstone** from a chest or
 the shop grinds 45 points back, spent with `6` — the only repair available while
-you are still down there.
+you are still down there. It takes 1.6 seconds on the blade and you move at a
+third of your pace while it does, so it is work you find a corner for, not
+something done in a doorway. The stone is spent at the first stroke, like a
+potion at the first sip: die mid-grind and it goes with you.
 
 **Wards** mark where you have been. Press `5`, hold still for 0.8s — move,
 swing or get hit and it is not set, and not spent — and a green gem is set on the

@@ -581,6 +581,8 @@ export function buildWorld(): void {
   // The map is never carried — see the note on Progress in src/progress.ts.
   // A potion left half-drunk when the run ended must not leave its bar on screen.
   state.drinkT = -1;
+  // Nor a whetstone left half-ground, which shares that bar.
+  state.grindT = -1;
   // A ward half set when the run ended is simply not set. cancelLoot() below
   // puts away the bar the two share.
   state.wardT = -1;

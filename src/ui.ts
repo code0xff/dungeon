@@ -10,7 +10,7 @@ import { leftRun, net } from './net/client';
 import { coop } from './net/session';
 import { trainingEnded } from './training';
 import { state } from './state';
-import { finishDrink } from './loot';
+import { finishDrink, finishGrind } from './loot';
 
 // ---- Frequently used elements ----
 export const hpbarEl = el('hpbar');
@@ -269,9 +269,14 @@ export function endRun(extracted: boolean): void {
   // Before `gameOver` is set, because finishDrink() refuses to heal a corpse —
   // which is right, and is exactly why this cannot wait until after the flag.
   if (extracted && state.drinkT >= 0) finishDrink();
+  // And a blade being sharpened as the portal is reached comes out sharpened:
+  // the stone was spent at the first stroke, and durability carries out.
+  if (extracted && state.grindT >= 0) finishGrind();
   state.gameOver = true;
   state.drinkT = -1;
+  state.grindT = -1;
   drinkBarEl.style.display = 'none';
+  drinkFillEl.classList.remove('grind');
   cancelLoot();
   // The frame loop stops here, and anything mid-animation stops with it. The
   // shield would stay frozen half-raised behind the panel, and a creature

@@ -142,6 +142,15 @@ Then confirm in the real game — 30 rebuilds through the restart button, checki
 for duplicate grid cells — because the simulation only proves the model you
 extracted, not the code that shipped.
 
+## Consumables under way
+
+- Potion and whetstone both plant the player, share one bar (green for the
+  potion, grey for the stone) and refuse to start on top of each other.
+- Measure the speed while each is going: it should be SWING_SLOW of the free
+  pace, not merely slower. Compare the same steps from the same spot.
+- Both are spent up front. Dying mid-use loses the item; reaching the portal
+  mid-use still applies it.
+
 ## Training mode
 
 - From the title: pick a stage, outfit, descend. The HUD says Training, the

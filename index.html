@@ -444,6 +444,8 @@
      while a potion goes down, and two states driving one bar would show a lie. */
   #drinkBar { position:fixed; top:calc(50% + 28px); left:50%; transform:translateX(-50%); width:90px; height:4px; z-index:10; display:none; background:rgba(201,192,174,.15); border-radius:2px; overflow:hidden; }
   #drinkBar div { height:100%; width:0; background:#7fc98a; }
+  /* The same bar serves the whetstone; the colour is what says which. */
+  #drinkBar div.grind { background:#b6bec9; }
   #slots { margin-top:5px; display:flex; gap:10px; }
   .slot { display:inline-flex; align-items:center; gap:5px; font-size:13px; }
   /* A keycap, so the number reads as a key to press and not as a quantity. */

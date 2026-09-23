@@ -201,6 +201,8 @@ export const state = {
   shrines: [] as Shrine[],
   /** The unused shrine in reach, if any, for the prompt. */
   nearShrine: null as Shrine | null,
+  /** Seconds into grinding the blade with a whetstone; -1 when not. */
+  grindT: -1,
   /** Seconds into using a shrine, and which; -1 when not using one. */
   shrineT: -1,
   shrineAt: null as Shrine | null,

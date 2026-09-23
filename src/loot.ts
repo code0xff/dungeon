@@ -133,7 +133,8 @@ export function openChest(c: Chest): void {
 export function usePotion(): void {
   if (state.gameOver) return;
   if (!taught(STEP.potion)) return;
-  if (state.drinkT >= 0) return;
+  // One thing at a time: both of these plant the player and share the bar.
+  if (state.drinkT >= 0 || state.grindT >= 0) return;
   if (state.potions <= 0) return showMsg('No potions');
   if (state.hp >= MAX_HP) return showMsg('Already at full health');
   // Spent at the first sip, not the last. Otherwise the key could be held down
@@ -166,13 +167,30 @@ export function finishDrink(): void {
  */
 export function useWhetstone(): void {
   if (state.gameOver) return;
+  if (state.drinkT >= 0 || state.grindT >= 0) return;
   if (state.whetstones <= 0) return showMsg('No whetstones');
   if (state.swordDur >= SWORD_DUR_MAX) return showMsg('The blade is already keen');
+  // Spent at the first stroke, like the potion at the first sip: otherwise the
+  // key held down would grind the same stone every frame.
   state.whetstones--;
+  state.grindT = 0;
+  drinkFillEl.classList.add('grind');
+  drinkBarEl.style.display = 'block';
+  sfxPickup();
+  updateHUD();
+  showMsg('Grinding the blade — you are slow while you do');
+}
+
+/** The edge comes back here, GRIND_TIME later. loop.ts calls this. */
+export function finishGrind(): void {
+  state.grindT = -1;
+  drinkBarEl.style.display = 'none';
+  drinkFillEl.style.width = '0%';
+  drinkFillEl.classList.remove('grind');
+  if (state.gameOver) return;
   state.swordDur = Math.min(SWORD_DUR_MAX, state.swordDur + WHETSTONE_REPAIR);
   // So the "going blunt" warning can fire again if it wears down a second time.
   state.swordWarned = false;
-  sfxPickup();
   updateHUD();
   showMsg(`Blade sharpened — ${Math.round((state.swordDur / SWORD_DUR_MAX) * 100)}%`);
 }

@@ -7,7 +7,7 @@ import {
   CREATURE_STEP, SPATIAL_AUDIO,
   DASH_ROLL, DASH_SPEED, DASH_TIME, EYE_H, GROUND_SPEED_SMOOTH,
   FALLBACK_ATTACK_TIME, GEAR_BOB, GEAR_BOB_ROLL, LAMP_SWAY, LAMP_SWAY_LAG,
-  CREATURE_PUSH, DRINK_SLOW, GUARD_RAISE, GUARD_SLOW, LANTERN_WARN, SWING_SLOW, LOOT_TIME, MUSKET_RELOAD, PLAYER_R,
+  CREATURE_PUSH, DRINK_SLOW, GRIND_SLOW, GRIND_TIME, GUARD_RAISE, GUARD_SLOW, LANTERN_WARN, SWING_SLOW, LOOT_TIME, MUSKET_RELOAD, PLAYER_R,
   PORTAL_RADIUS, POTION_DRINK, STAGGER_LEAN, STAGGER_LEAN_ACTED, STAGGER_TIME, staggerSpeed,
   SPEED,
   TRAP_RADIUS,
@@ -20,7 +20,7 @@ import {
 import { playerHurt, releaseQueuedAttack, resolveSwing, springTrap, staggerPush } from './combat';
 import { findPath } from './dungeon';
 import { edgeTurn, keys, moveInput } from './input';
-import { finishDrink, finishWard, openChest } from './loot';
+import { finishDrink, finishGrind, finishWard, openChest } from './loot';
 import { setTrapJaws } from './props';
 import { nearestPlayer, sendOwnPose, updateRemotes } from './net/remote';
 import { followMobs, mobAnim, publishMobs, reportMobHit } from './net/mobsync';
@@ -226,7 +226,8 @@ function updatePlayer(dt: number, now: number): boolean {
     // And mid-swing or mid-drink you are planted; see SWING_SLOW. Multiplied,
     // not minimised: a guarded swing is not a thing the sword allows anyway.
     const sp = SPEED * (state.guarding ? GUARD_SLOW : 1)
-      * (state.swingT >= 0 ? SWING_SLOW : 1) * (state.drinkT >= 0 ? DRINK_SLOW : 1);
+      * (state.swingT >= 0 ? SWING_SLOW : 1) * (state.drinkT >= 0 ? DRINK_SLOW : 1)
+      * (state.grindT >= 0 ? GRIND_SLOW : 1);
     state.moveDirX = Math.sin(state.yaw) * f - Math.cos(state.yaw) * s;
     state.moveDirZ = Math.cos(state.yaw) * f + Math.sin(state.yaw) * s;
     step(state.moveDirX * sp * dt, state.moveDirZ * sp * dt);
@@ -930,6 +931,14 @@ function updateDrink(dt: number): void {
   if (state.drinkT >= POTION_DRINK) finishDrink();
 }
 
+/** The same, for a whetstone on the blade. They share the bar and cannot overlap. */
+function updateGrind(dt: number): void {
+  if (state.grindT < 0) return;
+  state.grindT += dt;
+  drinkFillEl.style.width = Math.min(100, (state.grindT / GRIND_TIME) * 100) + '%';
+  if (state.grindT >= GRIND_TIME) finishGrind();
+}
+
 /** Burns the lantern down, warns once, and puts it out when the fuel runs dry. */
 /**
  * A ward going down. Moving calls it off, as it does a chest — walking includes
@@ -1106,6 +1115,7 @@ export function animate(): void {
     updateWeapons(dt);
     updateLantern(dt);
     updateDrink(dt);
+    updateGrind(dt);
     updateWard(dt, moving);
     updateShrine(dt, moving);
     // One dungeon, one simulation. Everyone else draws what they are told —
