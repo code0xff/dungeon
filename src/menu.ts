@@ -271,6 +271,10 @@ el('titleTraining').addEventListener('click', () => {
   }, () => {
     initAudio();
     lockFromClick();
+    // The same exit every other way off the title takes. Without it `state.title`
+    // and `state.paused` stayed set behind the counter, and Descend built the
+    // dungeon into a frozen frame — the game looked like it was still loading.
+    leaveTitle();
   });
   syncUi();
 });

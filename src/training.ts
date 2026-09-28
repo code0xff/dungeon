@@ -94,6 +94,10 @@ function outfit(at: number): void {
   el('ovCredit').style.display = 'none';
   el('ovWatch').style.display = 'none';
   el('restart').textContent = 'Descend';
+  // The counter is not a place the dungeon goes on without you. Nothing has
+  // started yet — or the run that had has just ended — so the frame loop is
+  // held the way it is on any other end-of-run screen. buildWorld() clears it.
+  state.gameOver = true;
   openShop(progress, () => {});
   el('overlay').style.display = 'flex';
 }
