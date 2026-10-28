@@ -236,7 +236,20 @@ Nothing about a guardian is sent that is not sent for any creature. The arena
 is carved from the seed by every client and by the host. The guardian is the
 last creature spawned, so its index matches everywhere. The key is derived:
 each client hands it over when the guardian's hp reaches 0, however that hp
-arrived. Protocol 16 marks the change in what a seed builds.
+arrived. Protocol 16 marks the change in what a seed builds; 17 the levers,
+the pages, the two new creatures and the third guardian.
+
+The colossus's slam reaches only the creature's target, and an ally's copy of
+it goes out as an ordinary `reportMobHit`, so their own shield is consulted on
+their machine — a slam aimed at an ally can be blocked there. Like the orc's
+bellow, the slowed rear-up is seen only by the authority; followers see the
+attack clip at its normal rate.
+
+Levers are a `lever` world event: everyone lays them out in the same dead
+ends, and whoever throws one sends its index. The last one opens every
+client's portal. Bonus goals and journal pages are per player and send
+nothing. The plague-bearer's burst is judged by each client for its own
+player, as a trap is.
 
 The charge is simulated by the authority alone, like every move. Followers see
 it as a creature standing still and then running, which is what it is; the

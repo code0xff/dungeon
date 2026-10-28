@@ -25,6 +25,11 @@ export const vignetteEl = el('vignette');
 export const objectiveEl = el('objective');
 /** The objective card's first line, which says what this level's key is behind. */
 export const objectiveLineEl = el('objectiveLine');
+/** The card's heading — chapter and stage — and its optional goal. See showObjective(). */
+export const objectiveHeadEl = el('objectiveHead');
+export const objectiveBonusEl = el('objectiveBonus');
+/** The optional goal's running count, under the pack. See goals.ts. */
+export const goalEl = el('goal');
 export const overlayEl = el('overlay');
 export const promptEl = el('prompt');
 export const lootBarEl = el('lootBar');
@@ -233,6 +238,16 @@ export function drawMinimap(): void {
   for (const w of state.wardMarks) {
     mctx.beginPath();
     mctx.arc(ox + (w.x / CELL) * s, oz + (w.z / CELL) * s, 2.5, 0, Math.PI * 2);
+    mctx.fill();
+  }
+  // The levers are the sealed stage's route, so the map that shows the way shows
+  // them — thrown ones dimmed, like an opened chest.
+  for (const l of state.levers) {
+    mctx.fillStyle = l.pulled ? 'rgba(255,150,70,.3)' : '#ff9646';
+    mctx.beginPath();
+    mctx.moveTo(ox + (l.x / CELL) * s, oz + (l.z / CELL) * s - 3.5);
+    mctx.lineTo(ox + (l.x / CELL) * s + 3, oz + (l.z / CELL) * s + 2.5);
+    mctx.lineTo(ox + (l.x / CELL) * s - 3, oz + (l.z / CELL) * s + 2.5);
     mctx.fill();
   }
   mctx.fillStyle = '#6a9fd8';

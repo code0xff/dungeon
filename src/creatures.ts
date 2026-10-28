@@ -132,4 +132,15 @@ export const MAKERS: Record<CreatureKey, () => ProceduralCreature> = {
     skin: 0x1a1a1f, rag: 0x0c0c10, eye: 0xff2020,
     size: 1.1, bulk: 1.15, hunch: 0.05, armBase: [-0.4, -0.4], limp: 1, shackle: false,
   }),
+  // The zombie's frame, swollen and green: wider than the zombie it shambles
+  // like, so the box says "keep back" before the burst does.
+  plague: () => makeHumanoid({
+    skin: 0x6f8a3c, rag: 0x2c2a18, eye: 0xb8ff40,
+    size: 0.98, bulk: 1.25, hunch: 0.42, armBase: [-0.35, -0.2], limp: 0.75, shackle: false,
+  }),
+  // The biggest box in the game, the colour of old bone.
+  colossus: () => makeHumanoid({
+    skin: 0xcfc4a8, rag: 0x3a3226, eye: 0xff5a1a,
+    size: 1.32, bulk: 1.6, hunch: 0.2, armBase: [-0.3, -0.3], limp: 1, shackle: false,
+  }),
 };

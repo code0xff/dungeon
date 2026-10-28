@@ -14,6 +14,7 @@ import { guideBtn, guideCloseBtn, lockHintEl, objectiveEl } from './ui';
 import { buildWorld, showObjective } from './world';
 import { pickMode } from './mode';
 import { closeSettingsPanel, openSettingsPanel } from './settings-panel';
+import { fillJournal, hidePage } from './journal';
 
 /**
  * The pause menu, on GUIDE_KEY.
@@ -47,6 +48,14 @@ const coopPanelEl = el('coop');
 let armed = false;
 let guideOpen = false;
 let settingsOpen = false;
+let journalOpen = false;
+const journalEl = el('journal');
+
+function setJournal(open: boolean): void {
+  journalOpen = open;
+  if (open) fillJournal();
+  journalEl.style.display = open ? 'flex' : 'none';
+}
 /** New game on the title has been clicked once and is waiting for confirmation. */
 let titleArmed = false;
 /**
@@ -86,7 +95,7 @@ function syncUi(): void {
 }
 
 export function isMenuOpen(): boolean {
-  return state.title || menuEl.style.display === 'flex' || guideOpen || settingsOpen || coopOpen();
+  return state.title || menuEl.style.display === 'flex' || guideOpen || settingsOpen || journalOpen || coopOpen();
 }
 
 export function openMenu(): void {
@@ -96,6 +105,7 @@ export function openMenu(): void {
   guideOpen = false;
   fromTitle = false;
   settingsOpen = false;
+  setJournal(false);
   closeSettingsPanel();
   closeGuidePanel();
   closeLobbyPanel();
@@ -126,6 +136,7 @@ export function closeMenu(): void {
   disarm();
   guideOpen = false;
   settingsOpen = false;
+  setJournal(false);
   closeSettingsPanel();
   closeGuidePanel();
   closeLobbyPanel();
@@ -142,6 +153,12 @@ export function toggleMenu(): void {
 
 /** Escape steps back one screen rather than dropping straight into the game. */
 function back(): void {
+  if (journalOpen) {
+    setJournal(false);
+    menuEl.style.display = 'flex';
+    syncUi();
+    return;
+  }
   if (settingsOpen) {
     settingsOpen = false;
     closeSettingsPanel();
@@ -201,6 +218,7 @@ export function openTitle(): void {
   state.paused = true;
   fromTitle = false;
   titleDisarm();
+  hidePage();
   if (document.pointerLockElement) document.exitPointerLock();
   // The click-to-lock card is for a world being played. Behind the title it
   // showed through the backdrop between the buttons, and the title's own first
@@ -313,6 +331,14 @@ el('menuSettings').addEventListener('click', () => {
 el('settingsClose').addEventListener('click', back);
 
 coopCloseBtn.addEventListener('click', back);
+
+el('menuJournal').addEventListener('click', () => {
+  disarm();
+  menuEl.style.display = 'none';
+  setJournal(true);
+  syncUi();
+});
+el('journalClose').addEventListener('click', back);
 
 guideItem.addEventListener('click', () => {
   disarm();

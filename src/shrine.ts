@@ -1,6 +1,7 @@
 import { sfxPickup } from './audio';
 import { BLESS_TIME, SEARCH_ITEMS, SHRINE, SHRINE_GLOW } from './config';
 import { sendEvent } from './net/client';
+import { countGoal } from './goals';
 import { coop } from './net/session';
 import { state } from './state';
 import type { ItemKind, Shrine, ShrineKind } from './types';
@@ -103,6 +104,7 @@ function complete(s: Shrine): void {
   }
   s.used = true;
   apply(s, null);
+  countGoal('shrines');
   sfxPickup();
   if (coop.active) sendEvent('shrine', state.shrines.indexOf(s));
 }

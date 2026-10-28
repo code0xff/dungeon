@@ -3,13 +3,18 @@ import { buildRooms, furnishRooms } from './rooms';
 import { clearSpatialAudio } from './audio';
 import { floorPBR, spawnCreature, wallPBR } from './assets';
 import {
-  BEYOND_DMG, BEYOND_HP, BEYOND_REWARD, BLACK_KNIGHT_SHADE, CEIL_TILES_PER_CELL, CELL, CHEST_COUNT, CHEST_ITEMS, CHEST_SAFE_ITEMS,
+  BEYOND_DMG, BEYOND_HP, BEYOND_REWARD, CEIL_TILES_PER_CELL, CREATURE_TINT, CELL, CHEST_COUNT, CHEST_ITEMS, CHEST_SAFE_ITEMS,
   BOSS_SCALE, CHEST_TRAP_FRAC, EYE_H, FINAL_STAGE, MAX_HP, SWORD_DUR_MAX,
   FLOOR_TILES_PER_CELL, PLAYER_R, REF_FLOOR_CELLS, SCALE_VARIANCE, SPAWN, SPAWN_PEAK_STAGE,
   SPEED_VARIANCE, TRAP_COUNT, TRAP_JITTER, TUTORIAL_KIT, TUTORIAL_ROOM, TUTORIAL_SEED, TYPES, WALL_H,
 } from './config';
 import { arenaBounds, bossFor, dungeonSize, generateDungeon } from './dungeon';
 import { bossType, buildArenaLight } from './boss';
+import { deadEnds, placeLevers, sealedStage } from './levers';
+import { hidePage, placePage } from './journal';
+import { clearGoal, goalCardLine, setupGoal } from './goals';
+import { chapterOf } from './lore';
+import { clearFx } from './fx';
 import { createChest, makeSconce, makeTrap, rollProp } from './props';
 import { clipDuration, setAnim } from './assets';
 import { progress } from './progress';
@@ -25,7 +30,10 @@ import { random, setSeed, mixSeed, shuffle } from './rng';
 import { state } from './state';
 import { ceilTex, floorTex, wallTex } from './textures';
 import type { CreatureKey, CreatureType, GridCell, ItemKind, Monster } from './types';
-import { cancelLoot, drinkBarEl, minimapEl, objectiveEl, objectiveLineEl, overlayEl, updateHUD, wpnBtn } from './ui';
+import {
+  cancelLoot, drinkBarEl, minimapEl, objectiveBonusEl, objectiveEl, objectiveHeadEl, objectiveLineEl, overlayEl, updateHUD,
+  wpnBtn,
+} from './ui';
 import { pointerLock } from './input';
 import { lockHintEl } from './ui';
 import { setWeapon } from './weapons';
@@ -120,6 +128,14 @@ function clearWorld(): void {
   state.props.forEach((p) => scene.remove(p.object));
   state.sconces.forEach((s) => scene.remove(s.group));
   state.traps.forEach((t) => scene.remove(t.mesh));
+  state.levers.forEach((l) => scene.remove(l.group));
+  state.pages.forEach((p) => scene.remove(p.mesh));
+  state.levers = [];
+  state.nearLever = null;
+  state.pages = [];
+  state.nearPage = null;
+  clearFx();
+  hidePage();
   clearWards();
   clearBlood();
   // Rebuilt by buildRooms(); the tutorial room has none, and must not inherit the last dungeon's.
@@ -277,17 +293,19 @@ export function spawnAt(key: CreatureKey, wx: number, wz: number, boss = false):
   // facing rather than along the world X axis — turnToward() writes rotation.y
   // every frame, and the default XYZ order would tilt a side-on creature sideways.
   sp.mesh.rotation.order = 'YXZ';
-  // The Black Knight wears the player's body. Its materials are already cloned
-  // per creature (for the hit flash), so darkening the colour here reaches only
+  // The Black Knight wears the player's body, and the plague-bearer and the
+  // colossus the zombie's and the brute's. Their materials are already cloned
+  // per creature (for the hit flash), so tinting the colour here reaches only
   // this one. Colour, not emissive: the hit flash owns emissive and would wipe
-  // an emissive tint on the first hit.
-  if (key === 'blackknight') {
+  // an emissive tint on the first hit. See CREATURE_TINT.
+  const tint = CREATURE_TINT[key];
+  if (tint) {
     sp.mesh.traverse((o) => {
       const mesh = o as THREE.Mesh;
       if (!mesh.isMesh) return;
       for (const mat of Array.isArray(mesh.material) ? mesh.material : [mesh.material]) {
         const std = mat as THREE.MeshStandardMaterial;
-        if (std.color) std.color.multiplyScalar(BLACK_KNIGHT_SHADE);
+        if (std.color) std.color.multiply(new THREE.Color(tint[0], tint[1], tint[2]));
       }
     });
   }
@@ -352,6 +370,7 @@ export function spawnAt(key: CreatureKey, wx: number, wz: number, boss = false):
     chargeX: 0,
     chargeZ: 0,
     comboLeft: 0,
+    burstT: -1,
   };
   state.monsters.push(m);
   return m;
@@ -361,9 +380,10 @@ function spawnChests(scale: number): void {
   // Hard mode: one chest, the key, never trapped. No map to find and nothing
   // else to open — the dungeon is the maze and the creatures, and the key is
   // the only reason to go anywhere in it.
-  // On a boss level the guardian carries the key, so the chests do not. Hard
-  // mode's single chest held nothing else, so there it is simply not placed.
-  const guarded = state.arena !== null;
+  // On a boss level the guardian carries the key, so the chests do not; on a
+  // sealed level the levers stand in for it. Hard mode's single chest held
+  // nothing else, so there it is simply not placed.
+  const guarded = state.arena !== null || state.levers.length > 0;
   if (coop.active ? coop.hard : progress.hard) {
     if (guarded) return;
     const [gx, gz] = randomFloorCell(4);
@@ -477,10 +497,20 @@ function placeSconces(): void {
  * anyone could read it.
  */
 export function showObjective(): void {
+  // The heading: the chapter and the stage, and on a chapter's first stage its
+  // opening words. Co-op's levels are stages for this; the tutorial has none.
+  const level = runLevel(progress.stage);
+  const ch = state.tutorial ? null : chapterOf(level);
+  objectiveHeadEl.innerHTML = state.tutorial ? ''
+    : ch ? `Chapter ${ch.text.numeral} · ${ch.text.title} · ${level}${ch.first ? `<small>${ch.text.opening}</small>` : ''}`
+      : `Below the throne · ${level}`;
   // The first line is the level's goal, and a boss level's is not a chest.
   objectiveLineEl.innerHTML = state.boss
     ? `Kill the <span class="item">${state.boss.type.name}</span> guarding the portal — it carries the key`
-    : 'Loot chests for the <span class="item">key</span> — the exit will not open without it';
+    : state.levers.length
+      ? `Throw the <span class="item">${state.levers.length} levers</span> in the far dead ends — they hold the portal sealed`
+      : 'Loot chests for the <span class="item">key</span> — the exit will not open without it';
+  objectiveBonusEl.innerHTML = goalCardLine();
   objectiveEl.style.opacity = '1';
   if (guideTimer !== null) clearTimeout(guideTimer);
   guideTimer = setTimeout(() => {
@@ -558,6 +588,21 @@ export function buildWorld(): void {
   // The room starts empty; tutorial.ts brings each zombie in when its lesson
   // comes. No chests or traps either — the lesson is the sword, the shield and
   // the pack, and a trap under the first step would teach the wrong thing.
+  // Before anything that draws a random cell: the levers and the page go in
+  // the dead ends by rule (see levers.ts), and claiming them first keeps a
+  // creature or a barrel off them. Neither draws from the stream.
+  if (!state.tutorial) {
+    if (!boss && sealedStage(level)) {
+      for (const [x, z] of placeLevers((x, z) => !claimed.has(cellKey(x, z)))) claimed.add(cellKey(x, z));
+      for (const l of state.levers) scene.add(l.group);
+    }
+    const ends = deadEnds().map(({ cell }) => cell).filter(([x, z]) => !claimed.has(cellKey(x, z)));
+    const page = placePage(level, ends);
+    if (page) {
+      scene.add(page);
+      claimed.add(cellKey(Math.round(page.position.x / CELL), Math.round(page.position.z / CELL)));
+    }
+  }
   if (!state.tutorial) {
     spawnMonsters(scale);
     // After the field, so its index is the same on every client — mobsync
@@ -575,6 +620,10 @@ export function buildWorld(): void {
     const rooms = buildRooms(state.maze, state.rooms, coop.active ? coop.hard : progress.hard);
     scene.add(rooms);
     state.props.push({ object: rooms, swing: null });
+    // Last: it is checked against the chests and the shrines just placed.
+    setupGoal(level, coop.active ? coop.hard : progress.hard);
+  } else {
+    clearGoal();
   }
   placeSconces();
 

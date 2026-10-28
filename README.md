@@ -102,7 +102,7 @@ dungeon/
       └─ floor/             diffuse.webp  normal.webp  rough.webp
 ```
 
-Five creatures, each built around one idea. Without a creature's files the game
+Seven creatures, each built around one idea. Without a creature's files the game
 falls back to a box model for it.
 
 | | HP | Damage | Speed | Notices you | Reward | Stage 1 → 12 |
@@ -112,6 +112,14 @@ falls back to a box model for it.
 | **Lunatic** | 3 | 14 | 4.5 | 18m | 20-40 G | 1 → 29 |
 | **Orc** | 10 | 24 | 3.6 | 16m | 72-148 G | 0 → 4, from stage 6 — the boss of stage 5 |
 | **Black Knight** | 16 | 34 | 3.6 | 17m | 130-270 G | 0 → 1, from stage 11 — the boss of stage 10 |
+| **Plague-bearer** | 5 | 15 | 2.6 | 12m | 29-61 G | 0 → 5, from stage 7 — bursts when it dies |
+| **Bone Colossus** | 14 | 36 | 2.1 | 15m | 169-351 G | the boss of stage 15; a field creature below it |
+
+The plague-bearer and the colossus wear the zombie's and the brute's bodies,
+tinted (`CREATURE_TINT`), until they have models of their own. The
+plague-bearer is barely more than a zombie in a fight, but 0.7s after it falls
+its corpse bursts for 22 to anyone within 2.6m, and no shield takes it — kill
+it with the musket, or step back after the last cut.
 
 The orc hits nearly as hard as a brute at nearly the lunatic's pace: the first thing that
 can neither be walked away from nor traded with, and no trick to it — parry it,
@@ -124,7 +132,7 @@ be parried or flanked rather than out-traded. Three clean parries kill it, and
 each one missed costs a third of your health. It arrives after the orc has
 taught the parry on something that does not block.
 
-**Stages 5 and 10 end in a boss fight.** The game runs in chapters of five, and
+**Stages 5, 10 and 15 end in a boss fight.** The game runs in chapters of five, and
 the last stage of each has no key in its chests: the portal stands in a walled
 arena in the far corner, and the guardian standing in front of it carries the
 key. It is the creature the chapter has not shown you yet — the orc at 5, the
@@ -135,19 +143,37 @@ step aside, dodge, or take it on the shield. The Black Knight swings three
 times in a row and then rests, with its shield down for all three — block the
 combination and punish the rest, or parry into it. Leave the arena and the
 guardian walks back to the middle and heals. Only after its fight does a
-guardian appear in the corridors as an ordinary creature.
+guardian appear in the corridors as an ordinary creature. The Bone Colossus
+at 15 rears up and slams the floor: everything within 3.6m, through the
+shield. Be out of the ring, or dodge out of it while it rears.
+
+**Each stage has a card.** The objective panel names the chapter (*I · The
+Ossuary*, *II · The Sunken Cloister*, *III · The Bone Throne*) with its opening
+words on its first stage, the stage's goal, and a bonus: slay so many, open so
+many chests, or use every landmark room, for 25 G a stage on top of the run.
+The count runs under the pack.
+
+**Some stages are sealed.** On 3, 7, 9, 12 and 14 no chest holds the key: three
+levers hang in the far dead ends, and the portal opens when the last is thrown.
+They are loud — 16m, further than a lid — and the map shows them, so the
+puzzle is the order and the walk back.
+
+**Brother Aldric's journal.** A page lies in a dead end on every stage that is
+not a guardian's — twelve in all. A page found is kept in the save for good,
+through death and New game, and the pause menu's Journal holds them all.
 
 **The dungeon grows as well as filling up.** Stage 1 is a 76m maze with 14
 creatures in it; by stage 12 it is 124m and 109, where both stop. Dungeons are
 not square either — the shape is rolled per run, and the stretch keeps the area,
 so a long thin one is not an easy one.
 
-**Stage 12 is the bottom.** Walk out of it and the game is beaten — an ending
-screen, and the bank as your score. It does not stop there: stage 13 and below
+**Stage 15 is the bottom.** Walk out of it and the game is beaten — an ending
+screen, and the bank as your score. Stages 13 to 15 are no fuller than 12;
+they are harder for what is in them. It does not stop there: stage 16 and below
 keep coming, and since the dungeon is already as full as it gets, the creatures
 grow instead — 18% more health, 12% more damage and 12% more gold per stage,
 compounding (`BEYOND_HP` and friends in `config.ts`). By stage 20 a zombie has
-3.8x the health and hits for 2.5x. Nobody is meant to last down there.
+2.3x the health and hits for 1.8x. Nobody is meant to last down there.
 
 Density is what is actually tuned, so the counts scale with the floor area
 carved: 12.5 floor cells per creature at the start, 4.5 at the peak. That is why
@@ -206,7 +232,7 @@ and the portal at the end leads to stage 1. The zombies in there are rooted:
 they swing if you stand close, but never come to you. Skip is always on
 screen. Nothing done in the room counts, and nothing in it can kill you.
 
-**Training** is any stage on demand. Pick one from the title — past stage 12 too, where everything keeps growing — turn hard rules on or off, and outfit
+**Training** is any stage on demand. Pick one from the title — past stage 15 too, where everything keeps growing — turn hard rules on or off, and outfit
 at the shop with a purse that is refilled every time it opens: take whatever you
 want to practise with. Nothing is banked, nothing is saved, and the real save is
 set aside untouched for the duration. Dying puts you back at the counter for the

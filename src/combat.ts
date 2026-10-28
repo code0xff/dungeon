@@ -21,6 +21,7 @@ import type { Monster } from './types';
 import { cancelLoot, cancelShrine, cancelWard, flashHurt, endRun, showMsg, updateHUD } from './ui';
 import { startReload } from './weapons';
 import { hitWeight } from './boss';
+import { countGoal } from './goals';
 
 /**
  * What one sword hit takes off, scaled by durability.
@@ -107,6 +108,7 @@ export function killMonster(m: Monster, opts: { pay?: boolean; gold?: number } =
   // And paying is optional, because a kill is not always yours: the authority
   // resolves everyone's hits, and the gold belongs to whoever swung.
   if (opts.pay !== false) {
+    countGoal('slay');
     impact('kill');
     state.runGold += gold;
     updateHUD();

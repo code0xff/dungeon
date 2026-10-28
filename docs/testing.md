@@ -176,6 +176,21 @@ extracted, not the code that shipped.
 - The maze: run the arena flood over thousands of seeds at levels 5 and 10
   (nothing unreachable, the exit reachable, the RNG's next value unchanged).
 
+## Chapters, levers, pages and new creatures
+
+- Training at 3 or 7: the card says to throw three levers, no chest holds the
+  key, and the map marks them. Throwing one alerts creatures (16m) and says how
+  many are left; the last opens the portal. In co-op, an ally's throw counts.
+- The card's heading is the chapter, with its opening on stages 1, 6 and 11,
+  and a bonus line; the count under the pack pays once, into the run's gold.
+- Stage 1 outside training: a pale page in a dead end. Taking it writes the
+  save (copy `dungeon.progress.v1` aside first); the pause menu's Journal
+  lists it. Training places none and writes nothing.
+- A plague-bearer killed at arm's length: a small cloud for 0.7s, then 22
+  damage within 2.6m, shield or not. Measured by stepping `animate()`.
+- Stage 15: the colossus slams within 3.2m after a 0.95s rear-up, 40 damage
+  through the shield; a dodge clears the 3.6m ring.
+
 ## Measuring frame time
 
 Press `P` (or Settings → Performance overlay) for the numbers, and read the

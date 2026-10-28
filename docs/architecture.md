@@ -34,11 +34,11 @@ Imports mostly flow downward:
 main                                     entry
 menu  mode  tutorial                     title, pause menu, mode picker, the lesson
 loop                                     frame loop, creature AI
-world  input  combat  loot  weapons  view  ward  boss  net/*   systems
+world  input  combat  loot  weapons  view  ward  boss  levers  journal  goals  plague  net/*   systems
 props                                    world content built from assets
 assets                                   external model and texture loading
-scene  ui  shop  guide  lesson  textures  dungeon   presentation and generation
-config  state  progress  creatures  audio  rng    data and primitives
+scene  ui  shop  guide  lesson  textures  dungeon  fx   presentation and generation
+config  state  progress  creatures  audio  rng  lore   data and primitives
 types  dom                               leaves, no internal imports
 ```
 
@@ -538,6 +538,33 @@ Three pieces, kept apart so co-op needs no new message:
 The arena has one light of its own (`ARENA_LIGHT`) rather than torches on its
 walls: the player's light does not reach across it, and each point light is a
 cost on every lit surface.
+
+The colossus's slam is `slamStep()` in the same file: it plants, plays its
+attack clip slowed to last `BOSS_SLAM.windup` (with `attackT` set for the whole
+clip, or `animLoaded()` cuts to idle), and strikes `through` the shield —
+playerHurt() with no creature is how unblockable is said.
+
+## Chapters, goals, levers and pages
+
+Four small modules, none of which draws from the seeded stream:
+
+- **`lore.ts`** holds the words: the chapters' names and openings
+  (`CHAPTERS` in config sets their stages), Brother Aldric's journal, and what
+  a guardian's fall says. A leaf of the import graph.
+- **`goals.ts`** picks the stage's bonus from `STAGE_GOALS.order` by stage
+  number — a draw from the stream would move every chest after it — once the
+  chests and shrines exist, and counts it from `killMonster()` (own kills
+  only), `openChest()` and the shrine's completion.
+- **`levers.ts`** seals the stages in `LEVER_STAGES`: `placeLevers()` takes
+  the dead ends furthest from the start and from each other, deterministically,
+  before anything claims a random cell. With levers present the chests hold no
+  key; the last lever thrown sets `hasKey` exactly as a key would.
+- **`journal.ts`** lays the stage's page in the middle dead end by distance,
+  only if this save has not read it and never in training, and writes the
+  find straight to the save (`notePage()`).
+
+The plague-bearer's burst (`plague.ts`) and the floor effects (`fx.ts`) run on
+every client from the hp the authority reports; each judges its own player.
 
 ## Training
 

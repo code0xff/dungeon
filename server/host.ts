@@ -169,7 +169,7 @@ const runs = new Map<number, Run>();
 const MAX_REPORTED_HIT = Math.max(LUNGE_DMG * (1 + WRATH_ATTACK), MUSKET_DMG) * HIT_REPORT_MARGIN;
 
 /** Every valid world-event kind, for checking one off the wire. */
-const WORLD_EVENTS: readonly string[] = ['creak', 'chest', 'trap', 'lantern', 'shot', 'ward', 'shrine'];
+const WORLD_EVENTS: readonly string[] = ['creak', 'chest', 'trap', 'lantern', 'shot', 'ward', 'shrine', 'lever'];
 
 /**
  * Rebuilds a dungeon's maze exactly as the clients do.

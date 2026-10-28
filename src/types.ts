@@ -66,7 +66,7 @@ export interface PathWorkspace {
 }
 
 // ================= Creatures =================
-export type CreatureKey = 'zombie' | 'brute' | 'lunatic' | 'orc' | 'blackknight';
+export type CreatureKey = 'zombie' | 'brute' | 'lunatic' | 'orc' | 'blackknight' | 'plague' | 'colossus';
 /**
  * guard and stagger are optional in a way the first four are not: a creature
  * without them plays idle for the one and the procedural lean for the other.
@@ -301,7 +301,38 @@ export interface Monster {
   chargeZ: number;
   /** Blows left in the Black Knight's combination. See BOSS_COMBO. */
   comboLeft: number;
+  /**
+   * A plague-bearer's cloud: -1 while it lives (and always, for anything
+   * else), then the seconds until the burst once it falls, then -2 once it
+   * has burst. See PLAGUE_BURST and plague.ts.
+   */
+  burstT: number;
 }
+
+/** A wall lever on a sealed stage. Every one pulled opens the portal. See levers.ts. */
+export interface Lever {
+  group: THREE.Group;
+  /** The handle's pivot, thrown from up to down as it is pulled. */
+  handle: THREE.Object3D;
+  x: number;
+  z: number;
+  pulled: boolean;
+  /** Pull animation progress, 0..1. */
+  throwT: number;
+}
+
+/** A journal page lying on the floor. See journal.ts. */
+export interface Page {
+  mesh: THREE.Object3D;
+  /** Index into JOURNAL. */
+  entry: number;
+  x: number;
+  z: number;
+  taken: boolean;
+}
+
+/** The optional goal on each stage's card. See STAGE_GOALS. */
+export type GoalKind = 'slay' | 'loot' | 'shrines';
 
 // ================= Chests and props =================
 /** No 'map': the floor plan comes from the store's shelves, never from a chest. */

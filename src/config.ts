@@ -26,6 +26,13 @@ export const CREATURE_ASSETS: Record<CreatureKey, CreatureAsset> = {
   // a shared template would tie the ally's body to the enemy's tint. It costs
   // about 1MB once.
   blackknight: { dir: 'creatures/knight', height: 1.95 },
+  // Variants on bodies already shipped, told apart by CREATURE_TINT and by what
+  // they do. Each is loaded again under its own key for the same reason the
+  // Black Knight is; the files come out of the HTTP cache, so the cost is the
+  // parse, not the download. A real model of their own replaces either one by
+  // pointing `dir` at it.
+  plague: { dir: 'creatures/zombie', height: 1.8 },
+  colossus: { dir: 'creatures/brute', height: 2.35 },
 };
 /**
  * The other players' body: a Mixamo knight, idle/walk/attack/death like a
@@ -161,6 +168,21 @@ export const MOB_STALE = 1.2;
  * lower and it is a hole in the corridor, higher and it is a grey ally.
  */
 export const BLACK_KNIGHT_SHADE = 0.22;
+/**
+ * Colour multiplied into a creature's materials at spawn, per channel, for the
+ * ones that wear another creature's body. The Black Knight's is its shade; the
+ * plague-bearer is the zombie gone green and sallow, the colossus the brute's
+ * orange hide drained to the grey-brown of crypt bone. Every channel stays at
+ * or under 1: the colour multiplies the texture, so nothing can be made paler
+ * than its texture this way — over 1 is clamped and does nothing, which is how
+ * the first bleached colossus came out as an ordinary brute. Colour, not
+ * emissive, for the reason given at the spawn: the hit flash owns emissive.
+ */
+export const CREATURE_TINT: Partial<Record<CreatureKey, readonly [number, number, number]>> = {
+  blackknight: [BLACK_KNIGHT_SHADE, BLACK_KNIGHT_SHADE, BLACK_KNIGHT_SHADE],
+  plague: [0.62, 0.95, 0.5],
+  colossus: [0.62, 0.7, 0.78],
+};
 /**
  * The cone in front of a shielded creature that its shield covers, as a dot
  * product against its facing. 0.5 is 120 degrees across — wide enough that
@@ -1120,7 +1142,7 @@ export const BLOOD = {
 export const CREATURE_HIT_TIME = 0.18;
 /** Heavy bodies move less on impact, making their mass visible without changing HP. */
 export const CREATURE_HIT_WEIGHT: Record<CreatureKey, number> = {
-  zombie: 1, brute: 0.4, lunatic: 1.15, orc: 0.65, blackknight: 0.35,
+  zombie: 1, brute: 0.4, lunatic: 1.15, orc: 0.65, blackknight: 0.35, plague: 0.9, colossus: 0.3,
 };
 export const LOOT_TIME = 1.2;
 /** How close the player must be to the portal to use it, in metres. */
@@ -1539,6 +1561,39 @@ export const TYPES: Record<CreatureKey, CreatureType> = {
     groan: [3, 6], voice: 1.6,
     animSpeed: 11, swing: 0.7,
   },
+  /**
+   * The plague-bearer. Stage 7 and up: a zombie that is worse to kill than to
+   * meet. It is barely more than a zombie in a fight — hp 5, a slower swing —
+   * but it bursts when it dies (PLAGUE_BURST), and the burst is not a blow, so
+   * no shield takes it. The sword kills it at arm's length, which is exactly
+   * where the cloud is; the answer is the musket, a step back after the last
+   * cut, or a lunge that carries you through and out.
+   *
+   * It is the first creature that punishes the way the game has taught the
+   * player to fight, which is why it comes after the first guardian and not
+   * before.
+   */
+  plague: {
+    name: 'Plague-bearer',
+    hp: 5, dmg: 15, speed: 2.6, atkCd: 1.0, attackSpeed: 1.4,
+    reach: 1.7, r: 0.45, clearance: 1.15, reward: 45, aggro: 12,
+    groan: [3, 6], voice: 0.85,
+    animSpeed: 5.5, swing: 0.45,
+  },
+  /**
+   * The Bone Colossus: the brute's body bleached to bone, the guardian of
+   * stage 15 and a field creature only below it. It is the brute with a
+   * floor-shaking slam (BOSS_SLAM) — the one blow in the game a shield does
+   * not answer, because it comes up through the stone. hp 14 against the
+   * brute's 9 and a slow walk: it is a fight about where you stand.
+   */
+  colossus: {
+    name: 'Bone Colossus',
+    hp: 14, dmg: 36, speed: 2.1, atkCd: 1.7, attackSpeed: 2.1,
+    reach: 2.3, r: 0.64, clearance: 1.5, reward: 260, aggro: 15,
+    groan: [6, 11], voice: 0.45,
+    animSpeed: 4, swing: 0.4,
+  },
 };
 
 /**
@@ -1591,6 +1646,14 @@ export const SPAWN: Readonly<Record<CreatureKey, SpawnRate>> = {
    * have to be smuggled in as a negative base.
    */
   blackknight: { base: 1, perStage: 0.5, fromStage: 11 },
+  /**
+   * Chapter two's own creature, with no fight to introduce it: the burst is
+   * the introduction, and the first one teaches it at the cost of a few hp.
+   * Few, because a corridor of them is a corridor nobody can sword through.
+   */
+  plague: { base: 2, perStage: 0.6, fromStage: 7 },
+  /** After its fight on stage 15, like the other two guardians. */
+  colossus: { base: 1, perStage: 0.4, fromStage: 16 },
 };
 
 // ---- Bosses ----
@@ -1603,7 +1666,7 @@ export const SPAWN: Readonly<Record<CreatureKey, SpawnRate>> = {
  * SPAWN, which keeps it out of the field until the stage after. The fight is
  * the introduction; the corridors are where it becomes ordinary.
  */
-export const BOSS_STAGES: Readonly<Record<number, CreatureKey>> = { 5: 'orc', 10: 'blackknight' };
+export const BOSS_STAGES: Readonly<Record<number, CreatureKey>> = { 5: 'orc', 10: 'blackknight', 15: 'colossus' };
 /**
  * The arena's floor, in grid cells a side. Odd, so its edge lands on the
  * maze's own grid and the gates line up with corridors.
@@ -1667,6 +1730,30 @@ export const BOSS_CHARGE = { range: [4.5, 14] as const, windup: 0.75, speed: 3.2
  */
 export const BOSS_COMBO = { swings: 3, gap: 0.12, rest: 1.6 };
 /**
+ * The Bone Colossus's slam. Within `range` metres it rears up for `windup`
+ * seconds — its own attack clip, slowed so the blow lands at the end — then
+ * brings both fists into the floor: `dmg` times its blow to anyone within
+ * `radius`, through the shield, every `cd` seconds.
+ *
+ * Unblockable is the whole move. Everything else in the game is answered by the
+ * shield or the parry, and a guardian that asks the same question as the Black
+ * Knight five stages later teaches nothing; this one asks where you are
+ * standing. A dodge's DASH_SPEED × DASH_TIME (4.4m) clears the radius from
+ * anywhere inside it, and that is the answer — or never being inside.
+ */
+// dmg 1.1 was measured at 51 a slam against a boss blow of 47: two of any
+// kind killed from full, and the slam's whole point is to be the one that is
+// dodged, not the one that ends the run. 0.85 is 40.
+export const BOSS_SLAM = { range: 3.2, windup: 0.95, radius: 3.6, dmg: 0.85, cd: 4.2 };
+/**
+ * The plague-bearer's death: `delay` seconds after it falls, a cloud bursts
+ * where it lies, doing `dmg` to anyone within `radius`. Not a blow, so no
+ * shield takes it — the delay is the warning, and long enough to step clear of.
+ * Each player's machine judges its own player, as with a trap, so the party
+ * needs nothing sent.
+ */
+export const PLAGUE_BURST = { delay: 0.7, radius: 2.6, dmg: 22, colour: 0x8fdc5a };
+/**
  * The arena's own light: a ring of candles hung over the middle.
  *
  * The player's light reaches 11m and the arena is 20m across, so without this
@@ -1688,13 +1775,67 @@ export const SPAWN_PEAK_STAGE = 12;
 /**
  * The stage the game is "beaten" at: walking out of it is the ending.
  *
- * The same stage the spawn curve peaks at, on purpose — that is where the
- * dungeon is as full as it can get, so it is the natural bottom. The game does
- * not stop there: the stages below keep counting, only the creatures grow
- * instead of multiplying (BEYOND_HP, BEYOND_DMG). The ending is a screen and a
- * number, not a wall.
+ * The end of the third chapter (CHAPTERS), and its guardian's stage. It was 12,
+ * where the spawn curve peaks; the chapters made it 15, and the three stages
+ * past the peak are where the difficulty stops being the count and becomes
+ * what is in it — the plague-bearers, the knights, and the colossus at the
+ * bottom. The game does not stop there: the stages below keep counting, only
+ * the creatures grow instead of multiplying (BEYOND_HP, BEYOND_DMG). The ending
+ * is a screen and a number, not a wall.
  */
-export const FINAL_STAGE = 12;
+export const FINAL_STAGE = 15;
+
+// ---- Chapters, goals and puzzles ----
+/**
+ * The game's three chapters, by first and last stage. The last stage of each
+ * is a guardian's (BOSS_STAGES); the names and words are in lore.ts.
+ */
+export const CHAPTERS: readonly { from: number; to: number }[] = [
+  { from: 1, to: 5 }, { from: 6, to: 10 }, { from: 11, to: 15 },
+];
+/**
+ * Stages whose portal is sealed by levers instead of locked by a key: no key
+ * in any chest, LEVER_COUNT levers in the far dead ends, and the seal lifts
+ * when the last is thrown. One or two a chapter, never its first stage (that
+ * is where the chapter's words are read) or its guardian's.
+ *
+ * A lever is loud (LEVER_ALERT_RADIUS) and in a dead end, so the puzzle is not
+ * finding them — the map shows them — but choosing the order, and what wakes
+ * on the way back from each.
+ */
+export const LEVER_STAGES: readonly number[] = [3, 7, 9, 12, 14];
+export const LEVER_COUNT = 3;
+/** How close the player must stand to throw a lever, in metres. */
+export const LEVER_REACH = 2.0;
+/** A lever's clank carries further than a lid: iron, and on purpose. */
+export const LEVER_ALERT_RADIUS = 16;
+export const LEVER_ALERT_TIME = 7;
+/** Metres a lever keeps from the start, so none is thrown on the doorstep. */
+export const LEVER_MIN_DIST = 6;
+/**
+ * The optional goal on each stage's card, paid on top of the run's gold when it
+ * is met. Chosen by stage, not by the dungeon's seed: the seeded stream lays the
+ * dungeon out, and a draw taken from it here would move every chest after it.
+ *
+ * `n` scales with the stage for the counts that grow with it; `gold` is paid
+ * per stage, so a late goal is worth the later danger. Shrines are all of the
+ * landmark rooms in the dungeon, which is two on a guardian's stage and none in
+ * hard mode (no shelves, and the rest are still there) — so hard mode never
+ * draws it.
+ */
+export const STAGE_GOALS = {
+  order: ['slay', 'loot', 'shrines', 'slay', 'loot'] as const,
+  slay: { base: 8, perStage: 1.5 },
+  loot: { base: 4, perStage: 0.4 },
+  goldPerStage: 25,
+} as const;
+/**
+ * Journal pages: one lies somewhere on every stage that is not a guardian's,
+ * in a dead end at least `minDist` cells from the start. The words are in
+ * lore.ts, one entry per stage; a page found is kept in the save for good —
+ * death takes the run, not what was read.
+ */
+export const PAGE = { minDist: 5, reach: 1.6, glow: 0xf0d8a0 } as const;
 
 /**
  * The purse a training run is handed, refilled every time its counter opens.
@@ -1738,7 +1879,7 @@ export const TITLE_DRIFT = 0.06;
  *
  * Counts are already at the ceiling by then (SPAWN_PEAK_STAGE), so the only
  * room left for difficulty is in each body. Compound, so it gets steep: by
- * stage 20 a zombie has 3.8x the health and hits for 2.5x, and the extra gold
+ * stage 20 a zombie has 2.3x the health and hits for 1.8x, and the extra gold
  * pays for roughly the potions it costs. Nobody is meant to hold out down
  * there for long — that is what the ending is for.
  */
@@ -1784,7 +1925,7 @@ export const COOP_KIT = {
  * the kit does keep growing there; far above it would be a dial that does
  * nothing, which is worse than not having the range.
  */
-export const COOP_MAX_LEVEL = 15;
+export const COOP_MAX_LEVEL = 18;
 
 // ---- Creature animation ----
 /** Attack duration in seconds when the external model carries no attack clip. */

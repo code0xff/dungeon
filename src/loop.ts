@@ -44,6 +44,10 @@ import { settings } from './settings';
 import { updateFeedback } from './feedback';
 import { perfBegin, perfEnd } from './perf';
 import { bossStep, comboCooldown, hitWeight, updateBoss } from './boss';
+import { sealedLine, updateLevers } from './levers';
+import { updatePages } from './journal';
+import { updatePlague } from './plague';
+import { updateFx } from './fx';
 import { collides } from './world';
 import type {
   ClipName, CreatureRig, Monster, MonsterPlayback } from './types';
@@ -531,8 +535,11 @@ function updateMonsters(dt: number, now: number): number {
 
     let moved = 0;
     // A guardian may take the frame itself: leashed to its arena, or charging.
-    const own = m.boss ? bossStep(m, dt, tgt, attacking, (d) => {
-      if (tgt.id === 0) playerHurt(d, m);
+    // A blow that comes `through` the shield is passed with no creature, which
+    // is how playerHurt() is told nothing can block it. An ally's copy is
+    // resolved on their machine with their shield — see docs/coop.md.
+    const own = m.boss ? bossStep(m, dt, tgt, attacking, (d, through) => {
+      if (tgt.id === 0) playerHurt(d, through ? undefined : m);
       else reportMobHit(mi, tgt.id, d);
     }) : -1;
     if (own >= 0) moved = own;
@@ -891,12 +898,18 @@ function updateChests(dt: number, playerMoving: boolean): void {
   }
   // A chest wins over a shrine beside it: the chest is the one that can be
   // lost to someone else first. One prompt, one button, whichever is in reach.
-  const shrine = !state.nearChest && !state.looting && state.shrineT < 0 ? state.nearShrine : null;
-  const prompt = (!!state.nearChest && !state.looting) || !!shrine;
+  // Then a lever, then a page, then a shrine — the order startLoot() takes
+  // them in, so the prompt always names what the key will do.
+  const free = !state.nearChest && !state.looting && state.shrineT < 0;
+  const lever = free ? state.nearLever : null;
+  const page = free && !lever ? state.nearPage : null;
+  const shrine = free && !lever && !page ? state.nearShrine : null;
+  const prompt = (!!state.nearChest && !state.looting) || !!lever || !!page || !!shrine;
   promptEl.style.display = prompt ? 'block' : 'none';
   lootBtn.classList.toggle('show', prompt);
-  promptTextEl.textContent = shrine ? shrinePrompt(shrine.kind) : 'Open chest';
-  lootLabelEl.textContent = shrine ? shrineButton(shrine.kind) : 'Open';
+  promptTextEl.textContent = lever ? 'Throw the lever' : page ? 'Pick up the page'
+    : shrine ? shrinePrompt(shrine.kind) : 'Open chest';
+  lootLabelEl.textContent = lever ? 'Throw' : page ? 'Take' : shrine ? shrineButton(shrine.kind) : 'Open';
 
   if (state.looting) {
     // Moving interrupts looting.
@@ -1132,6 +1145,8 @@ export function animate(): void {
     updateGrind(dt);
     updateWard(dt, moving);
     updateShrine(dt, moving);
+    updateLevers(dt);
+    updatePages();
     // One dungeon, one simulation. Everyone else draws what they are told —
     // two clients running the same AI drift apart within seconds, and then two
     // players are swinging at a zombie that is metres apart on their screens.
@@ -1139,6 +1154,8 @@ export function animate(): void {
     publishMobs(dt);
     updateChests(dt, moving);
     updateTraps(dt);
+    updatePlague(dt);
+    updateFx(dt);
     updateHeldGear(dt, now, moving);
 
     // The closer a creature is, the faster the heart beats.
@@ -1162,7 +1179,7 @@ export function animate(): void {
     }
     // Told once on arrival. The check runs every frame, so warning here without
     // the edge test would replace every other message in the game.
-    else if (atPortal && !state.atPortal) showMsg('The portal is sealed — find the key');
+    else if (atPortal && !state.atPortal) showMsg(sealedLine());
     state.atPortal = atPortal;
     if (state.hasMap) drawMinimap();
   }

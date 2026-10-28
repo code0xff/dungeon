@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 import { LIGHT_DIM, MAX_HP } from './config';
 import type {
-  Arena, Chest, DungeonRoom, ImpactKind, Looting, Maze, Monster, Prop, Sconce, Shrine, Trap, Ward, WeaponKind,
+  Arena, Chest, DungeonRoom, GoalKind, ImpactKind, Lever, Looting, Maze, Monster, Page, Prop, Sconce, Shrine, Trap, Ward,
+  WeaponKind,
 } from './types';
 
 /**
@@ -204,6 +205,18 @@ export const state = {
   boss: null as Monster | null,
   /** The guardian's fall has been answered — key handed over, bar taken down. */
   bossDown: false,
+  /** A sealed stage's levers; empty on any other. See levers.ts. */
+  levers: [] as Lever[],
+  /** The lever in reach, if any, for the prompt. */
+  nearLever: null as Lever | null,
+  /** This stage's journal page, if it has one and it has not been read before. */
+  pages: [] as Page[],
+  nearPage: null as Page | null,
+  /**
+   * The stage's optional goal (STAGE_GOALS), what it needs, how far along it
+   * is, and whether it has paid. null in the tutorial, which has no stage.
+   */
+  goal: null as { kind: GoalKind; need: number; have: number; gold: number; done: boolean } | null,
   /** The unused shrine in reach, if any, for the prompt. */
   nearShrine: null as Shrine | null,
   /** Seconds into grinding the blade with a whetstone; -1 when not. */

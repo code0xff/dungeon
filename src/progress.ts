@@ -50,6 +50,11 @@ export interface Progress {
    * mode: dying ends a run, not the save.
    */
   started: boolean;
+  /**
+   * Journal pages found, as indices into JOURNAL (lore.ts). Kept through a
+   * death and a New game alike: dying takes the run, not what was read.
+   */
+  journal: number[];
 }
 
 const KEY = 'dungeon.progress.v1';
@@ -63,6 +68,7 @@ function fresh(): Progress {
     seed: randomSeed(),
     hard: false,
     started: false,
+    journal: [],
   };
 }
 
@@ -87,7 +93,9 @@ export const inTraining = (): boolean => shelved !== null;
 
 /** Starts, or re-equips, a training run at `stage` with `gold` to spend. */
 export function enterTraining(stage: number, hard: boolean, gold: number): void {
-  if (!shelved) shelved = { ...progress };
+  // The journal is copied, not shared: fresh() hands training its own empty
+  // list, and the save's must come back exactly as it went out.
+  if (!shelved) shelved = { ...progress, journal: [...progress.journal] };
   Object.assign(progress, fresh(), {
     stage, hard, bankGold: gold, started: true,
     // Its own dungeon each time it is entered, so the same stage practised
@@ -128,6 +136,9 @@ function merge(raw: unknown): void {
     progress.swordDur = Math.min(SWORD_DUR_MAX, Math.max(0, o.swordDur));
   }
   if (typeof o.hard === 'boolean') progress.hard = o.hard;
+  if (Array.isArray(o.journal)) {
+    progress.journal = o.journal.filter((n): n is number => typeof n === 'number' && Number.isInteger(n) && n >= 0);
+  }
   // A save written before seeds existed has none, and keeping the one fresh()
   // already drew is the right answer: that run gets a seed from here on.
   if (typeof o.seed === 'number' && Number.isFinite(o.seed)) progress.seed = o.seed >>> 0;
@@ -219,7 +230,8 @@ export function bankRun(
  * asks before calling it and names the number it is about to destroy.
  */
 export function resetProgress(): void {
-  Object.assign(progress, fresh());
+  const { journal } = progress;
+  Object.assign(progress, fresh(), { journal });
   saveProgress();
 }
 
@@ -237,7 +249,19 @@ export function loseRun(): void {
   // The mode and the fact of having started survive: a save is one mode for its
   // life. Assigning fresh() whole used to turn hard mode back into normal on
   // the first death, without a word.
-  const { hard, started } = progress;
-  Object.assign(progress, fresh(), { hard, started });
+  const { hard, started, journal } = progress;
+  Object.assign(progress, fresh(), { hard, started, journal });
   saveProgress();
+}
+
+/**
+ * A journal page picked up. Saved at once rather than at the next extraction,
+ * because the page is kept whatever happens next — including dying in the
+ * same corridor. Does nothing in training, whose `progress` is borrowed.
+ */
+export function notePage(entry: number): boolean {
+  if (progress.journal.includes(entry)) return false;
+  progress.journal.push(entry);
+  saveProgress();
+  return true;
 }

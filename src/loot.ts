@@ -15,6 +15,10 @@ import {
 import { setWeapon, startReload } from './weapons';
 import { STEP, taught } from './lesson';
 import { startShrine } from './shrine';
+import { LEVER_NOISE, throwLever } from './levers';
+import { takePage } from './journal';
+import { countGoal } from './goals';
+import { tellLever } from './net/worldsync';
 
 export function startLoot(): void {
   // Not while a ward is going down: the two share one bar and one pair of hands.
@@ -22,6 +26,14 @@ export function startLoot(): void {
   // No chest in reach: the same key uses a landmark room's shrine, and makes
   // the same noise a lid does where the shrine stands.
   if (!state.nearChest) {
+    const lever = state.nearLever;
+    if (lever && throwLever(lever, null)) {
+      const heard = alertCreatures(LEVER_NOISE.radius, LEVER_NOISE.time, lever.x, lever.z);
+      if (heard > 0) showMsg(`The iron rings out... ${heard} heard it`);
+      tellLever(state.levers.indexOf(lever));
+      return;
+    }
+    if (takePage()) return;
     const at = startShrine();
     if (at) alertCreatures(CHEST_ALERT_RADIUS, CHEST_ALERT_TIME, at.x, at.z);
     return;
@@ -76,6 +88,7 @@ export function openChest(c: Chest): void {
   // over the death screen would be answering a question nobody is asking.
   if (state.gameOver) return;
   state.runGold += c.value;
+  countGoal('loot');
   let msg = `+${c.value} G`;
 
   switch (c.item) {

@@ -54,7 +54,10 @@
 // 16: boss levels carve an arena, move the key from a chest to the guardian,
 // and keep the orc and the Black Knight out of earlier levels. No message
 // changed shape; the dungeon a seed makes did.
-export const PROTOCOL_VERSION = 16;
+// 17: sealed levels and their `lever` event, two new creatures in the spawn
+// mix, a third guardian on level 15, and journal pages and levers placed
+// after the arena — every seed lays out a different dungeon again.
+export const PROTOCOL_VERSION = 17;
 
 /** The port the host listens on for both the game page and the socket. */
 export const COOP_PORT = 5848;
@@ -208,7 +211,9 @@ export type WorldEvent =
   /** A ward was set down. `i` is its position, packed by packWard(). */
   | 'ward'
   /** A landmark room's shrine was used. `i` is its index in state.shrines. */
-  | 'shrine';
+  | 'shrine'
+  /** A sealed stage's lever was thrown. `i` is its index in state.levers. */
+  | 'lever';
 
 /**
  * A ward's position in a world event's one integer: quarter-metre precision,

@@ -1,8 +1,11 @@
 import * as THREE from 'three';
 import {
-  ARENA_LIGHT, BOSS_CHARGE, BOSS_COMBO, BOSS_DMG, BOSS_HIT_WEIGHT, BOSS_HP, BOSS_REGEN, BOSS_REWARD, BOSS_SCALE, CELL,
-  CREATURE_HIT_WEIGHT, TURN_RATE, WALL_H,
+  ARENA_LIGHT, ATTACK_IMPACT, BOSS_CHARGE, BOSS_COMBO, BOSS_DMG, BOSS_HIT_WEIGHT, BOSS_HP, BOSS_REGEN, BOSS_REWARD,
+  BOSS_SCALE, BOSS_SLAM, CELL, CREATURE_HIT_WEIGHT, FALLBACK_ATTACK_TIME, TURN_RATE, WALL_H,
 } from './config';
+import { clipDuration, setAnim } from './assets';
+import { shockwave } from './fx';
+import { GUARDIAN_EPITAPH } from './lore';
 import { ironMat } from './creatures';
 import { el, firstChild, queryChild } from './dom';
 import { inArena } from './dungeon';
@@ -22,8 +25,9 @@ import type { CreatureType, Monster } from './types';
 //
 //   it is bigger and heavier   bossType(), and hitWeight() for how blows move it
 //   it keeps to its arena      leashed: nobody inside, it walks home and heals
-//   it has a move of its own   the orc's charge here; the knight's combination
-//                              in startAttack(), where every swing begins
+//   it has a move of its own   the orc's charge and the colossus's slam here;
+//                              the knight's combination in startAttack(),
+//                              where every swing begins
 //
 // Everything here runs on the creature authority only, except the bar and the
 // key, which every client derives from the hp the authority reports.
@@ -119,11 +123,12 @@ function stepToward(m: Monster, tx: number, tz: number, step: number): number {
  *
  * Returns the metres it moved when it has handled this frame itself, or -1 to
  * let the ordinary chase-and-swing run — which is most of the fight. `strike`
- * lands a blow on the target, however the caller resolves that.
+ * lands a blow on the target, however the caller resolves that; `through`
+ * says no shield takes it.
  */
 export function bossStep(
   m: Monster, dt: number, tgt: { x: number; z: number; dist: number }, attacking: boolean,
-  strike: (dmg: number) => void,
+  strike: (dmg: number, through: boolean) => void,
 ): number {
   const t = m.type;
   m.chargeCd = Math.max(0, m.chargeCd - dt);
@@ -141,6 +146,7 @@ export function bossStep(
     return moved;
   }
 
+  if (m.key === 'colossus') return slamStep(m, dt, tgt, attacking, strike);
   if (m.key !== 'orc') return -1;
 
   // ---- The orc's charge ----
@@ -176,13 +182,55 @@ export function bossStep(
   const hit = tgt.dist < t.reach * 0.8;
   // A wall stops it: anything under a third of a stride means it ran into one.
   if (hit || moved < step * 0.3 || m.chargeT <= 0) {
-    if (hit) strike(t.dmg * BOSS_CHARGE.dmg);
+    if (hit) strike(t.dmg * BOSS_CHARGE.dmg, false);
     m.chargePhase = 0;
     m.chargeCd = BOSS_CHARGE.cd;
     // Not straight into a swing off the end of a run.
     m.atkCd = Math.max(m.atkCd, 0.6);
   }
   return moved;
+}
+
+/**
+ * The colossus's slam: planted, rearing on its own attack clip slowed to last
+ * the windup, then the floor. Returns as bossStep() does.
+ *
+ * The clip is what tells it, so `attackT` is set for the whole of it — that is
+ * what keeps animLoaded() from cutting back to idle half way up.
+ */
+function slamStep(
+  m: Monster, dt: number, tgt: { x: number; z: number; dist: number }, attacking: boolean,
+  strike: (dmg: number, through: boolean) => void,
+): number {
+  const t = m.type;
+  if (m.chargePhase === 0) {
+    if (attacking || m.flinchT > 0 || m.chargeCd > 0 || tgt.dist > BOSS_SLAM.range) return -1;
+    m.chargePhase = 1;
+    m.chargeT = BOSS_SLAM.windup;
+    const clip = (m.playback ? clipDuration(m.playback, 'attack') : null) ?? FALLBACK_ATTACK_TIME;
+    // Slowed so the blow in the clip lands as the windup ends.
+    const speed = (clip * ATTACK_IMPACT) / BOSS_SLAM.windup;
+    m.attackT = clip / speed;
+    m.pendingHit = null;
+    m.swingSeq++;
+    if (m.playback) setAnim(m.playback, 'attack', { loop: false, force: true, fade: 0.08, speed });
+    sfxCreature(t.voice * 0.7, 1, 0, m.mesh.position);
+  }
+  m.moving = false;
+  m.chargeT -= dt;
+  if (m.chargeT > 0) {
+    // It turns while it rears, slowly: it is aiming at where you are, and the
+    // radius is wide enough that being behind it is not enough.
+    const dx = tgt.x - m.mesh.position.x, dz = tgt.z - m.mesh.position.z;
+    m.mesh.rotation.y = turnToward(m.mesh.rotation.y, Math.atan2(dx, dz), TURN_RATE * 0.4 * dt);
+    return 0;
+  }
+  m.chargePhase = 0;
+  m.chargeCd = BOSS_SLAM.cd;
+  m.atkCd = Math.max(m.atkCd, 0.8);
+  shockwave(m.mesh.position.x, m.mesh.position.z, BOSS_SLAM.radius, 0xe8d8b0);
+  if (tgt.dist < BOSS_SLAM.radius) strike(t.dmg * BOSS_SLAM.dmg, true);
+  return 0;
 }
 
 /**
@@ -212,7 +260,8 @@ export function updateBoss(): void {
     // The key is the party's, like the chest key it replaces: one portal.
     state.hasKey = true;
     setPortalOpen(true);
-    showMsg(`The ${b.type.name} falls — it carried the key.\nThe portal is open`);
+    const epitaph = GUARDIAN_EPITAPH[b.key];
+    showMsg(`The ${b.type.name} falls — it carried the key.\n${epitaph ?? 'The portal is open'}`);
   }
   const show = b.hp > 0 && inArenaAt(state.pos.x, state.pos.z);
   bar.classList.toggle('show', show);

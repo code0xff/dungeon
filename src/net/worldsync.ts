@@ -14,6 +14,7 @@ import { packWard, unpackWard } from './protocol';
 import type { WorldEvent } from './protocol';
 import { dropWard } from '../ward';
 import { applyShrineEvent } from '../shrine';
+import { LEVER_NOISE, throwLever } from '../levers';
 import { coop } from './session';
 
 /**
@@ -152,6 +153,11 @@ export function tellShot(): void {
   tell('shot', 0);
 }
 
+/** A lever was thrown. The seal is the party's, like the key. */
+export function tellLever(i: number): void {
+  tell('lever', i);
+}
+
 /** A ward went down. What one player knows they have searched, the party has. */
 export function tellWard(x: number, z: number): void {
   tell('ward', packWard(x, z));
@@ -199,6 +205,14 @@ onNetEvent((k, i, by) => {
 
   if (k === 'shrine') {
     applyShrineEvent(i, nameOf(by));
+    return;
+  }
+
+  if (k === 'lever') {
+    const l = state.levers[i];
+    // The noise is heard from the lever on every copy of the dungeon, as a
+    // chest's creak is; only the authority's alert moves anything.
+    if (l && throwLever(l, nameOf(by))) alertCreatures(LEVER_NOISE.radius, LEVER_NOISE.time, l.x, l.z);
     return;
   }
 
