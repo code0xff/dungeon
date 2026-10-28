@@ -51,9 +51,10 @@
  * cannot read, which here would have meant every party total discarded by a
  * filter reading a field the sender never sent.
  */
-// Landmark rooms change the seeded floor plan and content placement. Old
-// clients must not share a run even though the message shapes are unchanged.
-export const PROTOCOL_VERSION = 15;
+// 16: boss levels carve an arena, move the key from a chest to the guardian,
+// and keep the orc and the Black Knight out of earlier levels. No message
+// changed shape; the dungeon a seed makes did.
+export const PROTOCOL_VERSION = 16;
 
 /** The port the host listens on for both the game page and the socket. */
 export const COOP_PORT = 5848;

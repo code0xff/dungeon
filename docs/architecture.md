@@ -34,7 +34,7 @@ Imports mostly flow downward:
 main                                     entry
 menu  mode  tutorial                     title, pause menu, mode picker, the lesson
 loop                                     frame loop, creature AI
-world  input  combat  loot  weapons  view  ward  net/*   systems
+world  input  combat  loot  weapons  view  ward  boss  net/*   systems
 props                                    world content built from assets
 assets                                   external model and texture loading
 scene  ui  shop  guide  lesson  textures  dungeon   presentation and generation
@@ -510,6 +510,34 @@ comment above the poses in `loop.ts` for how that measurement goes wrong.
 sprayed from the struck side back toward the attacker so it hangs in front of
 the body. Unlit because a light per hit would recompile every lit shader, the
 same reason a ward has none.
+
+## Bosses
+
+`BOSS_STAGES` names a guardian for the last stage of each five-stage chapter.
+Three pieces, kept apart so co-op needs no new message:
+
+- **The arena is part of the maze.** `generateDungeon(..., arena)` opens a
+  `ARENA_SIZE` square in the far corner, where the exit always is, and rings it
+  with wall. It draws nothing from the RNG and runs after every draw, so the
+  rest of the dungeon is identical with or without it, and the host rebuilds it
+  with the same call (`bossFor(level)`). The ring cuts the maze tree, so
+  `carveArena()` re-floods and opens the ring wherever it separates reachable
+  floor from unreachable — on 8000 seeds that leaves 2 to 5 ways in and nothing
+  stranded. The far-corner landmark lands inside the arena and is dropped.
+- **The guardian is an ordinary creature with `boss` set**, spawned after the
+  field so its index is the same on every client. `bossType()` scales the stats,
+  `hitWeight()` the shove and flinch. `bossStep()` runs before the chase on the
+  authority: leashed to the arena (home and heal when nobody is in it), and the
+  orc's charge. The Black Knight's combination lives in `startAttack()` through
+  `comboCooldown()`, because every swing starts there.
+- **The key and the bar follow from hp.** `updateBoss()` runs on every client
+  and hands over the key the frame the guardian's hp reaches 0 — from its own
+  simulation or from the authority's snapshot or kill message. The chests hold
+  no key on a boss stage, and hard mode's single chest is not placed at all.
+
+The arena has one light of its own (`ARENA_LIGHT`) rather than torches on its
+walls: the player's light does not reach across it, and each point light is a
+cost on every lit surface.
 
 ## Training
 

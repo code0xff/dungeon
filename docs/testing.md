@@ -160,6 +160,22 @@ extracted, not the code that shipped.
 - Die: the counter reopens on the same stage. Extract: on the next one down.
   Quit from the pause menu: the save is back and the title offers its own stage.
 
+## Boss stages
+
+- Training at stage 5 and 10: the objective card names the guardian, there is
+  no key chest (and in hard mode no chest), and the orc or Black Knight stands
+  under the candle ring in the far corner. Walking in shows its bar.
+- The orc's charge: stand 8m off — it plants for `BOSS_CHARGE.windup`, runs,
+  and stops at reach. Measured: 0.75s, then 6m in half a second, one hit of
+  `dmg × BOSS_CHARGE.dmg`. A sidestep during the windup makes it miss.
+- The Black Knight: three swings about 0.87s apart, then a 2.3s rest.
+- Step out of the arena: the guardian walks to the middle and heals at
+  `BOSS_REGEN`; the bar hides. Kill it: the key, the open portal and the
+  message arrive together.
+- Stages 4, 6 and 11: no arena, one key chest; orcs from 6, knights from 11.
+- The maze: run the arena flood over thousands of seeds at levels 5 and 10
+  (nothing unreachable, the exit reachable, the RNG's next value unchanged).
+
 ## Measuring frame time
 
 Press `P` (or Settings → Performance overlay) for the numbers, and read the

@@ -4,11 +4,12 @@ import { clearSpatialAudio } from './audio';
 import { floorPBR, spawnCreature, wallPBR } from './assets';
 import {
   BEYOND_DMG, BEYOND_HP, BEYOND_REWARD, BLACK_KNIGHT_SHADE, CEIL_TILES_PER_CELL, CELL, CHEST_COUNT, CHEST_ITEMS, CHEST_SAFE_ITEMS,
-  CHEST_TRAP_FRAC, EYE_H, FINAL_STAGE, MAX_HP, SWORD_DUR_MAX,
+  BOSS_SCALE, CHEST_TRAP_FRAC, EYE_H, FINAL_STAGE, MAX_HP, SWORD_DUR_MAX,
   FLOOR_TILES_PER_CELL, PLAYER_R, REF_FLOOR_CELLS, SCALE_VARIANCE, SPAWN, SPAWN_PEAK_STAGE,
   SPEED_VARIANCE, TRAP_COUNT, TRAP_JITTER, TUTORIAL_KIT, TUTORIAL_ROOM, TUTORIAL_SEED, TYPES, WALL_H,
 } from './config';
-import { dungeonSize, generateDungeon } from './dungeon';
+import { arenaBounds, bossFor, dungeonSize, generateDungeon } from './dungeon';
+import { bossType, buildArenaLight } from './boss';
 import { createChest, makeSconce, makeTrap, rollProp } from './props';
 import { clipDuration, setAnim } from './assets';
 import { progress } from './progress';
@@ -24,7 +25,7 @@ import { random, setSeed, mixSeed, shuffle } from './rng';
 import { state } from './state';
 import { ceilTex, floorTex, wallTex } from './textures';
 import type { CreatureKey, CreatureType, GridCell, ItemKind, Monster } from './types';
-import { cancelLoot, drinkBarEl, minimapEl, objectiveEl, overlayEl, updateHUD, wpnBtn } from './ui';
+import { cancelLoot, drinkBarEl, minimapEl, objectiveEl, objectiveLineEl, overlayEl, updateHUD, wpnBtn } from './ui';
 import { pointerLock } from './input';
 import { lockHintEl } from './ui';
 import { setWeapon } from './weapons';
@@ -123,6 +124,9 @@ function clearWorld(): void {
   clearBlood();
   // Rebuilt by buildRooms(); the tutorial room has none, and must not inherit the last dungeon's.
   state.shrines = [];
+  state.arena = null;
+  state.boss = null;
+  state.bossDown = false;
   state.monsters = [];
   state.chests = [];
   state.props = [];
@@ -259,10 +263,12 @@ function spawnOne(key: CreatureKey): void {
 
 /**
  * Puts one creature at a world position and returns it. The dungeon's spawns
- * go through here from a random cell; the tutorial places its own by hand.
+ * go through here from a random cell; the tutorial places its own by hand,
+ * and a boss level its guardian.
  */
-export function spawnAt(key: CreatureKey, wx: number, wz: number): Monster {
-  const t = stageType(key, runLevel(progress.stage));
+export function spawnAt(key: CreatureKey, wx: number, wz: number, boss = false): Monster {
+  const base = stageType(key, runLevel(progress.stage));
+  const t = boss ? bossType(base) : base;
   const sp = spawnCreature(key);
   // Non-null: spawnCreature() always returns a group holding exactly one body.
   const body = sp.mesh.children[0]!;
@@ -285,9 +291,10 @@ export function spawnAt(key: CreatureKey, wx: number, wz: number): Monster {
       }
     });
   }
-  // Vary the size per creature so the crowd stops looking like clones.
+  // Vary the size per creature so the crowd stops looking like clones. A boss
+  // is not one of a crowd; it is drawn at the size its reach was scaled to.
   const scale = rand(SCALE_VARIANCE);
-  sp.mesh.scale.setScalar(scale);
+  sp.mesh.scale.setScalar(boss ? BOSS_SCALE : scale);
   // Start each idle at a different point too, or the horde breathes in unison.
   //
   // Drawn before the branch, not inside it. A creature whose model failed to
@@ -338,6 +345,13 @@ export function spawnAt(key: CreatureKey, wx: number, wz: number): Monster {
     groanT: t.groan[0] + random() * (t.groan[1] - t.groan[0]),
     dead: false,
     deadT: 0,
+    boss,
+    chargePhase: 0,
+    chargeT: 0,
+    chargeCd: 0,
+    chargeX: 0,
+    chargeZ: 0,
+    comboLeft: 0,
   };
   state.monsters.push(m);
   return m;
@@ -347,7 +361,11 @@ function spawnChests(scale: number): void {
   // Hard mode: one chest, the key, never trapped. No map to find and nothing
   // else to open — the dungeon is the maze and the creatures, and the key is
   // the only reason to go anywhere in it.
+  // On a boss level the guardian carries the key, so the chests do not. Hard
+  // mode's single chest held nothing else, so there it is simply not placed.
+  const guarded = state.arena !== null;
   if (coop.active ? coop.hard : progress.hard) {
+    if (guarded) return;
     const [gx, gz] = randomFloorCell(4);
     const c = createChest(20 + ((random() * 60) | 0), false);
     c.mesh.position.set(gx * CELL + (random() - 0.5) * 1.2, 0, gz * CELL + (random() - 0.5) * 1.2);
@@ -359,14 +377,15 @@ function spawnChests(scale: number): void {
   // Never fewer chests than there are guaranteed items: CHEST_ITEMS is ordered
   // with the key first because the run cannot end without it, and a dungeon too
   // small to hold the list would have indexed off the end of the chest array.
-  const count = Math.max(CHEST_ITEMS.length, Math.round(CHEST_COUNT * scale));
+  const items = guarded ? CHEST_ITEMS.filter((it) => it !== 'key') : CHEST_ITEMS;
+  const count = Math.max(items.length, Math.round(CHEST_COUNT * scale));
   // Which chest holds which item is settled *before* the chests are built,
   // because a chest is trapped at construction — the tell goes on the lid then
   // — and the one that will hold the key has to be built untrapped. See
   // CHEST_SAFE_ITEMS for why that one and not the rest.
   const order = shuffle(Array.from({ length: count }, (_, i) => i));
   const itemAt = new Map<number, ItemKind>();
-  CHEST_ITEMS.forEach((it, i) => itemAt.set(order[i], it));
+  items.forEach((it, i) => itemAt.set(order[i], it));
   for (let i = 0; i < count; i++) {
     const [gx, gz] = randomFloorCell(4);
     const item = itemAt.get(i) ?? null;
@@ -458,6 +477,10 @@ function placeSconces(): void {
  * anyone could read it.
  */
 export function showObjective(): void {
+  // The first line is the level's goal, and a boss level's is not a chest.
+  objectiveLineEl.innerHTML = state.boss
+    ? `Kill the <span class="item">${state.boss.type.name}</span> guarding the portal — it carries the key`
+    : 'Loot chests for the <span class="item">key</span> — the exit will not open without it';
   objectiveEl.style.opacity = '1';
   if (guideTimer !== null) clearTimeout(guideTimer);
   guideTimer = setTimeout(() => {
@@ -496,10 +519,12 @@ export function buildWorld(): void {
   state.gw = gw;
   state.gh = gh;
   state.rooms = [];
+  const boss = state.tutorial ? null : bossFor(level);
   state.maze = state.tutorial
     ? Array.from({ length: gh }, (_, z) => Array.from({ length: gw }, (_, x) =>
       (x === 0 || z === 0 || x === gw - 1 || z === gh - 1 ? 1 : 0)))
-    : generateDungeon(gw, gh, state.rooms);
+    : generateDungeon(gw, gh, state.rooms, boss !== null);
+  state.arena = boss ? arenaBounds(gw, gh) : null;
   state.exitCell = { x: gw - 2, z: gh - 2 };
   state.maze[state.exitCell.z][state.exitCell.x] = 0;
 
@@ -513,6 +538,12 @@ export function buildWorld(): void {
     for (let z = room.z; z < room.z + room.size; z++) {
       for (let x = room.x; x < room.x + room.size; x++) claimed.add(cellKey(x, z));
     }
+  }
+  // The arena is the guardian's. A chest in it would be looted mid-fight, and
+  // a field creature in it would be a second boss nobody announced.
+  const a = state.arena;
+  if (a) {
+    for (let z = a.z0; z <= a.z1; z++) for (let x = a.x0; x <= a.x1; x++) claimed.add(cellKey(x, z));
   }
 
   buildGeometry();
@@ -529,6 +560,14 @@ export function buildWorld(): void {
   // the pack, and a trap under the first step would teach the wrong thing.
   if (!state.tutorial) {
     spawnMonsters(scale);
+    // After the field, so its index is the same on every client — mobsync
+    // addresses creatures by their place in the array.
+    if (boss && a) {
+      state.boss = spawnAt(boss, ((a.x0 + a.x1) / 2) * CELL, ((a.z0 + a.z1) / 2) * CELL, true);
+      const light = buildArenaLight();
+      scene.add(light);
+      state.props.push({ object: light, swing: null });
+    }
     spawnChests(scale);
     placeTraps(scale);
     furnishRooms(state.rooms, state.chests, state.monsters, coop.active ? coop.hard : progress.hard);

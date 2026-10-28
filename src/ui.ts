@@ -23,6 +23,8 @@ const slotsEl = el('slots');
 export const msgEl = el('msg');
 export const vignetteEl = el('vignette');
 export const objectiveEl = el('objective');
+/** The objective card's first line, which says what this level's key is behind. */
+export const objectiveLineEl = el('objectiveLine');
 export const overlayEl = el('overlay');
 export const promptEl = el('prompt');
 export const lootBarEl = el('lootBar');

@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { LIGHT_DIM, MAX_HP } from './config';
 import type {
-  Chest, DungeonRoom, ImpactKind, Looting, Maze, Monster, Prop, Sconce, Shrine, Trap, Ward, WeaponKind,
+  Arena, Chest, DungeonRoom, ImpactKind, Looting, Maze, Monster, Prop, Sconce, Shrine, Trap, Ward, WeaponKind,
 } from './types';
 
 /**
@@ -199,6 +199,11 @@ export const state = {
   wardMarks: [] as Ward[],
   /** The landmark rooms' interactables in this dungeon. See shrine.ts. */
   shrines: [] as Shrine[],
+  /** A boss level's arena and its guardian; null on an ordinary stage. See boss.ts. */
+  arena: null as Arena | null,
+  boss: null as Monster | null,
+  /** The guardian's fall has been answered — key handed over, bar taken down. */
+  bossDown: false,
   /** The unused shrine in reach, if any, for the prompt. */
   nearShrine: null as Shrine | null,
   /** Seconds into grinding the blade with a whetstone; -1 when not. */

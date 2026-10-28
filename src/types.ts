@@ -11,6 +11,16 @@ export interface DungeonRoom {
   z: number;
   size: number;
 }
+/**
+ * A boss stage's arena: the open floor, in grid cells, inclusive at both ends.
+ * The ring of wall around it sits one cell outside. See carveArena().
+ */
+export interface Arena {
+  x0: number;
+  z0: number;
+  x1: number;
+  z1: number;
+}
 export interface Settings {
   mouseSensitivity: number;
   touchSensitivity: number;
@@ -277,6 +287,20 @@ export interface Monster {
   dead: boolean;
   /** Seconds until removal from the scene. */
   deadT: number;
+  /** A level's guardian rather than a field creature. See boss.ts. */
+  boss: boolean;
+  /**
+   * The orc's charge: 0 not charging, 1 planted and winding up, 2 running.
+   * `chargeT` is the time left in the phase, `chargeCd` until the next, and
+   * `chargeX/Z` the direction it committed to. See BOSS_CHARGE.
+   */
+  chargePhase: 0 | 1 | 2;
+  chargeT: number;
+  chargeCd: number;
+  chargeX: number;
+  chargeZ: number;
+  /** Blows left in the Black Knight's combination. See BOSS_COMBO. */
+  comboLeft: number;
 }
 
 // ================= Chests and props =================

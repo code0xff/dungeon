@@ -230,6 +230,19 @@ an order can answer. The claim is a lease, not a fact, because a client that
 dies mid-loot never says so and a chest nobody can ever open again is worse
 than a rare double payout.
 
+## Boss stages
+
+Nothing about a guardian is sent that is not sent for any creature. The arena
+is carved from the seed by every client and by the host. The guardian is the
+last creature spawned, so its index matches everywhere. The key is derived:
+each client hands it over when the guardian's hp reaches 0, however that hp
+arrived. Protocol 16 marks the change in what a seed builds.
+
+The charge is simulated by the authority alone, like every move. Followers see
+it as a creature standing still and then running, which is what it is; the
+bellow that announces it is played only on the authority's machine, because
+sounds are not sent.
+
 ## Where the host does not trust the client
 
 Poses are checked against the maze. The host rebuilds it from the same seed and

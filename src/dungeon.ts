@@ -4,10 +4,28 @@
 // resolves it either way, so `npm run build` passes and the host dies at
 // startup — which is exactly how this was found.
 import {
-  LANDMARK_KINDS, LANDMARK_SIZE, MAZE_ASPECT, MAZE_CELLS_PEAK, MAZE_CELLS_START, REF_FLOOR_CELLS, ROOM_COUNT, SPAWN_PEAK_STAGE,
+  ARENA_SIZE, BOSS_STAGES, LANDMARK_KINDS, LANDMARK_SIZE, MAZE_ASPECT, MAZE_CELLS_PEAK, MAZE_CELLS_START, REF_FLOOR_CELLS, ROOM_COUNT, SPAWN_PEAK_STAGE,
 } from './config.ts';
 import { random } from './rng.ts';
-import type { DungeonRoom, GridCell, Maze, PathWorkspace } from './types';
+import type { Arena, CreatureKey, DungeonRoom, GridCell, Maze, PathWorkspace } from './types';
+
+/** The creature guarding this level's portal, or null on an ordinary stage. */
+export function bossFor(level: number): CreatureKey | null {
+  return BOSS_STAGES[level] ?? null;
+}
+
+/**
+ * Where a boss stage's arena is: the far corner, where the exit always is, so
+ * the portal stands inside it and the guardian is standing in front of it.
+ * Purely a function of the grid size, so nothing has to send it anywhere.
+ */
+export function arenaBounds(gw: number, gh: number): Arena {
+  return { x0: gw - 1 - ARENA_SIZE, z0: gh - 1 - ARENA_SIZE, x1: gw - 2, z1: gh - 2 };
+}
+
+export function inArena(a: Arena, gx: number, gz: number): boolean {
+  return gx >= a.x0 && gx <= a.x1 && gz >= a.z0 && gz <= a.z1;
+}
 
 /**
  * Grid dimensions for a stage, walls included, so both come out odd.
@@ -43,7 +61,7 @@ export function dungeonSize(stage: number): { gw: number; gh: number } {
  *
  * Returns maze[z][x] — 0 is floor, 1 is wall.
  */
-export function generateDungeon(gw: number, gh: number, landmarks?: DungeonRoom[]): Maze {
+export function generateDungeon(gw: number, gh: number, landmarks?: DungeonRoom[], arena = false): Maze {
   const g: Maze = Array.from({ length: gh }, () => Array<number>(gw).fill(1));
   const stack: GridCell[] = [[1, 1]];
   g[1][1] = 0;
@@ -86,7 +104,80 @@ export function generateDungeon(gw: number, gh: number, landmarks?: DungeonRoom[
       for (let x = x0; x < x0 + w && x < gw - 1; x++) g[z][x] = 0;
     }
   }
+  if (arena) {
+    const a = arenaBounds(gw, gh);
+    carveArena(g, a);
+    // The far-corner landmark was carved where the arena now is. Its room is
+    // gone, so its metadata goes too: a boss stage has one landmark fewer.
+    // After every draw, so the stream is the same with the arena as without.
+    if (landmarks) {
+      for (let i = landmarks.length - 1; i >= 0; i--) {
+        const r = landmarks[i];
+        if (r.x + r.size > a.x0 - 1 && r.z + r.size > a.z0 - 1) landmarks.splice(i, 1);
+      }
+    }
+  }
   return g;
+}
+
+/**
+ * Opens the arena and walls it off, leaving it a room with a few ways in.
+ *
+ * Draws nothing from the RNG, so a boss stage's maze outside the arena is the
+ * one the same seed carves on any stage, and the host can rebuild it with the
+ * same call.
+ *
+ * The ring cuts the maze, and the maze is a tree, so cutting it can strand a
+ * branch that only ever connected through the corner. Two gates are opened in
+ * the middle of the two inner sides; then, wherever the ring is all that
+ * separates floor the start reaches from floor it does not, it gets another
+ * gate. That covers both ways round: a stranded branch outside, and the arena
+ * itself when the gates happen to open onto a stranded branch — which is why
+ * the test is "the two sides disagree", not "the outside is unreached".
+ * Without it a seed now and then sealed the key's chest, a player, or the
+ * portal out of the dungeon.
+ */
+function carveArena(g: Maze, a: Arena): void {
+  const rx = a.x0 - 1, rz = a.z0 - 1;
+  for (let z = a.z0; z <= a.z1; z++) for (let x = a.x0; x <= a.x1; x++) g[z][x] = 0;
+  for (let z = rz; z <= a.z1; z++) g[z][rx] = 1;
+  for (let x = rx; x <= a.x1; x++) g[rz][x] = 1;
+  const mid = (ARENA_SIZE - 1) / 2;
+  g[a.z0 + mid][rx] = 0;
+  g[rz][a.x0 + mid] = 0;
+  // Each pass opens one wall cell and re-floods, so it ends: there are only
+  // 2 * ARENA_SIZE ring cells to open.
+  for (;;) {
+    const reached = flood(g);
+    const split = (ox: number, oz: number, rx2: number, rz2: number, ix: number, iz: number): boolean =>
+      g[rz2][rx2] === 1 && g[oz][ox] === 0 && reached[oz][ox] !== reached[iz][ix];
+    let opened = false;
+    for (let z = a.z0; z <= a.z1 && !opened; z++) {
+      if (split(rx - 1, z, rx, z, a.x0, z)) { g[z][rx] = 0; opened = true; }
+    }
+    for (let x = a.x0; x <= a.x1 && !opened; x++) {
+      if (split(x, rz - 1, x, rz, x, a.z0)) { g[rz][x] = 0; opened = true; }
+    }
+    if (!opened) return;
+  }
+}
+
+/** Every floor cell reachable from the start. */
+function flood(g: Maze): boolean[][] {
+  const seen = g.map((row) => row.map(() => false));
+  const stack: GridCell[] = [[1, 1]];
+  seen[1][1] = true;
+  while (stack.length) {
+    // Non-null: the loop condition is that the stack is not empty.
+    const [x, z] = stack.pop()!;
+    for (const [dx, dz] of pathDirections) {
+      const nx = x + dx, nz = z + dz;
+      if (g[nz]?.[nx] !== 0 || seen[nz][nx]) continue;
+      seen[nz][nx] = true;
+      stack.push([nx, nz]);
+    }
+  }
+  return seen;
 }
 
 const pathWorkspaces = new WeakMap<Maze, PathWorkspace>();

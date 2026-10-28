@@ -3,7 +3,7 @@ import { clipDuration, flashLoadedMesh, gait, setAnim } from './assets';
 import { audioReady, lastBeat, setLastBeat, sfxCreature, sfxFootstep, sfxHeartbeat, sfxReloadStep, updateSpatialAudio } from './audio';
 import {
   ATTACK_IMPACT, ATTACK_IMPACT_REACH, CELL, CHEST_LID_OPEN, CREATURE_DRAW_DISTANCE,
-  CREATURE_HIT_LEAN, CREATURE_HIT_TIME, CREATURE_HIT_WEIGHT, SWING_CONTACT_HOLD,
+  CREATURE_HIT_LEAN, CREATURE_HIT_TIME, SWING_CONTACT_HOLD,
   CREATURE_STEP, SPATIAL_AUDIO,
   DASH_ROLL, DASH_SPEED, DASH_TIME, EYE_H, GROUND_SPEED_SMOOTH,
   FALLBACK_ATTACK_TIME, GEAR_BOB, GEAR_BOB_ROLL, LAMP_SWAY, LAMP_SWAY_LAG,
@@ -43,6 +43,7 @@ import { state } from './state';
 import { settings } from './settings';
 import { updateFeedback } from './feedback';
 import { perfBegin, perfEnd } from './perf';
+import { bossStep, comboCooldown, hitWeight, updateBoss } from './boss';
 import { collides } from './world';
 import type {
   ClipName, CreatureRig, Monster, MonsterPlayback } from './types';
@@ -88,7 +89,7 @@ function hitReaction(m: Monster, dt: number): void {
   const e = 1 - m.recoilT / HIT_RECOIL_TIME;
   const shape = m.recoilT <= 0 ? 0
     : e < 0.25 ? Math.sin((e / 0.25) * (Math.PI / 2)) : Math.cos(((e - 0.25) / 0.75) * (Math.PI / 2));
-  const amount = HIT_RECOIL * CREATURE_HIT_WEIGHT[m.key] * shape;
+  const amount = HIT_RECOIL * hitWeight(m) * shape;
   const c = Math.cos(m.mesh.rotation.y), sn = Math.sin(m.mesh.rotation.y);
   const wx = m.recoilX * amount, wz = m.recoilZ * amount;
   m.body.position.x = m.bodyBase.x + (wx * c - wz * sn);
@@ -101,7 +102,7 @@ function hitReaction(m: Monster, dt: number): void {
   // Half the lean under a flinch clip: the clip is already rocking the body,
   // and the full lean on top folds it in half. See FLINCH_LEAN_ACTED.
   const acted = m.flinchT > 0 && !!m.playback?.clips.stagger;
-  m.mesh.rotation.x = -CREATURE_HIT_LEAN * CREATURE_HIT_WEIGHT[m.key]
+  m.mesh.rotation.x = -CREATURE_HIT_LEAN * hitWeight(m)
     * (acted ? FLINCH_LEAN_ACTED : 1) * Math.sin(k * Math.PI);
 }
 
@@ -157,8 +158,9 @@ function startAttack(m: Monster): void {
   m.attackT = dur;
   // The hit lands partway through, as the arm comes down — not at the start.
   m.pendingHit = dur * ATTACK_IMPACT;
-  // Keep the next attack from overlapping before this animation ends.
-  m.atkCd = Math.max(m.type.atkCd, dur);
+  // Keep the next attack from overlapping before this animation ends — unless
+  // it is the Black Knight's combination, which is the next attack on purpose.
+  m.atkCd = comboCooldown(m, dur) ?? Math.max(m.type.atkCd, dur);
   if (m.playback) {
     setAnim(m.playback, 'attack', { loop: false, force: true, fade: 0.08, speed: m.type.attackSpeed });
   }
@@ -468,6 +470,8 @@ function updateMonsters(dt: number, now: number): number {
     // returning at a constant rate like a door closing.
     if (m.staggerT > 0) {
       m.staggerT = Math.max(0, m.staggerT - dt);
+      // A parried charge is over, not paused.
+      m.chargePhase = 0;
       // Alert time still passes through a stagger. Sound is advanced separately
       // for every listener, including clients following network poses.
       m.alert = Math.max(0, m.alert - dt);
@@ -526,7 +530,13 @@ function updateMonsters(dt: number, now: number): number {
     const aggroed = dist < t.aggro || m.alert > 0;
 
     let moved = 0;
-    if (aggroed) {
+    // A guardian may take the frame itself: leashed to its arena, or charging.
+    const own = m.boss ? bossStep(m, dt, tgt, attacking, (d) => {
+      if (tgt.id === 0) playerHurt(d, m);
+      else reportMobHit(mi, tgt.id, d);
+    }) : -1;
+    if (own >= 0) moved = own;
+    else if (aggroed || m.boss) {
       // While attacking it stands still and finishes the animation, and while
       // flinching it stops closing — but only closing: the attack check below
       // is untouched, so a creature already in reach still swings.
@@ -1156,6 +1166,7 @@ export function animate(): void {
     state.atPortal = atPortal;
     if (state.hasMap) drawMinimap();
   }
+  updateBoss();
 
   // Outside the paused/gameOver block: allies keep walking while this player
   // reads the menu or sits on a death screen, and freezing their bodies would

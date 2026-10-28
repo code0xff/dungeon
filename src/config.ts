@@ -1578,21 +1578,104 @@ export const SPAWN: Readonly<Record<CreatureKey, SpawnRate>> = {
   lunatic: { base: 4, perStage: 2.4 },
   brute: { base: 2, perStage: 2.6 },
   /**
-   * The orc takes the stage-3 slot the Black Knight briefly held: one at 3,
-   * one more every two stages, five and a half at the peak. It is the first
-   * creature that is simply dangerous, and it arrives once the shield has been
-   * learned on things that do not punish a missed parry this hard.
+   * Not in the field until the stage after its boss fight (BOSS_STAGES): the
+   * first orc anyone meets is the one guarding the portal on stage 5, and
+   * only once that one is down do they walk the corridors — one at 6, one more
+   * every two stages. It used to arrive at 3 unannounced; a creature that is
+   * simply dangerous lands harder for having been introduced.
    */
-  orc: { base: 1, perStage: 0.5, fromStage: 3 },
+  orc: { base: 1, perStage: 0.5, fromStage: 6 },
   /**
-   * One at stage 5, one more every two stages, four and a half at the peak —
-   * and none at all before 5. It counts from fromStage, so the number does not
-   * have to be smuggled in as a negative base. It was moved to 3 for a while;
-   * with the orc holding that stage it goes back to being the thing the orc
-   * prepares you for.
+   * The same rule as the orc, one chapter on: the boss of stage 10, then a
+   * field creature from 11. It counts from fromStage, so the number does not
+   * have to be smuggled in as a negative base.
    */
-  blackknight: { base: 1, perStage: 0.5, fromStage: 5 },
+  blackknight: { base: 1, perStage: 0.5, fromStage: 11 },
 };
+
+// ---- Bosses ----
+/**
+ * Which creature guards the portal, by stage. The game runs in chapters of
+ * five, and the last stage of each ends in a fight rather than a key in a chest:
+ * the guardian carries the key, and the portal sits in its arena.
+ *
+ * Each boss is a creature the player has not met yet — see `fromStage` in
+ * SPAWN, which keeps it out of the field until the stage after. The fight is
+ * the introduction; the corridors are where it becomes ordinary.
+ */
+export const BOSS_STAGES: Readonly<Record<number, CreatureKey>> = { 5: 'orc', 10: 'blackknight' };
+/**
+ * The arena's floor, in grid cells a side. Odd, so its edge lands on the
+ * maze's own grid and the gates line up with corridors.
+ *
+ * 5 is 20m: room for a 1.75m clearance to circle and charge, small enough that
+ * the far wall is in the lantern's reach and the fight never loses its boss in
+ * the dark.
+ */
+export const ARENA_SIZE = 5;
+/**
+ * A boss is its field creature multiplied: this much health, damage and gold.
+ *
+ * Health does most of the work and is still the least interesting knob — a
+ * zombie with fifty hp is a chore, not a fight. It is high so that a fight
+ * lasts long enough for the pattern (BOSS_CHARGE, BOSS_COMBO) to come round
+ * several times; the pattern is what has to be learned.
+ */
+export const BOSS_HP = 5;
+export const BOSS_DMG = 1.3;
+export const BOSS_REWARD = 5;
+/**
+ * How much bigger a boss is drawn, and so how much further it reaches and how
+ * much room it needs. Reach, body and wall clearance all scale with it, because
+ * a body drawn larger than it hits reads as a cheat in the player's favour.
+ * Clearance must stay under 2 (see CreatureType.clearance): 1.3 puts the Black
+ * Knight at 1.69.
+ */
+export const BOSS_SCALE = 1.3;
+/**
+ * Multiplies CREATURE_HIT_WEIGHT for a boss: how far a blow rocks, shoves and
+ * flinches it. Low, because a guardian walked backwards across its own arena
+ * by an ordinary sword is not a guardian. The parry still staggers it fully —
+ * that is the answer the fight is asking for.
+ */
+export const BOSS_HIT_WEIGHT = 0.35;
+/**
+ * Fraction of its full health a boss recovers per second while nobody is in
+ * its arena. Without it the fight is won from the doorway: shoot, step out,
+ * reload, step back in. Slow enough that leaving to drink a potion costs a few
+ * blows rather than the whole fight.
+ */
+export const BOSS_REGEN = 0.03;
+/**
+ * The orc's charge. It plants itself for `windup` seconds, facing the player —
+ * the tell — then runs straight at where they stood at `speed` times its walk,
+ * for at most `time` seconds, hitting for `dmg` times its blow.
+ *
+ * It runs at where the player *was*, not where they are, and does not turn:
+ * that is what makes a sidestep or a dodge the answer, and a straight retreat
+ * the wrong one. A shield takes it like any blow, and a parry staggers it.
+ * Started between `range` metres, so it is not wasted at arm's length, where
+ * the ordinary swing is the threat.
+ */
+export const BOSS_CHARGE = { range: [4.5, 14] as const, windup: 0.75, speed: 3.2, time: 1.0, dmg: 1.25, cd: 5.5 };
+/**
+ * The Black Knight's combination: `swings` blows back to back, `gap` seconds
+ * apart, then `rest` seconds before the next. The field knight's shield is
+ * up between swings and down during them (TYPES.blackknight.block), so the
+ * combination is both the danger and the opening: parry the last blow of the
+ * three, or block them all and punish the rest.
+ */
+export const BOSS_COMBO = { swings: 3, gap: 0.12, rest: 1.6 };
+/**
+ * The arena's own light: a ring of candles hung over the middle.
+ *
+ * The player's light reaches 11m and the arena is 20m across, so without this
+ * the guardian winds up its charge in the dark and the tell is never seen. One
+ * light, not a torch on every wall: each point light is paid for by every
+ * lit surface in the scene, and a phone notices the fifth one. Warm, so it
+ * reads as the dungeon's fire and not as the green of a sconce someone lit.
+ */
+export const ARENA_LIGHT = { colour: 0xff8a4a, intensity: 3.2, distance: 17, decay: 1.2, hang: 0.55 };
 /**
  * Stage at which the counts stop growing.
  *

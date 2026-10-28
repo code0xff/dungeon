@@ -42,7 +42,7 @@ import {
 // The host builds the same maze the players do, from the same seed, so it can
 // tell a pose that is inside a wall from one that is not. dungeon.ts and rng.ts
 // are pure — no three.js, no DOM — which is what makes this possible at all.
-import { dungeonSize, generateDungeon } from '../src/dungeon.ts';
+import { bossFor, dungeonSize, generateDungeon } from '../src/dungeon.ts';
 import { setSeed } from '../src/rng.ts';
 import type { Maze } from '../src/types.ts';
 
@@ -182,7 +182,9 @@ const WORLD_EVENTS: readonly string[] = ['creak', 'chest', 'trap', 'lantern', 's
 function buildMaze(seed: number, lvl: number): Maze {
   setSeed(seed);
   const { gw, gh } = dungeonSize(lvl);
-  return generateDungeon(gw, gh);
+  // A boss level walls off its arena; leave that out and every player in it is
+  // standing where the host thinks a wall is.
+  return generateDungeon(gw, gh, undefined, bossFor(lvl) !== null);
 }
 
 /**

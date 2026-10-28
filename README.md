@@ -110,8 +110,8 @@ falls back to a box model for it.
 | **Zombie** | 4 | 17 | 2.9 | 13m | 8-16 G | 12 → 49 |
 | **Brute** | 9 | 32 | 2.0 | 13m | 36-74 G | 1 → 29 |
 | **Lunatic** | 3 | 14 | 4.5 | 18m | 20-40 G | 1 → 29 |
-| **Orc** | 10 | 24 | 3.6 | 16m | 72-148 G | 0 → 5, from stage 3 |
-| **Black Knight** | 16 | 34 | 3.6 | 17m | 130-270 G | 0 → 4, from stage 5 |
+| **Orc** | 10 | 24 | 3.6 | 16m | 72-148 G | 0 → 4, from stage 6 — the boss of stage 5 |
+| **Black Knight** | 16 | 34 | 3.6 | 17m | 130-270 G | 0 → 1, from stage 11 — the boss of stage 10 |
 
 The orc hits nearly as hard as a brute at nearly the lunatic's pace: the first thing that
 can neither be walked away from nor traded with, and no trick to it — parry it,
@@ -121,8 +121,21 @@ The Black Knight wears the player's own body and carries a shield: it blocks
 75% of anything that comes at its front, holds the guard when it is not
 swinging, and drops it while staggered — so it is the one creature that has to
 be parried or flanked rather than out-traded. Three clean parries kill it, and
-each one missed costs a third of your health. It arrives at stage 5, after the
-orc has taught the parry on something that does not block.
+each one missed costs a third of your health. It arrives after the orc has
+taught the parry on something that does not block.
+
+**Stages 5 and 10 end in a boss fight.** The game runs in chapters of five, and
+the last stage of each has no key in its chests: the portal stands in a walled
+arena in the far corner, and the guardian standing in front of it carries the
+key. It is the creature the chapter has not shown you yet — the orc at 5, the
+Black Knight at 10 — at five times the health, 1.3 times the damage and size,
+and five times the gold, and barely moved by an ordinary blow. Each has a move
+of its own. The orc plants itself and bellows, then charges at where you stood:
+step aside, dodge, or take it on the shield. The Black Knight swings three
+times in a row and then rests, with its shield down for all three — block the
+combination and punish the rest, or parry into it. Leave the arena and the
+guardian walks back to the middle and heals. Only after its fight does a
+guardian appear in the corridors as an ordinary creature.
 
 **The dungeon grows as well as filling up.** Stage 1 is a 76m maze with 14
 creatures in it; by stage 12 it is 124m and 109, where both stop. Dungeons are

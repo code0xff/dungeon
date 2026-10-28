@@ -4,7 +4,7 @@ import { impact } from './feedback';
 import { bleed } from './blood';
 import {
   ATTACK_BUFFER, ATTACK_CD, ATTACK_RANGE, CORPSE_LINGER, GUARD_ARC, GUARD_LEAK, GUARD_LEAK_HEAVY,
-  BLOCK_ARC, CREATURE_HIT_TIME, CREATURE_HIT_WEIGHT, FLINCH_CLIP_SPEED, FLINCH_TIME, HIT_KICK,
+  BLOCK_ARC, CREATURE_HIT_TIME, FLINCH_CLIP_SPEED, FLINCH_TIME, HIT_KICK,
   HIT_PUSH, HIT_PUSH_REACH, HIT_RECOIL_TIME, BLESS_DEFENCE, WRATH_ATTACK, HIT_KICK_TIME, HURT_DIRECTION_TIME, LUNGE_DMG, LUNGE_WINDOW,
   MUSKET_DMG, MUSKET_RANGE,
   LUNGE_HIT_LIGHT, LUNGE_HIT_TIME, REWARD_SPREAD, STAGGER_PUSH, STAGGER_TIME, staggerSpeed,
@@ -20,6 +20,7 @@ import { state } from './state';
 import type { Monster } from './types';
 import { cancelLoot, cancelShrine, cancelWard, flashHurt, endRun, showMsg, updateHUD } from './ui';
 import { startReload } from './weapons';
+import { hitWeight } from './boss';
 
 /**
  * What one sword hit takes off, scaled by durability.
@@ -58,7 +59,7 @@ function facing(): [fx: number, fz: number] {
  */
 export function flinchCreature(m: Monster, fromX: number, fromZ: number, push: boolean): void {
   if (m.hp <= 0 || m.staggerT > 0) return;
-  const weight = CREATURE_HIT_WEIGHT[m.key];
+  const weight = hitWeight(m);
   const dx = m.mesh.position.x - fromX, dz = m.mesh.position.z - fromZ;
   const d = Math.hypot(dx, dz);
   if (d > 0) {
