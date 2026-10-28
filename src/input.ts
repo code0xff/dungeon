@@ -1,6 +1,6 @@
 import { initAudio, isMuted, setMuted, sfxDash } from './audio';
 import {
-  DASH_CD, GUARD_KEY, LANTERN_KEY, LUNGE_AIM, LUNGE_WINDOW, PARRY_CD, PARRY_WINDOW, POTION_KEY,
+  DASH_CD, GUARD_KEY, LANTERN_KEY, LUNGE_AIM, LUNGE_WINDOW, PARRY_CD, PARRY_WINDOW, PERF_KEY, POTION_KEY,
   SOUND_KEY,
   THIRD_PERSON_KEY, WARD_KEY, WHETSTONE_KEY,
 } from './config';
@@ -17,6 +17,7 @@ import {
 } from './ui';
 import { setWeapon, toggleWeapon } from './weapons';
 import { settings } from './settings';
+import { togglePerf } from './perf';
 
 const PITCH_MAX = 0.7;
 /** This fraction of the screen's left and right edges is the 'edge turn' zone. */
@@ -79,6 +80,8 @@ addEventListener('keydown', (e) => {
   // own listener, so this does not have to know the panel stack.
   // uiOpen as well as paused: co-op leaves the dungeon running while a panel is
   // up, and Space would swing the sword at it from behind the menu.
+  // The overlay too: what a frame costs behind the menu is worth seeing.
+  if (e.code === `Key${PERF_KEY}` && !e.repeat) togglePerf();
   if (state.paused || state.uiOpen) {
     if (e.code === `Key${SOUND_KEY}`) toggleSound();
     return;

@@ -181,6 +181,7 @@ rules, with the detail in [docs/](docs/). `CLAUDE.md` is a symlink to it.
 | Sharpen sword | `6` |
 | Menu | `H` — Resume, Controls, Quit to the title. Pauses while it is open, except in multiplayer |
 | Sound on / off | `M` — remembered between runs |
+| Performance overlay | `P`, or Settings → Performance overlay on a phone — frame time, CPU time, creatures and draw calls |
 | First / third person | `V`, or the eye button at the top — sword only; the musket always aims first-person. Remembered between runs |
 
 **The game opens on a title screen** over the dungeon itself: Continue (or

@@ -459,6 +459,13 @@
      room has no objective, and the centre of the screen is where the zombie
      is. It is the only thing on screen that tells the player what to do, so
      it is plainer than a message and does not fade. */
+  /* Under the top buttons and above everything the game draws, but it never
+     takes a touch: it is read, not used. */
+  #perf { position:fixed; top:calc(58px + env(safe-area-inset-top)); left:50%; transform:translateX(-50%);
+          z-index:30; display:none; margin:0; padding:6px 10px; pointer-events:none;
+          font:11px/1.35 ui-monospace,Menlo,Consolas,monospace; color:#9fe6a0; white-space:pre;
+          background:rgba(0,0,0,.62); border:1px solid rgba(159,230,160,.25); border-radius:4px; }
+  #perf.slow { color:#ffb37a; border-color:rgba(255,179,122,.35); }
   #tutor { position:fixed; top:calc(12px + env(safe-area-inset-top)); right:calc(12px + env(safe-area-inset-right));
            z-index:12; display:none; flex-direction:column; align-items:stretch; gap:10px; width:min(46vw,340px);
            padding:11px 16px; border:1px solid rgba(212,178,90,.35); border-radius:3px;
@@ -583,6 +590,7 @@
 <div id="vignette"></div>
 <div id="grain"></div>
 
+<pre id="perf"></pre>
 <div id="hudCol">
 <div id="hud" class="panel">
   HP

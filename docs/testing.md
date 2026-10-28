@@ -160,6 +160,21 @@ extracted, not the code that shipped.
 - Die: the counter reopens on the same stage. Extract: on the next one down.
   Quit from the pause menu: the save is back and the title offers its own stage.
 
+## Measuring frame time
+
+Press `P` (or Settings → Performance overlay) for the numbers, and read the
+two times against each other: `frame` is what the player feels, `cpu` is the
+script's share of it. High frame with low cpu is the GPU — try render scale.
+Cpu close to frame is the simulation or the draw submissions — creatures and
+`draws`. A desktop says little about a phone; measure on the phone, at a late
+stage, with creatures chasing (`m.alert = 30` on every creature from the
+console reproduces a gunshot that woke the dungeon).
+
+Reference, Apple M-series laptop, stage 15 with all 122 creatures chasing and
+38 in draw distance: 120fps capped, cpu 5.5ms, ~430 draws, ~1.2M triangles.
+The environment alone is 200-400 draws depending on the view, so that, not
+the creature count, is the first thing to look at if a phone struggles.
+
 ## Landmark and settings checks
 
 - Shrines: three registered in normal mode, two in hard (no shelves). The

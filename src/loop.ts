@@ -42,6 +42,7 @@ import {
 import { state } from './state';
 import { settings } from './settings';
 import { updateFeedback } from './feedback';
+import { perfBegin, perfEnd } from './perf';
 import { collides } from './world';
 import type {
   ClipName, CreatureRig, Monster, MonsterPlayback } from './types';
@@ -1086,8 +1087,11 @@ const clock = new THREE.Clock();
 
 export function animate(): void {
   requestAnimationFrame(animate);
+  perfBegin();
   // Clamped so returning from a backgrounded tab does not deliver one enormous dt.
-  const dt = Math.min(clock.getDelta(), 0.05);
+  // The overlay is handed the raw one: a clamped dt would cap every hitch at 50ms.
+  const rawDt = clock.getDelta();
+  const dt = Math.min(rawDt, 0.05);
   const now = performance.now();
 
   // Paused still renders — the guide sits over a live-looking dungeon — but
@@ -1199,4 +1203,5 @@ export function animate(): void {
   if (!state.paused && (!state.gameOver || coop.watching)) updateCreatureAudio(dt);
   updateSpatialAudio(state.pos, state.yaw, state.maze);
   renderFrame();
+  perfEnd(rawDt);
 }

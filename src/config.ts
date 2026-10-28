@@ -586,6 +586,16 @@ export const GUARD_KEY = 'F';
 export const GUIDE_KEY = 'H';
 /** Mutes and unmutes everything. */
 export const SOUND_KEY = 'M';
+/** Shows and hides the performance overlay — the same switch as the setting. */
+export const PERF_KEY = 'P';
+/**
+ * Seconds of frames the performance overlay averages before it redraws.
+ *
+ * Half a second: a single frame's time is noise, and a number that changes
+ * sixty times a second cannot be read. Long enough to settle, short enough
+ * that walking into a room full of creatures shows up while you are in it.
+ */
+export const PERF_WINDOW = 0.5;
 
 /**
  * Master output level, 0..1. Muting sets the same gain node to 0 rather than
@@ -595,7 +605,7 @@ export const MASTER_VOLUME = 0.4;
 /** Defaults preserve the existing view and mix; preferences survive a lost run. */
 export const SETTINGS_DEFAULTS: Settings = {
   mouseSensitivity: 0.0022, touchSensitivity: 0.006, motion: 1,
-  effects: 1, ambience: 1, exposure: 0.95, resolution: 1, fov: 74,
+  effects: 1, ambience: 1, exposure: 0.95, resolution: 1, fov: 74, perfOverlay: 0,
 };
 /** Bounds keep controls useful without allowing invalid camera or audio values. */
 export const SETTINGS_CONTROLS: Record<keyof Settings, { label: string; min: number; max: number; step: number }> = {
@@ -607,6 +617,9 @@ export const SETTINGS_CONTROLS: Record<keyof Settings, { label: string; min: num
   exposure: { label: 'Brightness', min: 0.65, max: 1.5, step: 0.05 },
   resolution: { label: 'Render scale', min: 0.5, max: 1, step: 0.1 },
   fov: { label: 'Field of view', min: 60, max: 95, step: 1 },
+  // A setting rather than only a key, because the device this exists to measure
+  // is a phone, and a phone has no P.
+  perfOverlay: { label: 'Performance overlay', min: 0, max: 1, step: 1 },
 };
 /** Device-pixel cap prevents a high-DPI phone from quadrupling the GPU workload. */
 export const RENDER_PIXEL_CAP = 2;

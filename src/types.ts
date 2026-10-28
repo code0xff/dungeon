@@ -20,6 +20,8 @@ export interface Settings {
   exposure: number;
   resolution: number;
   fov: number;
+  /** 0 or 1. The frame-time overlay; see perf.ts. */
+  perfOverlay: number;
 }
 export type ImpactKind = 'hit' | 'blocked' | 'kill';
 /** Furniture standing in the landmark rooms. See FURNITURE_ASSETS. */

@@ -10,6 +10,7 @@ function refresh(): void {
   for (const [key, row] of rows) {
     row.input.value = String(settings[key]);
     row.output.value = key === 'fov' ? `${settings[key]}°`
+      : key === 'perfOverlay' ? (settings[key] ? 'On' : 'Off')
       : key.endsWith('Sensitivity') ? `${(settings[key] / SETTINGS_DEFAULTS[key]).toFixed(1)}×`
         : `${Math.round(settings[key] * 100)}%`;
   }

@@ -24,6 +24,8 @@ renderer.setSize(innerWidth, innerHeight);
 renderer.setPixelRatio(Math.min(devicePixelRatio, RENDER_PIXEL_CAP) * settings.resolution);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
+// renderFrame() resets the counters itself; see there.
+renderer.info.autoReset = false;
 renderer.toneMappingExposure = settings.exposure;
 onSettingsChange(() => {
   const ratio = Math.min(devicePixelRatio, RENDER_PIXEL_CAP) * settings.resolution;
@@ -471,6 +473,9 @@ export const world: {
 
 /** Two passes: world (layer 0), clear depth, then weapons (layer 1). */
 export function renderFrame(): void {
+  // Reset by hand: the frame is two render() calls, and the automatic reset at
+  // each one left renderer.info describing only the weapon pass.
+  renderer.info.reset();
   renderer.clear();
   camera.layers.set(0);
   renderer.render(scene, camera);
